@@ -10,7 +10,7 @@ https://github.com/bangnt188/le-grande-center.git.
 Sử dụng `component-ui` qua Git submodule tại `packages/ui`, theo dõi nhánh
 `shopping-mall`; commit khởi tạo là `6c0fbff`. Gitlink khóa phiên bản dùng cho
 build, nhánh chỉ xác định nguồn khi chủ động cập nhật. npm workspace liên kết
-package với tên hiện có `@solar/ui`, không cần publish lên npm.
+package với tên hiện có `@mall/ui`, không cần publish lên npm.
 
 Component dùng chung không phụ thuộc dữ liệu, route hay dịch vụ của ứng dụng.
 Theme qua CSS semantic token, không cần server để cung cấp cấu hình giao diện.
@@ -22,7 +22,7 @@ Theme không tải CSS/script từ website tham chiếu. Font cần được ứ
 cấp từ tài nguyên tĩnh đã kiểm tra license. Không commit credentials hoặc `.env`.
 
 Migration: build app trong repo root khi chọn framework, giữ dependency
-`@solar/ui` và import qua các export công khai. Khi cập nhật thư viện, review diff,
+`@mall/ui` và import qua các export công khai. Khi cập nhật thư viện, review diff,
 chạy build/typecheck, rồi commit gitlink mới cùng lockfile nếu dependency thay đổi.
 
 ## Khởi tạo
@@ -48,8 +48,8 @@ Repo hiện chưa có application framework, route, backend hay cấu hình depl
 ## Theme shopping mall
 
 ```tsx
-import "@solar/ui/styles";
-import { Button } from "@solar/ui";
+import "@mall/ui/styles";
+import { Button } from "@mall/ui";
 
 <main data-ui-root data-ui-theme="shopping-mall" data-ui-scheme="dark">
   <Button>Liên hệ tư vấn</Button>

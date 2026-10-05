@@ -5,12 +5,12 @@
   "type": "module",
   "workspaces": ["packages/ui"],
   "scripts": {
-    "build:ui": "npm run build --workspace=@solar/ui",
-    "typecheck:ui": "npm run typecheck --workspace=@solar/ui",
-    "preview:ui": "npm run preview:ui --workspace=@solar/ui",
-    "test:ui": "npm run test --workspace=@solar/ui"
+    "build:ui": "npm run build --workspace=@mall/ui",
+    "typecheck:ui": "npm run typecheck --workspace=@mall/ui",
+    "preview:ui": "npm run preview:ui --workspace=@mall/ui",
+    "test:ui": "npm run test --workspace=@mall/ui"
   },
   "dependencies": {
-    "@solar/ui": "0.1.0"
+    "@mall/ui": "0.1.0"
   }
 }
