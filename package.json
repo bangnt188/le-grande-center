@@ -1,0 +1,16 @@
+{
+  "name": "le-grande-center",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/ui"],
+  "scripts": {
+    "build:ui": "npm run build --workspace=@solar/ui",
+    "typecheck:ui": "npm run typecheck --workspace=@solar/ui",
+    "preview:ui": "npm run preview:ui --workspace=@solar/ui",
+    "test:ui": "npm run test --workspace=@solar/ui"
+  },
+  "dependencies": {
+    "@solar/ui": "0.1.0"
+  }
+}
