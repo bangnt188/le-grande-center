@@ -4,12 +4,13 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "packages/ui"
+    "packages/ui",
+    "packages/backend"
   ],
   "scripts": {
-    "predev": "npm run build:ui",
+    "predev": "npm run build:backend && npm run build:ui",
     "dev": "next dev",
-    "prebuild": "npm run build:ui",
+    "prebuild": "npm run build:backend && npm run build:ui",
     "build": "next build",
     "postbuild": "node scripts/prepare-public-export.mjs",
     "typecheck": "npm run typecheck:ui && tsc --noEmit",
@@ -18,13 +19,17 @@
     "preview:ui": "npm run preview:ui --workspace=@mall/ui",
     "test:ui": "npm run test --workspace=@mall/ui",
     "test:admin": "node --import tsx --test tests/admin-repository.test.ts",
-    "deploy:dev": "node scripts/publish-dev-pages.mjs"
+    "deploy:dev": "node scripts/publish-dev-pages.mjs",
+    "build:backend": "npm run build --workspace=@mall/backend",
+    "typecheck:backend": "npm run typecheck --workspace=@mall/backend",
+    "test:backend": "npm run test --workspace=@mall/backend"
   },
   "dependencies": {
     "@mall/ui": "0.1.0",
     "next": "16.3.6",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "@mall/backend": "0.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
