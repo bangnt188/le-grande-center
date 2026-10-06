@@ -1,12 +1,20 @@
 ---
 name: "Le Grande Centre"
-description: "Existing green and gold identity with a light operational workspace"
+description: "A deep-green mall identity with a calm, precise leasing workspace"
 colors:
   brand-ink: "#002116"
   brand-gold: "#d4af37"
   brand-gold-light: "#e8c84a"
   brand-paper: "#f4f0e4"
   brand-muted: "#b8c2ba"
+  mall-dark-surface: "#001a12"
+  mall-dark-raised: "#0a2a1a"
+  mall-light-canvas: "#faf8f0"
+  mall-light-surface: "#f5f5dc"
+  mall-light-raised: "#ffffff"
+  mall-light-ink: "#1a1a1a"
+  mall-light-muted: "#444444"
+  mall-outline: "#778a7f"
   admin-primary: "#163e2f"
   admin-selection: "#9b7938"
   admin-canvas: "#f5f3eb"
@@ -78,38 +86,40 @@ typography:
     fontSize: "11px"
 rounded:
   admin-chip: "3px"
+  admin-floor-choice: "4px"
   admin-control: "8px"
   admin-panel: "12px"
-  admin-project: "6px"
   brand-control: "0"
 spacing:
   compact-gap: "6px"
   control-gap: "8px"
-  panel-gap: "12px"
-  inspector: "14px"
-  sidebar-inline: "16px"
+  panel-gap: "24px"
+  inspector: "24px"
+  rail-inline: "12px"
+  sidebar-inline: "18px"
   content-inline: "36px"
 components:
   admin-button-primary:
     backgroundColor: "{colors.admin-primary}"
     textColor: "{colors.admin-surface}"
     rounded: "{rounded.admin-control}"
-    padding: "0 16px"
+    padding: "0 12px"
     typography: "{typography.admin-control}"
   admin-button-secondary:
     backgroundColor: "{colors.admin-raised}"
+    textColor: "{colors.admin-ink}"
     rounded: "{rounded.admin-control}"
-    padding: "0 16px"
+    padding: "0 12px"
     typography: "{typography.admin-control}"
   admin-field:
     backgroundColor: "{colors.admin-raised}"
     textColor: "{colors.admin-ink}"
     rounded: "{rounded.admin-control}"
-    padding: "8px 16px"
+    padding: "8px 12px"
   admin-nav-active:
     backgroundColor: "{colors.admin-nav-active}"
     textColor: "{colors.admin-sidebar-accent}"
-    rounded: "{rounded.admin-project}"
+    rounded: "{rounded.admin-control}"
     padding: "9px 11px"
   admin-panel:
     backgroundColor: "{colors.admin-surface}"
@@ -120,7 +130,7 @@ components:
   admin-floor-active:
     backgroundColor: "{colors.admin-floor-active}"
     textColor: "{colors.admin-primary}"
-    rounded: "{rounded.admin-control}"
+    rounded: "{rounded.admin-floor-choice}"
     padding: "9px 10px"
   admin-plan-slot:
     backgroundColor: "{colors.slot-available}"
@@ -132,170 +142,124 @@ components:
 
 **Creative North Star: "A leasing desk"**
 
-The existing public identity uses deep green, gold and editorial serif display type. The admin extends that identity into a light leasing desk: a deep green sidebar, cream working canvas, warm white panels and green actions. Gold marks selection and keyboard focus. These admin colors are route adaptations, not replacements for the shopping-mall brand tokens.
+Le Grande pairs a deep-green mall identity with restrained gold and editorial serif display type. In the admin workspace, that identity becomes a calm leasing desk: a dark green navigation rail, a warm light canvas, pale panels and focused green actions. The admin palette is a scoped product adaptation; it does not replace the public shopping-mall theme.
 
-The working interface is compact and data oriented. Geometry, slot membership and readable text states carry the hierarchy; bordered panels connect the floor plan, register and inspector. Leads and media reuse the same navigation, filtering and inspector structure. The B2B extension opens on a searchable company register and a dossier with overview, request/hold, contract and document sections. Request decisions, linked original slots and appointment records use the same operational frame.
+The workspace treats floor geometry and records as working information. The plan, slot register and inspector stay visually connected; labels carry status meaning alongside color. Company and contract surfaces use the same restrained operational frame. Typography, spacing and state colors support quick scanning without making fixture data look like a confirmed inventory.
 
 **Key Characteristics:**
 
-- Deep green admin sidebar and cream canvas; public identity remains a separate scope.
-- Serif admin page/dossier headings; system sans for data and controls.
-- Text labels accompany status colors; slot records survive grouping.
-- Contained plan scrolling and stacked panels on small screens.
+- Deep green, warm paper and muted gold, with separate public and admin scopes.
+- Editorial serif for public display and admin page titles; sans serif for controls and records.
+- Flat bordered panels, quiet selection fills and explicit text status.
+- Fixed-width geometry with contained scrolling and stacked mobile layouts.
 
-This is a scan of the implemented system, not a new identity proposal. The shared operational frame is supplied by `@mall/ui`; app adapters retain branding, routing and business state. Sources: `packages/ui/src/components/layout/admin-shell.tsx`, `admin-shell.module.css`, `admin-workspace-layout.tsx`, `admin-workspace-layout.module.css`, `src/features/admin/le-grande-admin-shell.tsx`, `packages/ui/docs/admin-layout.md`, `src/app/globals.css`, `packages/ui/styles/themes/shopping-mall.css`, `packages/ui/styles/reset.css`, `src/app/admin-preview/admin-preview.css`, `mall-system.css`, `admin-workspace.tsx`, `b2b-workspace.tsx`, `b2b-workspace.css`, `src/features/admin/b2b-model.ts`, `b2b-commands.ts` and `space-model.ts`. The surface brief stays in `.impeccable/surfaces/src-app-admin-preview-page-tsx.md`.
+**The Scope Rule.** Keep brand colors and admin semantic overrides separate; admin route tokens stay under the admin root.
 
 ## Colors
 
-The palette combines a dark green public identity with a warm light operational adaptation. Frontmatter values are normative; scope is part of each token's meaning. Sidecar tonal ramps are synthesized preview metadata, not production color scales.
+The public theme uses a dark green base, warm gold actions and soft paper text. The operational variant inverts the workspace to a light canvas while keeping a dark sidebar. Frontmatter values are the color source of truth; synthesized sidecar ramps are preview metadata, not additional production tokens.
 
 ### Primary
 
-- **Brand Ink / Brand Gold:** shared shopping-mall identity and dark public holding page. Gold is the shared dark-theme action color.
-- **Admin Primary:** local green action, active navigation and area emphasis (`--green` in the admin frame). Sidebar navigation uses its own pale brass action color.
+- **Deep Mall Green** (`brand-ink`): public theme canvas and dark-theme foreground for gold actions.
+- **Mall Gold** (`brand-gold`): public action and accent color; the brighter `brand-gold-light` is reserved for hover and focus on the dark scheme.
+- **Leasing Green** (`admin-primary`): actions and emphasis in the admin workspace.
+- **Sidebar Green** (`admin-sidebar`): navigation surface; its warm light text and brass accent are scoped to the sidebar.
 
 ### Secondary
 
-- **Admin Selection:** local gold outline and keyboard focus (`--gold`); separate from the brighter brand gold.
+- **Muted Brass** (`admin-selection`): admin selection outline and keyboard focus, distinct from public brand gold.
+- **Pale Brass** (`admin-sidebar-accent`): active sidebar text and emphasis on the dark navigation surface.
 
 ### Neutral
 
-- **Brand Paper / Brand Muted:** dark public typography.
-- **Admin Canvas:** route override of the light shopping-mall canvas. The adapter carries `data-ui-root`, `data-ui-theme="shopping-mall"` and `data-ui-scheme="light"`; its semantic canvas token supplies the shared shell background.
-- **Admin Surface / Ink / Muted / Line:** warm white panels, operational text and panel dividers. Sidebar text, selected surface and boundary use separate dark-surface tokens. The body fallback background is a separate route declaration, not the cream frame canvas.
-- **Admin Nav Active / Floor Active / Field Border:** quieter selection surfaces and input boundaries.
-- **Slot Available / Leased / Other / Selected:** spatial state fills. Every fill has a text label; the gold selection outline indicates interaction rather than inventory status.
+- **Warm Paper and Soft Sage** (`brand-paper`, `brand-muted`): public text and supporting detail on dark green.
+- **Leasing Canvas and Porcelain** (`admin-canvas`, `admin-surface`, `admin-raised`): workspace, panels and raised controls.
+- **Admin Ink, Muted Text and Fine Line** (`admin-ink`, `admin-muted`, `admin-line`): operational text, supporting labels and dividers.
+- **Inventory Fills** (`slot-available`, `slot-leased`, `slot-other`, `slot-selected`): quiet plan states. Selection is also indicated with an outline, and every state retains a text label.
 
-**The Scope Rule.** Keep public brand colors and route-specific admin colors distinct; the approved admin variant has a dark sidebar and light workspace.
+The public theme also defines dark and light semantic surfaces. Admin route overrides remain explicit so theme changes do not leak between the public frame and operations workspace.
 
 ## Typography
 
-**Public display:** Playfair Display with Georgia and serif fallback. **Public body:** Be Vietnam Pro, Aptos, system UI and sans fallback. These are declared stacks; this document does not assert that external fonts are downloaded.
+**Public display:** Playfair Display with Georgia and serif fallback. **Public body:** Be Vietnam Pro, Aptos, system UI and sans fallback. These stacks are declared in CSS; this document does not assume the named web fonts are downloaded.
 
-**Admin body and controls:** system UI sans. This extends the incumbent operations interface. Page titles and dossier headings use the serif stack; operational labels and values remain sans. Numerals are tabular throughout the admin frame.
+**Admin display:** Georgia and Times New Roman serif stack for page and dossier headings. **Admin body:** system UI sans. Tabular numerals support dates, areas and register values.
 
 ### Hierarchy
 
-- **Public display:** the fluid heading in the holding page; the frontmatter records its observed clamp.
-- **Admin headline:** shared page title is overridden to the admin headline token, with the mobile headline step at 850px. Dossier headings use the same mobile-size serif step. Solar retains its own adapter typography.
-- **Admin title:** inspector heading. Floor and register headings use 17px.
-- **Admin body:** workspace base; dense records use 12px.
-- **Admin control / label / meta:** buttons, field labels and supporting data. Plan status is 10px with 1.35 line height and wrapping. Small source geometry labels reach 9px; they are not a recommended general reading size.
-- **Mobile fields:** 16px at the stacked breakpoint, with 44px minimum height.
+- **Public display** (regular, fluid 2.5–5rem): the centered holding-page headline.
+- **Admin headline** (regular, 34px desktop and 30px mobile): route title and major dossier heading.
+- **Area display** (regular, 32px): selected area in the plan inspector.
+- **Panel title** (semibold, 17px): section and register headings.
+- **Body** (13–14px, 1.55–1.8 line height): workspace copy and records.
+- **Label and meta** (11–12px): filters, form labels and supporting information. Plan geometry may use 9–10px only where the diagram requires it.
+
+The interface keeps small operational labels compact, but important status, inventory and action meaning must remain available as readable text.
 
 ## Layout
 
-The shared `AdminShell` has two presentation presets. `sidebar` places the brand above vertical navigation; `topnav` places the brand in the header with a contained horizontal navigation row beneath it. The sidebar preset supports a 76px desktop icon rail with accessible item names and hover/keyboard tooltips. Rail state and mobile menu state are independent. Mode changes preserve the app's business state.
+The shared admin shell has two modes: a vertical sidebar and horizontal top navigation. The sidebar is 248px in the Le Grande adapter and collapses to a 76px icon rail; collapsed links retain accessible names and use the browser's native `title` tooltip rather than a fixed overlay over workspace text. Top navigation places the brand in the header. Both modes use a sticky header with a 64px minimum height.
 
-Le Grande supplies a 248px desktop sidebar; Solar supplies 232px and its own blue palette. Both use a sticky header with a 64px minimum height. Shared content has a 1564px outer cap, 36px top and inline padding in Le Grande; inline padding becomes 24px below 1250px. Layout tokens belong to the adapters; presets do not represent roles or permissions.
+The Le Grande workspace has a 1564px content cap, 36px desktop inline padding and 24px padding below 1250px. The sidebar uses 18px inline padding and a 30px top inset. At 850px and below, desktop navigation is replaced by a modal menu with focus containment, Escape dismissal and focus return. The mobile workspace uses 16px inline padding, 44px minimum touch controls and 16px field text.
 
-At 850px and below, both presets hide desktop navigation and present a modal navigation menu through Base UI Dialog. The header retains the menu trigger and brand mark. The menu has a backdrop, focus containment, scroll lock, Escape and an explicit close control. Dismissal returns focus to its trigger; selecting a destination closes the menu and focuses that destination's page heading, with the trigger as fallback. The portal stays inside the themed shell root. Le Grande mobile content uses 26px top and 16px inline padding; inputs use 16px text and a 44px minimum height. Shared navigation and toggle controls have a 44px minimum height on both desktop and mobile.
+Plan and record views place a primary region beside an inspector, then stack them at the compact breakpoint. The B2B dossier gives its company list a wider stable column before stacking. Feature breakpoints at 1250px, 1100px, 1000px, 800px and 520px handle content density independently of the shared shell breakpoint. Six floor choices stay in a fixed grid; narrow filters wrap and media tiles reduce to two columns.
 
-Feature layouts keep their own responsive rules. The main plan or records column sits beside a 300px inspector across a 12px gap; at 1100px the inspector becomes 270px. At 800px and below, these panels stack with the inspector after the primary panel, six floor choices become three columns, and local buttons and fields have a 44px minimum height. At 520px and below, filters wrap to full width and media uses two columns. These feature breakpoints do not control the shared shell menu.
-
-The B2B dossier uses shared `WorkspaceLayout` with a 320px company list beside its detail panel and a 28px gap; at 1250px the list narrows to 290px. The contract register and detail panel stack at 1200px and below. At 1000px, dossier, request and public-preview panels also stack; company choices occupy two columns until the 520px breakpoint returns them to a vertical list. Contract search and company filters stack below 800px. Dossier tabs scroll within their container. Below 800px, the four-step request journey becomes two columns and portal sections stack. The shared workspace also stacks at 850px and below. Current B2B company/dossier captures are included in the shared-shell evidence below; they do not cover every feature route.
-
-The diagram retains a minimum 680px width and 310px height inside a labelled, keyboard-focusable horizontal scroll region. Tables scroll within their panels. Long statuses and media names wrap; supporting lead text truncates within its row.
+The floor diagram keeps a 680px minimum width and 310px minimum height inside a labelled, keyboard-focusable horizontal scroll region. Tables scroll inside their panels. Long statuses and media names wrap; supporting lead details truncate within their rows.
 
 ## Elevation & Depth
 
-Admin panels are flat, with white fills, thin borders and quiet selected surfaces. The header uses the warm white surface; mobile navigation uses the sidebar palette; the modal backdrop separates navigation from the workspace. There are no admin panel shadows. The shared shopping-mall theme separately defines overlay shadows: dark theme `0 20px 60px #0006`, light theme `0 4px 30px rgb(0 33 22 / 0.16)`; these are library capabilities, not shadows applied to this workspace.
+Admin panels are flat at rest. Thin borders, warm surface changes and selected fills establish hierarchy; no shadow is applied to the plan, register or inspector panels. Overlay shadows exist as shared theme tokens for floating surfaces, while the navigation dialog uses a backdrop to separate it from the workspace.
+
+**The Flat Panel Rule.** Use a border or a tonal surface change for ordinary workspace sections; reserve shadow for overlays that must sit above the page.
 
 ## Shapes
 
-System controls use the admin-control radius; panels use the admin-panel radius, with selection chips a tighter radius. Sidebar project card corners are a separate observed step. The public shopping-mall theme retains square corners; admin semantic token overrides apply only inside the admin root. Avatars are circular. Slot rectangles preserve the central core boundary and selected slots receive an inset outline (3px); grouped footprints have a 2px border.
+Public brand controls retain square corners. Admin controls use a softly rounded 8px corner; panels are larger at 12px, floor choices use a tighter 4px corner and selection chips use 3px. Avatars remain circular. Slot rectangles stay square so the plan reads as geometry rather than as a card grid. Selected slots use an inset outline; grouped footprints use a stronger border while still showing their original members.
 
 ## Components
 
-### Buttons
+### Buttons and fields
 
-Existing system `Button` owns actions, including explicit submit types, loading and disabled states. Primary uses Admin Primary and warm white text; secondary uses Admin Raised and the line boundary. App actions have a 42px desktop minimum height and 44px mobile height; compact pagination controls use 36px desktop and 44px mobile. Hover, disabled and pending behavior come from the shared component. Keyboard focus uses the system gold outline (3px, 2px offset).
-
-The shared shell grid uses a 180ms `ease-out` transition and navigation backgrounds a 140ms transition only under `prefers-reduced-motion: no-preference`. B2B row backgrounds retain their local 140ms transition. The older 160ms plan/button rule still targets the removed `.admin-frame` wrapper and is not evidence of an active effect. Reduced motion disables those transitions. No page entrance effect is implemented.
-
-### Fields
-
-Existing `Input`, `Select`, `Textarea` and `Checkbox` own controls. Fields use Admin Raised with the line boundary, visible labels and the shared focus outline. Semantic overrides set the admin radius and foreground; app styles supply sizing and domain layout. Status inputs accept free text with suggested values, not fixed enums. Required and length limits come from the form contract. Transient media and command failures use the system error toast; persistent recovery actions remain in the workspace. Search controls carry accessible labels even when their visible form is a placeholder.
-
-### Navigation and floor choices
-
-Eight admin views share the same navigation: customers, requests/holds, leases, appointments, floor/spaces, leads, media and tenant-view preview. Shared sidebar navigation uses the dark green active surface and pale brass text; topnav uses the light selected surface and green text. Both expose `aria-current="page"`; links remain anchors and view actions remain buttons. Its compact items use 6px corners and 10px × 12px padding. System controls use the admin corner token; spatial slot controls stay square to preserve geometry. Floor controls carry pressed state and six fixed floor labels; this interface has no add or remove floor action. Floor purposes are fixture labels, not confirmed tenant allocation.
+Shared buttons use the admin action palette, compact horizontal padding and a 42px minimum height; mobile actions grow to 44px. Quiet and secondary variants remain on the light surface. Inputs, selects and textareas use a raised fill, fine border, visible label and an explicit gold focus ring. Disabled and loading states keep native button behavior and clear text feedback.
 
 ### Panels, chips and registers
 
-White bordered plan, record and inspector containers share the same small panel corner. Toolbars and registers use divider lines. Selection chips list original slot codes and give removal controls accessible names. The original-slot register remains available after grouping; a selected row uses a quiet warm fill.
+Plan, inspector and record panels use warm white surfaces, a thin line and generous 24px padding in the refined admin layout. Toolbars and tables use dividers instead of nested card borders. Slot-membership chips list original slot codes and expose a named removal action. Registers keep a stable pagination footer and stable table columns as visible rows change.
 
-### Toast and pagination
+### Navigation and floor choices
 
-Transient action feedback uses existing system `Toast`, composed by the app notification provider. Up to three notices are shown at bottom right; error notices remain for 12 seconds, other tones for 7 seconds. Notices can be dismissed, pause on hover/focus, and use system status/alert semantics. Persistent inventory constraints and deadlines remain in the relevant record; the merge guidance uses system `Alert`.
+Vertical and horizontal navigation use the same item states. The active item has a tinted surface, semantic border and a 3px position marker; horizontal navigation moves the marker to the bottom edge. A collapsed icon rail keeps the button hover surface inside the rail and exposes its name with the native `title` attribute. Keyboard focus remains a separate 3px outline.
 
-Existing system `Pagination` and `Select` render range/total, page buttons and rows per page in every main register. Filter/sort precedes pagination, filter and size changes reset to page one, and pages clamp when the result shrinks. Small registers start at two rows so the sample's real additional records can be viewed; slot/media registers start at five. The current implementation slices the authorized demo snapshot; production pagination requires bounded API queries and server authorization, not a full client-side download.
+Floor choices communicate one of six fixed floors with a clear selected fill and border. The floor labels are fixture descriptions, not confirmed tenant allocations.
 
-Shared `PaginatedContent` reserves the largest natural page height at the current container width, keeping the following Pagination footer stable on shorter pages and empty results. Page-size/density or width changes reset that measurement; page/filter changes retain it. Long content may grow rather than be clipped. The slot table uses stable column widths and a 960px minimum inside its horizontal viewport, preventing current-page content from redistributing columns.
+### Status and feedback
 
-Slot and lease registers use shared `Table`. Its optional row styling/click and named scroll viewport props extend the existing API. Lease detail remains accessible through a system Button as well as row click. Mobile tables stay in a named, focusable horizontal scroll region with a visible scroll hint.
+Badges combine a restrained tone with a text label. Inventory state must never rely on color alone. Transient confirmations and errors use the shared toast component; persistent constraints stay with the relevant record. Pagination shows the current range, total and page-size control, and remains outside the changing content region.
 
 ### Floor plan and grouped spaces
 
-The signature is the plan connected to its inspector and base-slot register. Selection previews summed area and membership. Merging requires adjacent vacant, tenant-free slots on one floor and one side of the central core; it cannot cross the lobby or void. Groups retain their own identity and reference unchanged original slot IDs and areas. Splitting restores the original membership view.
+The signature view connects the slot plan to its register and inspector. Selection previews area and membership. A grouped footprint remains visually composed from its original slots; it does not replace their identity. The customer B-series reference keeps the lobby/void break between B.5 and B.6. Its repeated use across floors is a fixture, not a confirmed technical drawing.
 
-**The Identity Rule.** Grouped space identity never replaces base slot identity.
+**The Slot Identity Rule.** A grouped space is shown as a combination of base slots; keep each original slot code and area visible in the register.
 
-The customer B-series reference has eleven slots, with endpoint areas of 205 m² and other areas of 164 m²; the lobby divides B.5 and B.6. Its floor is unknown. The repeated plan on all six floors is a labelled fixture, not a technical drawing or confirmed inventory. `public/admin-demo/floor-plan.png` is the customer-supplied raster with embedded provenance, not generated imagery.
+### Company and contract workspace
 
-### Leads and media
-
-Leads use selectable rows plus a detail inspector; statuses and consultation notes are editable. Media uses selectable thumbnail tiles plus an inspector for project, floor or grouped-space associations. Image previews use contain sizing, and documents retain an authored file icon. Authored line icons use inline SVG, not glyph characters.
-
-### Enterprise dossier and request journey
-
-A searchable company register opens a dossier with overview, request/hold, contract and document sections. Inline actions connect requests and contracts back to their original floor slots. Miniature SVG plans use the same slot geometry as the workspace; their highlighted membership is a navigation aid, not an official drawing.
-
-The contract register starts with four sample leases across three companies and three floors, including single-slot and grouped-slot examples. Search matches contract code, company name and original slot codes; a company selector further narrows the register. Changing filters preserves a visible selection or selects the first matching contract. No matches clears the inspector selection and offers a filter reset. Opening a contract directly from its dossier or converted hold clears register filters so the destination remains visible. Record selection closes the previously open document illustration. Contract details, sample documents and floor navigation retain the same linked original slots.
-
-The four-step strip explains request, review, hold and lease. Submitting a request does not reserve inventory. Approval requires a reviewer-entered duration of 1–720 hours for that demo decision; no production TTL policy is implied. The fixture command checks the complete adjacent selection on one floor and one side of the lobby, including overlapping commitments, before creating a hold. Rejecting a request or cancelling a hold requires a reason. Lease conversion is explicitly labelled a simulated signing action. The demo clock is fixed at 06/10/2026; displayed remaining time does not establish a live expiry service.
-
-### Appointments, audience previews and document samples
-
-Appointment requests are independent of inventory holds. The interface displays Vietnam time and sample 30-minute appointments, with confirm and cancel actions; it does not claim an official operating calendar.
-
-The tenant-view preview switches between a public presentation and An Retail’s own-company portal. The public presentation shows fixture availability and a request form without internal hold deadlines, commercial terms or private document links. The portal renders that sample company’s requests, holds, contracts and appointments. Both are presentation modes inside the admin demo: all workspace fixtures remain in the browser bundle. Audience filtering is not authentication or authorization; the production boundary is recorded in `docs/admin-data-contract.md`.
-
-Document samples are authored HTML sheets with a Georgia heading, signatures marked absent and a visible illustration disclaimer. They are neither uploaded contract files nor signed commitments. No private R2 viewer is implemented.
-
-The prototype keeps edits in its in-memory demo repository and resets on reload. Lead identities are fabricated. File previews use local object URLs; the current selection accepts PNG, JPEG, WebP and PDF up to 10 MB. These client checks do not establish a production security boundary. Authentication, authorization, durable storage and production upload are absent; the architecture document owns the production decision path. This document records the operational prototype; deployment status is owned by deployment evidence rather than inferred from these presentation modes.
-
-### Documentation and review evidence
-
-The premium admin refinement is captured in 14 `.impeccable/review/mall-system-*` desktop/mobile screenshots. The browser observation log records company/lease page changes and save-note feedback using system Toast, with no document-width overflow at 1440px and 390px. Shared package build, Mall typecheck and static build passed. Fresh reviewer/documenter agents were unavailable due to usage limits, so their roles were completed inline; the bounded final review is `mall-system-finish-review.md`. No automated tests, deployment or production security certification are claimed. Architecture and migration scope: `docs/mall-admin-system.md`.
-
-The earlier shared-component extraction preserved the then-current green/gold token primitives. The user-requested premium admin refinement now overrides route semantic tokens through `mall-system.css`; public brand values remain unchanged. The active-navigation component now references the existing 6px corner step and records its shared 10px × 12px padding. The sidecar records both the shared 850px menu/workspace breakpoint and local feature breakpoints. `AdminShell`, `AdminPageHeader`, `AdminPanel` and `WorkspaceLayout` own layout and focus behavior; Le Grande and Solar adapters own logos, theme mappings, routes, providers and sample business data. Shared Tabs retain in-session drafts; pressed-state ButtonGroup filters remain distinct from route navigation.
-
-Historical extraction captures are `.impeccable/review/shared-{mall,solar}-{desktop,mobile}-{sidebar,header-brand,topnav,menu}.png`: 16 images covering the three presets plus desktop rail and mobile open menu. They provide current company/dossier and Solar workspace evidence, replacing the earlier unavailable-capture statement. The fixed mobile overlay occupies the captured viewport, even when the full-page image includes more content below it. `.impeccable/review/shared-admin-finish-review.md` records the initial findings. The final `.impeccable/review/shared-admin-verdict.md` scores both fixes—Solar header overflow and stale Le Grande documentation—as resolved, with disposition `ship`. All 16 recaptures were opened; document scroll width equals the 1440px desktop or 390px mobile viewport for every preset in both apps. This verdict covers those two scored fixes and does not certify the entire UI.
-
-The implementation thread reports successful final typechecks and static production builds for the shared package and both consumers. Browser observations confirm Escape returns focus to the menu trigger in both apps and Solar mobile Back returns focus to the selected lead row. No automated tests were added or run, and no deployment is claimed. Source establishes Dialog composition, separate mobile/desktop states and heading-focus behavior; static images cannot certify interaction accessibility, contrast or every feature route. Production authentication, authorization and persistence remain outside this UI extraction.
+The company list and dossier share one operational layout. Lease and request records link back to the affected slots, while local SVG mini-plans are navigation aids rather than formal drawings. Document samples use a restrained paper sheet treatment and stay visually distinct from a signed contract.
 
 ## Do's and Don'ts
 
 ### Do:
 
-- **Do** use admin tokens for the light workspace and brand tokens for the public identity.
-- **Do** retain text labels for every status and visible keyboard focus.
-- **Do** distinguish grouped space identity from immutable base slot identity.
-- **Do** keep exactly six floor choices and identify repeated geometry as demo data.
-- **Do** preserve the customer reference raster and its embedded provenance.
+- **Do** keep the public brand palette separate from route-scoped admin colors.
+- **Do** pair status color with readable text and preserve visible keyboard focus.
+- **Do** keep plan geometry square, label grouped members and retain the central core boundary.
+- **Do** use the customer reference raster with its provenance when showing the source plan.
+- **Do** keep the diagram and tables inside their labelled scroll regions on narrow screens.
 
 ### Don't:
 
-- **Don't** apply the admin palette or typography overrides to the public landing or other product adapters.
-- **Don't** promote the repeated B-series fixture into confirmed floor inventory.
-- **Don't** convert free text statuses into a closed vocabulary through color mapping.
-- **Don't** treat session edits or browser file previews as production persistence or secure upload.
-
-## Điều chỉnh preset theo phản hồi
-
-Người dùng yêu cầu bỏ mode “Logo trên header”. API và selector hiện chỉ còn `sidebar` và `topnav`; các ảnh `header-brand` ở review trước là bằng chứng lịch sử, không còn là mode hiện hành.
-
-### Active navigation refinement
-
-Shared admin navigation reserves a 1px transparent border; selected items use a tinted brand border and a 3px side marker. Horizontal navigation moves that marker to the bottom. Marker, selected text and surface use app semantic tokens; keyboard focus remains separate. Padding is 9px × 11px plus the reserved border, preserving the previous item footprint.
+- **Don't** use color alone to communicate inventory or lead status.
+- **Don't** style slot geometry as rounded cards or hide the original members of a grouped space.
+- **Don't** apply admin typography or semantic overrides to the public identity.
+- **Don't** present repeated fixture geometry or sample documents as confirmed inventory or signed records.
