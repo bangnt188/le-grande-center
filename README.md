@@ -39,14 +39,44 @@ npm run dev
 ```
 
 Mặc định local dùng base path `/le-grande-center/` giống GitHub Pages. Mở
-`http://localhost:3000/le-grande-center/`. Để chạy ở root local, đặt
-`NEXT_PUBLIC_SITE_URL=http://localhost:3000/` trong `.env.local`.
+`http://localhost:3000/le-grande-center/admin-preview/` để thử giao diện quản trị.
 
-`npm run build` tạo static export ở `out/`, build `@mall/ui` trước và loại
-`out/admin-preview/` khỏi artifact. Route `/admin-preview/` là prototype UI để
-duyệt bố cục; các chỉ số và bản ghi đều là dữ liệu mẫu, không có auth/API, và
-không được xem là hệ thống quản trị vận hành. Chưa cấu hình workflow tự deploy;
-chỉ thêm sau khi landing được bàn giao và quy trình phát hành được xác nhận.
+## Deploy demo từ dev
+
+Code nguồn được push lên `dev`; artifact Next.js static export nằm trên `gh-pages`.
+Xuất bản có thể lặp lại bằng lệnh dưới đây sau khi push code:
+
+```sh
+npm run deploy:dev
+```
+
+Lệnh kiểm tra branch/source commit, typecheck, repository contract, build demo,
+rồi push artifact bằng commit thường (không force). GitHub Pages được cấu hình
+nguồn `gh-pages` ở thư mục root. Không thay domain production.
+
+Template Actions ở `docs/deployment/dev-pages.yml` chưa được kích hoạt vì token
+hiện tại thiếu quyền `workflow`. Khi có credential phù hợp: chuyển template sang
+`.github/workflows/dev-pages.yml`, cấu hình Pages source là Actions và cho phép
+branch `dev` trong environment `github-pages`. Secret UI chỉ đọc đã được thiết lập.
+
+Demo: https://bangnt188.github.io/le-grande-center/admin-preview/
+
+Bản Pages là fixture công khai, không có dữ liệu người dùng thật, auth hoặc DB.
+Mặc định `npm run build` loại admin khỏi artifact website. Lệnh deploy demo opt-in
+qua `NEXT_PUBLIC_ADMIN_DEMO=true` và `INCLUDE_ADMIN_DEMO=true`; cấu hình này không
+cho phép gắn backend API. Không dùng demo Pages làm admin production.
+
+## Kết nối dữ liệu sau này
+
+TSX gọi `useAdminData`, không ghi trực tiếp vào dữ liệu nguồn. Interface
+`AdminRepository` có adapter demo và adapter HTTP cùng trả `AdminSnapshot`.
+Transport dùng revision, request idempotency, cookie session và trạng thái lỗi.
+Cấu hình `NEXT_PUBLIC_ADMIN_API_URL` chỉ là URL công khai của backend; không đặt
+DB URL, secret hoặc credential trong biến `NEXT_PUBLIC_*`.
+
+[Hợp đồng API và migration](docs/admin-data-contract.md),
+[schema PostgreSQL dự thảo](database/001_admin_draft.sql) và
+[thiết kế giao diện](DESIGN.md). Backend/auth/database chưa được triển khai.
 
 ## Architecture Decision: admin
 

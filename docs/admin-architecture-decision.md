@@ -10,7 +10,7 @@ khi đưa thành dữ liệu quản trị.
 
 Giao diện tại `/admin-preview/` là prototype để duyệt bố cục và luồng quản trị.
 Các chỉ số, nhật ký, trạng thái và mã yêu cầu trên đó đều là dữ liệu minh họa.
-Không có xác thực, lưu trữ, gửi form, API hay thao tác thay đổi dữ liệu.
+Bản demo hiện hỗ trợ thao tác trên fixture trong bộ nhớ qua repository. Chưa có xác thực, database, gửi lead thật hoặc endpoint backend; adapter HTTP là transport để tích hợp sau này. Bản dev được phép publish GitHub Pages để duyệt giao diện; không phải hệ thống quản trị production.
 
 ## Quyết định
 
