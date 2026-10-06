@@ -2,6 +2,7 @@ import { applyB2BCommand, hasCommitment } from "./b2b-commands";
 import type { AdminCommand, AdminRepository, AdminSnapshot } from "./contracts";
 import { makeDemoSnapshot } from "./demo-data";
 import { mergeIssue } from "./space-model";
+import { STORAGE_LIMIT_BYTES, storageUploadIssue } from "./storage-policy";
 
 export function createDemoRepository(): AdminRepository {
   let data = makeDemoSnapshot();
@@ -74,6 +75,8 @@ export function createDemoRepository(): AdminRepository {
       try { apply(command); return snapshot(); } catch (error) { data = previous; throw error; }
     },
     async upload(files, scope) {
+      const issue = storageUploadIssue(data.storage, files);
+      if (issue) throw new Error(issue);
       const accepted = new Set(["image/png", "image/jpeg", "image/webp", "application/pdf"]);
       if (files.some((file) => !accepted.has(file.type) || file.size > 10 * 1024 * 1024)) {
         throw new Error("Tệp không hợp lệ. Chỉ nhận PNG, JPG, WebP hoặc PDF, tối đa 10 MB/tệp.");
@@ -83,6 +86,12 @@ export function createDemoRepository(): AdminRepository {
         return { id: crypto.randomUUID(), name: file.name, kind: file.type.startsWith("image/") ? "Ảnh" : "Tài liệu", scope, size: `${(file.size / 1024 / 1024).toFixed(2)} MB`, url };
       });
       data.media = [...additions, ...data.media]; data.revision += 1;
+      data.storage!.usedBytes += files.reduce((total, file) => total + file.size, 0);
+      return snapshot();
+    },
+    async previewStorage(usedBytes) {
+      if (!Number.isSafeInteger(usedBytes) || usedBytes < 0 || usedBytes > STORAGE_LIMIT_BYTES) throw new Error("Dung lượng mẫu không hợp lệ.");
+      data.storage = { usedBytes, reservedBytes: 0 };
       return snapshot();
     },
     dispose() { urls.forEach((url) => URL.revokeObjectURL(url)); urls.length = 0; },

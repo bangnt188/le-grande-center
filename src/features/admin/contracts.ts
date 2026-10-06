@@ -1,5 +1,6 @@
 import type { B2BCommand, B2BData } from "./b2b-model";
 import type { Floor, Slot, SpaceGroup } from "./space-model";
+import type { StorageUsage } from "./storage-policy";
 
 export type Lead = {
   id: string; name: string; initials: string; interest: string; floor: Floor;
@@ -9,7 +10,7 @@ export type MediaItem = {
   id: string; name: string; kind: "Ảnh" | "Tài liệu"; scope: string;
   size: string; url?: string; reference?: boolean;
 };
-export type AdminSnapshot = B2BData & { revision: number; slots: Slot[]; groups: SpaceGroup[]; leads: Lead[]; media: MediaItem[] };
+export type AdminSnapshot = B2BData & { revision: number; storage: StorageUsage | null; slots: Slot[]; groups: SpaceGroup[]; leads: Lead[]; media: MediaItem[] };
 export type AdminCommand = B2BCommand
   | { type: "merge"; floor: Floor; slotIds: string[]; name: string }
   | { type: "split"; groupId: string }
@@ -25,5 +26,7 @@ export interface AdminRepository {
   read(): Promise<AdminSnapshot>;
   execute(command: AdminCommand): Promise<AdminSnapshot>;
   upload(files: File[], scope: string): Promise<AdminSnapshot>;
+  /** Demo-only preview. Never exposed by the authenticated HTTP repository. */
+  previewStorage?(usedBytes: number): Promise<AdminSnapshot>;
   dispose(): void;
 }
