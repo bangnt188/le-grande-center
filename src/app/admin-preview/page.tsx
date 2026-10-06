@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import AdminWorkspace from "./admin-workspace";
 import "./admin-preview.css";
 import "./b2b-workspace.css";
+import "./mall-system.css";
 
 export const metadata: Metadata = {
   title: "Quản lý mặt bằng · Admin demo",
