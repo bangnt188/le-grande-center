@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/ui"],
+  "workspaces": [
+    "packages/ui"
+  ],
   "scripts": {
     "predev": "npm run build:ui",
     "dev": "next dev",
@@ -14,7 +16,9 @@
     "build:ui": "npm run build --workspace=@mall/ui",
     "typecheck:ui": "npm run typecheck --workspace=@mall/ui",
     "preview:ui": "npm run preview:ui --workspace=@mall/ui",
-    "test:ui": "npm run test --workspace=@mall/ui"
+    "test:ui": "npm run test --workspace=@mall/ui",
+    "test:admin": "node --import tsx --test tests/admin-repository.test.ts",
+    "deploy:dev": "node scripts/publish-dev-pages.mjs"
   },
   "dependencies": {
     "@mall/ui": "0.1.0",
