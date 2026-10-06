@@ -1,3 +1,3 @@
-:HL["/le-grande-center/_next/static/chunks/128n2itfft_o3.css","style"]
+:HL["/le-grande-center/_next/static/chunks/2y2vulibs-kku.css","style"]
 :HL["/le-grande-center/_next/static/chunks/1ld8tmlvf9w-5.css","style"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"admin-preview","param":null,"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}},"staleTime":300,"buildId":"1LLQkGhDtxhkwMMeVgxiO"}
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"admin-preview","param":null,"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}},"staleTime":300,"buildId":"GXciG9u4FHW6G_RkdjQGq"}
