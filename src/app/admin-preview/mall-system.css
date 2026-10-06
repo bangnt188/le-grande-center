@@ -1,0 +1,99 @@
+/* App identity maps onto existing system components. */
+.legrande-admin{
+  --ink:#203a2e;--muted:#647266;--line:#e3e5db;--green:#163e2f;--gold:#9b7938;
+  --ui-color-canvas:#f5f3eb;--ui-color-surface:#fffefa;--ui-color-surface-raised:#f4f5ef;
+  --ui-color-text-primary:var(--ink);--ui-color-text-secondary:var(--muted);--ui-color-border:var(--line);
+  --ui-color-action:var(--green);--ui-color-action-hover:#245541;--ui-color-action-foreground:#fffdf6;
+  --ui-color-accent:var(--gold);--ui-color-accent-hover:#88662b;--ui-color-accent-foreground:#fff;
+  --ui-color-focus:#9b7938;--ui-admin-selected-surface:#e9eee5;--ui-admin-selected-border:#98ad9e;
+  --ui-color-success:#246b43;--ui-color-warning:#856422;--ui-color-error:#a43d30;
+  --ui-color-disabled-surface:#eeeee7;--ui-color-disabled:#788279;
+  --ui-radius-control:8px;--ui-admin-title-size:34px;--ui-admin-title-font:Georgia,"Times New Roman",serif;
+  --ui-admin-sidebar-width:248px;--ui-admin-content-padding:36px;--ui-font-size-sm:13px;--ui-font-size-md:14px;
+  --ui-shadow-overlay:0 12px 36px rgb(22 62 47 / .16);--ui-control-block-size:42px;
+}
+body:has(.legrande-admin){background:#f5f3eb}
+.mall-admin-shell>aside,.mall-admin-shell [role=dialog]{
+  --ui-color-surface:#082e22;--ui-color-surface-raised:#173e30;
+  --ui-color-text-primary:#f3f0e4;--ui-color-text-secondary:#bbcabf;
+  --ui-color-border:#2b4d3d;--ui-color-action:#dcc18a;--ui-color-action-foreground:#082e22;
+  --ui-color-focus:#dcc18a;--ui-admin-selected-surface:#244938;--ui-admin-selected-border:#87956a;
+}
+.mall-admin-shell>aside{padding:30px 18px;gap:36px}
+.mall-admin-shell>aside strong{letter-spacing:.01em}
+.mall-admin-shell main{padding-block-start:36px}
+.mall-admin-shell main h1{font-family:var(--ui-admin-title-font);font-weight:400;letter-spacing:-.025em;color:#163e2f}
+.mall-admin-shell main h1+p{font-size:14px;line-height:1.7;margin-top:10px}
+.mall-admin-shell>aside nav{gap:8px}
+.b2b-dossier-layout{--ui-workspace-columns:320px minmax(0,1fr);gap:28px}
+.legrande-admin .records-panel,.legrande-admin .plan-panel,.legrande-admin .slot-register,.legrande-admin .space-inspector,.legrande-admin .record-inspector{border-color:var(--line);border-radius:12px;background:var(--ui-color-surface)}
+.b2b-panel-heading{padding:24px;gap:18px}
+.b2b-panel-heading h2,.register-heading h2{font-size:17px;letter-spacing:-.01em}
+.b2b-company-row{padding:22px 24px;justify-content:flex-start;align-items:flex-start;font-weight:400;line-height:1.65}
+.b2b-company-row strong{font-size:14px;font-weight:600}
+.b2b-company-row small{font-size:12px}
+.b2b-company-row.is-active,.b2b-request-row.is-active{background:#eef1e8;outline-color:#a8986b}
+.b2b-dossier-header{padding:30px;gap:18px;border-bottom:1px solid var(--line)}
+.b2b-dossier-header h2{font-family:var(--ui-admin-title-font);font-size:30px;font-weight:400;letter-spacing:-.02em}
+.b2b-company-mark{height:58px;width:58px;background:#163e2f;color:#e3cd99;border-radius:8px}
+.b2b-dossier-body{padding:30px}
+.b2b-dossier-body h3{font-size:15px;font-weight:600}
+.b2b-private-label{border:1px solid #e2dac7;background:#f8f4e9;color:#78653a;border-radius:6px;padding:6px 10px}
+.b2b-facts{line-height:1.75}
+.legrande-admin .button{font-size:13px;font-weight:600;min-height:42px;gap:8px}
+.legrande-admin .text-button{min-height:36px;padding:7px 9px;font-size:12px;font-weight:500;background:transparent;color:var(--green);white-space:normal}
+.legrande-admin input:not([type=checkbox]),.legrande-admin select,.legrande-admin textarea{border-color:var(--line);background:var(--ui-color-surface-raised);border-radius:8px;min-height:42px;color:var(--ink);font-size:13px}
+.legrande-admin [type=checkbox]{accent-color:var(--green)}
+.legrande-admin .lead-row,.legrande-admin .b2b-request-row{font-weight:400;justify-content:flex-start;line-height:1.6}
+.legrande-admin .media-tile{font-weight:400;justify-content:stretch}
+.legrande-admin .plan-slot{min-height:0;min-block-size:0;font-weight:400;border-radius:0}
+.legrande-admin .floor-tab{justify-content:flex-start;font-weight:400;line-height:1.45}
+.legrande-admin .floor-tab.is-active{background:#e9eee4;border-color:#a49a72}
+.legrande-admin .selected-area strong{font-family:var(--ui-admin-title-font);font-size:32px;font-weight:400}
+.legrande-admin .register-heading{padding:22px 24px;gap:18px}
+.legrande-admin .space-layout,.legrande-admin .records-layout{gap:24px}
+.legrande-admin .space-inspector,.legrande-admin .record-inspector{padding:24px}
+.legrande-admin table{font-size:13px;line-height:1.7}
+.legrande-admin table th{background:#f3f4ed;padding:14px 20px;font-size:11px;font-weight:600;color:var(--muted)}
+.legrande-admin table td{padding:18px 20px;border-color:var(--line);font-size:13px;white-space:normal}
+.legrande-admin table td strong{display:block;font-weight:600}
+.legrande-admin table td small{display:block;margin-top:4px;font-size:11px;color:var(--muted)}
+.legrande-admin table tr.selected-row{background:#edf1e7}
+.admin-pagination{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;padding:18px 24px;border-top:1px solid var(--line);background:#fbfaf5}
+.admin-pagination-summary{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.admin-page-size{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);white-space:nowrap}
+.admin-page-size select{width:64px;padding:6px 8px}
+.b2b-company-list .admin-pagination{padding:18px;gap:12px}
+.b2b-company-list .admin-pagination nav{flex-basis:100%;justify-content:space-between}
+.legrande-admin .admin-pagination button{font-size:12px;min-height:36px;font-weight:500}
+.admin-toast-viewport{position:fixed;z-index:40;inset-inline-end:24px;inset-block-end:24px;display:grid;gap:12px;inline-size:min(440px,calc(100vw - 32px));pointer-events:none}
+.admin-toast-viewport>*{pointer-events:auto}
+.admin-toast-viewport strong{font-size:14px;line-height:1.5}
+.admin-toast-viewport button{min-width:36px;min-height:36px}
+.legrande-admin .panel-note{line-height:1.7}
+@media(max-width:1250px){.b2b-dossier-layout{--ui-workspace-columns:290px minmax(0,1fr)}.legrande-admin{--ui-admin-content-padding:24px}}
+@media(max-width:1000px){.b2b-dossier-layout{--ui-workspace-columns:minmax(0,1fr)}.b2b-company-list .admin-pagination{grid-column:1/-1}.b2b-company-list .admin-pagination nav{flex-basis:auto}.b2b-company-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:850px){.legrande-admin{--ui-admin-title-size:30px}.mall-admin-shell main{padding:26px 16px}.b2b-dossier-header,.b2b-dossier-body{padding:22px}.legrande-admin .register-heading{padding:20px}.admin-toast-viewport{inset-inline-end:16px;inset-block-end:16px}.legrande-admin input:not([type=checkbox]),.legrande-admin select,.legrande-admin textarea{font-size:16px;min-height:44px}.legrande-admin .admin-pagination button{min-height:44px}.legrande-admin .button{min-height:44px}.admin-pagination{padding:18px;gap:12px}}
+@media(max-width:520px){.b2b-company-list{grid-template-columns:minmax(0,1fr)}.b2b-dossier-layout{gap:22px}.b2b-company-list .admin-pagination nav{flex-basis:100%}.admin-pagination nav{flex-basis:100%;justify-content:space-between}.b2b-private-label{margin-left:0;white-space:normal}.legrande-admin table td,.legrande-admin table th{padding:14px 16px}.b2b-profile-columns{gap:24px}.legrande-admin .plan-scale{font-size:10px}.legrande-admin .slot-status{font-size:10px}}
+
+.mall-admin-shell>aside{color:var(--ui-color-text-primary);--ui-color-warning:#dcc18a}
+.mall-admin-shell [role=dialog]{--ui-color-warning:#dcc18a}
+.legrande-admin .admin-page-size{display:flex;align-items:center;gap:8px;margin:0}
+.legrande-admin .admin-page-size select{width:64px}
+.table-scroll-hint{display:none}
+@media(max-width:850px){.mall-admin-shell header nav[aria-label="Vị trí quản trị"]{display:none}.shell-mode select{width:156px;max-width:156px}.table-scroll-hint{display:block;margin:0;padding:10px 20px;background:#fbfaf5;color:var(--muted);font-size:12px}}
+
+/* Records occupy a stable page region; pagination remains outside the measured body. */
+.legrande-admin .b2b-company-list{display:block}
+.b2b-company-list [data-ui-paginated-body]{display:grid;grid-template-columns:minmax(0,1fr)}
+@media(min-width:521px) and (max-width:1000px){.b2b-company-list [data-ui-paginated-body]{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Column geometry must not be recomputed from the current page's records. */
+.legrande-admin .slot-register table{table-layout:fixed;min-inline-size:960px}
+.legrande-admin .slot-register th:nth-child(1){width:84px}
+.legrande-admin .slot-register th:nth-child(2){width:110px}
+.legrande-admin .slot-register th:nth-child(3){width:110px}
+.legrande-admin .slot-register th:nth-child(4){width:140px}
+.legrande-admin .slot-register th:nth-child(5){width:160px}
+.legrande-admin .slot-register th:nth-child(6){width:230px}
+.legrande-admin .slot-register th:nth-child(7){width:126px}
+.legrande-admin .slot-register td{overflow-wrap:anywhere}
