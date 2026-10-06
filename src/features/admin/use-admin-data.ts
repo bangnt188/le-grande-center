@@ -37,6 +37,7 @@ export function useAdminData() {
   }
   return {
     slots: data?.slots ?? [], groups: data?.groups ?? [], leads: data?.leads ?? [], media: data?.media ?? [],
+    companies: data?.companies ?? [], requests: data?.requests ?? [], reservations: data?.reservations ?? [], leases: data?.leases ?? [], appointments: data?.appointments ?? [],
     pending, loading, error,
     execute: (command: AdminCommand) => run(() => repository.execute(command)),
     uploadFiles: (files: File[], scope: string) => run(() => repository.upload(files, scope)),

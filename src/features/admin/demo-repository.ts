@@ -1,3 +1,4 @@
+import { applyB2BCommand, hasCommitment } from "./b2b-commands";
 import type { AdminCommand, AdminRepository, AdminSnapshot } from "./contracts";
 import { makeDemoSnapshot } from "./demo-data";
 import { mergeIssue } from "./space-model";
@@ -25,6 +26,7 @@ export function createDemoRepository(): AdminRepository {
       case "split": {
         exists(data.groups, command.groupId);
         const group = data.groups.find((item) => item.id === command.groupId)!;
+        if (hasCommitment(data, group.slotIds)) throw new Error("Mặt bằng đang có cam kết. Xử lý giữ chỗ/hợp đồng trước khi tách.");
         data.slots = data.slots.map((slot) => group.slotIds.includes(slot.id) ? { ...slot, status: group.status } : slot);
         data.groups = data.groups.filter((item) => item.id !== group.id);
         data.media = data.media.map((item) => item.scope === `group:${group.id}` ? { ...item, scope: `Tầng ${group.floor}` } : item);
@@ -32,6 +34,7 @@ export function createDemoRepository(): AdminRepository {
       }
       case "update-slot": {
         exists(data.slots, command.slotId);
+        if (hasCommitment(data, [command.slotId])) throw new Error("Slot đang có cam kết. Quản lý trong mục Yêu cầu thuê hoặc Hợp đồng.");
         if (data.groups.some((group) => group.slotIds.includes(command.slotId))) throw new Error("Slot thuộc nhóm ghép. Cập nhật nhóm thay vì slot thành viên.");
         const status = text(command.status, 60);
         if (command.tenant.length > 80) throw new Error("Tên đối tác tối đa 80 ký tự.");
@@ -40,6 +43,7 @@ export function createDemoRepository(): AdminRepository {
       }
       case "update-group": {
         exists(data.groups, command.groupId);
+        if (hasCommitment(data, data.groups.find((group) => group.id === command.groupId)!.slotIds)) throw new Error("Mặt bằng đang có cam kết. Quản lý trong mục Yêu cầu thuê hoặc Hợp đồng.");
         const status = text(command.status, 60), name = text(command.name, 80);
         data.groups = data.groups.map((item) => item.id === command.groupId ? { ...item, name, status } : item);
         break;
@@ -58,13 +62,17 @@ export function createDemoRepository(): AdminRepository {
         data.media = data.media.map((item) => item.id === command.mediaId ? { ...item, scope: command.scope } : item);
         break;
       }
+      default: applyB2BCommand(data, command);
     }
     data.revision += 1;
   }
   return {
     initialSnapshot: snapshot(),
     async read() { return snapshot(); },
-    async execute(command) { apply(command); return snapshot(); },
+    async execute(command) {
+      const previous = data; data = structuredClone(data);
+      try { apply(command); return snapshot(); } catch (error) { data = previous; throw error; }
+    },
     async upload(files, scope) {
       const accepted = new Set(["image/png", "image/jpeg", "image/webp", "application/pdf"]);
       if (files.some((file) => !accepted.has(file.type) || file.size > 10 * 1024 * 1024)) {

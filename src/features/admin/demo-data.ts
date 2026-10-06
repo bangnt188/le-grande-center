@@ -1,3 +1,4 @@
+import { makeB2BFixtures } from "./b2b-model";
 import type { Lead, MediaItem, AdminSnapshot } from "./contracts";
 import { FLOORS } from "./space-model";
 import type { Floor, Slot, SpaceGroup } from "./space-model";
@@ -36,5 +37,14 @@ const mediaFixtures: MediaItem[] = [
 ];
 
 export function makeDemoSnapshot(): AdminSnapshot {
-  return structuredClone({ revision: 0, slots: makeSlots(), groups: initialGroups, leads: leadFixtures, media: mediaFixtures });
+  const data = structuredClone({ ...makeB2BFixtures(), revision: 0, slots: makeSlots(), groups: initialGroups, leads: leadFixtures, media: mediaFixtures });
+  const hold = data.reservations[0];
+  data.slots = data.slots.map((slot) => hold.slotIds.includes(slot.id) ? { ...slot, status: "Đang giữ chỗ", tenant: "An Retail" } : slot);
+  data.groups = data.groups.map((group) => group.slotIds.some((id) => hold.slotIds.includes(id)) ? { ...group, status: "Đang giữ chỗ" } : group);
+  for (const lease of data.leases) {
+    const company = data.companies.find((item) => item.id === lease.companyId)!;
+    data.slots = data.slots.map((slot) => lease.slotIds.includes(slot.id) ? { ...slot, status: "Đang thuê", tenant: company.name } : slot);
+    if (lease.slotIds.length > 1) data.groups.push({ id: `demo-group-${lease.id}`, floor: lease.floor, name: `Mặt bằng ${lease.slotIds.map((id) => id.split("-")[1].replace("B", "B.")).join(" + ")}`, slotIds: [...lease.slotIds], status: "Đang thuê" });
+  }
+  return data;
 }

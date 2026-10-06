@@ -110,7 +110,7 @@ components:
 
 The existing public identity uses deep green, gold and editorial serif display type. The admin extends that identity into a light leasing desk: a white sidebar, cream working canvas, white panels and green actions. Gold marks selection and keyboard focus. These admin colors are route adaptations, not replacements for the shopping-mall brand tokens.
 
-The working interface is compact and data oriented. Geometry, slot membership and readable text states carry the hierarchy; bordered panels connect the floor plan, register and inspector. Leads and media reuse the same navigation, filtering and inspector structure.
+The working interface is compact and data oriented. Geometry, slot membership and readable text states carry the hierarchy; bordered panels connect the floor plan, register and inspector. Leads and media reuse the same navigation, filtering and inspector structure. The B2B extension opens on a searchable company register and a dossier with overview, request/hold, contract and document sections. Request decisions, linked original slots and appointment records use the same operational frame.
 
 **Key Characteristics:**
 
@@ -119,7 +119,7 @@ The working interface is compact and data oriented. Geometry, slot membership an
 - Text labels accompany status colors; slot records survive grouping.
 - Contained plan scrolling and stacked panels on small screens.
 
-This is a scan of the implemented system, not a new identity proposal. Sources: `src/app/globals.css`, `packages/ui/styles/themes/shopping-mall.css`, `packages/ui/styles/reset.css`, `src/app/admin-preview/admin-preview.css`, `admin-workspace.tsx` and `space-model.ts`. The surface brief stays in `.impeccable/surfaces/src-app-admin-preview-page-tsx.md`.
+This is a scan of the implemented system, not a new identity proposal. Sources: `src/app/globals.css`, `packages/ui/styles/themes/shopping-mall.css`, `packages/ui/styles/reset.css`, `src/app/admin-preview/admin-preview.css`, `admin-workspace.tsx`, `b2b-workspace.tsx`, `b2b-workspace.css`, `src/features/admin/b2b-model.ts`, `b2b-commands.ts` and `space-model.ts`. The surface brief stays in `.impeccable/surfaces/src-app-admin-preview-page-tsx.md`.
 
 ## Colors
 
@@ -161,9 +161,11 @@ The palette combines a dark green public identity with a warm light operational 
 
 ## Layout
 
-The desktop workspace uses a sticky 224px sidebar and 56px topbar. Content is capped at 1500px, with 26px top and 32px inline padding. The main plan or records column sits beside a 300px inspector across a 12px gap. Six floor choices occupy six equal columns.
+The desktop workspace uses a sticky 224px sidebar and 56px topbar. A persistent header button collapses the sidebar to a 76px icon rail; each navigation action retains its accessible name and tooltip. Content is capped at 1500px, with 32px top and inline padding. The main plan or records column sits beside a 300px inspector across a 12px gap. Six floor choices occupy six equal columns.
 
-At 1100px and below, the sidebar becomes 200px, inspector 270px and inline padding 20px. At 800px and below, the sidebar becomes a top navigation region with three equal navigation columns, the topbar is 48px, floor choices become three columns and inspectors follow their main panels. The later overrides are authoritative over the earlier inspector-first rules. Mobile buttons and fields have a 44px minimum height. At 520px and below, content uses 18px by 12px padding, filters wrap to full width and media uses two columns.
+At 1100px and below, the expanded sidebar becomes 200px, inspector 270px and inline padding 20px. At 800px and below, expanded navigation becomes a top region with a contained horizontal strip; collapsing hides that region while the menu button remains in the 60px header. Choosing a navigation destination closes the mobile menu and returns focus to that button. Floor choices become three columns and inspectors follow their main panels. The later overrides are authoritative over the earlier inspector-first rules. Mobile buttons and fields have a 44px minimum height. Content has 24px top padding; at 520px and below, inline padding is 12px, filters wrap to full width and media uses two columns.
+
+The B2B dossier places a 290px company list beside its detail panel with a 24px gap; at 1250px the list narrows to 245px and the gap to 18px. The contract register and detail panel stack at 1200px and below. At 1000px, dossier, request and public-preview panels also stack; company choices occupy three columns until the 520px breakpoint returns them to a vertical list. Contract search and company filters stack below 800px. Dossier tabs scroll within their container. Below 800px, the four-step request journey becomes two columns and portal sections stack. These are source-defined layouts; current B2B screenshots are unavailable.
 
 The diagram retains a minimum 680px width and 310px height inside a labelled, keyboard-focusable horizontal scroll region. Tables scroll within their panels. Long statuses and media names wrap; supporting lead text truncates within its row.
 
@@ -181,15 +183,15 @@ Controls have small corners, panels a slightly softer radius, and selection chip
 
 Compact, direct actions. Primary buttons use Admin Primary with white text; secondary buttons use white with a divider-colored border. Desktop minimum height is 38px. Hover applies `brightness(.96)` and disabled buttons use `.48` opacity. Keyboard focus uses an offset gold outline (3px, 2px offset).
 
-Buttons and plan slots animate background and border color for 160ms with `ease-out` only under `prefers-reduced-motion: no-preference`. Reduced motion disables those transitions. No page entrance effect is implemented.
+Buttons and plan slots animate background and border color for 160ms with `ease-out` only under `prefers-reduced-motion: no-preference`. Sidebar width uses a 180ms transition and B2B row backgrounds a 140ms transition under the same preference. Reduced motion disables those transitions. No page entrance effect is implemented.
 
 ### Fields
 
-White fields with a thin Field Border, compact padding and visible labels. Status inputs accept free text with suggested values, not fixed enums. Required and length limits come from the form contract. Media errors use a textual alert. Search controls carry accessible labels even when their visible form is a placeholder.
+White fields with a thin Field Border, compact padding and visible labels. B2B fields use a quiet local surface fill, turn white on focus and share the gold keyboard outline with the workspace controls. These local treatments do not redefine the normative token set. Status inputs accept free text with suggested values, not fixed enums. Required and length limits come from the form contract. Media errors use a textual alert. Search controls carry accessible labels even when their visible form is a placeholder.
 
 ### Navigation and floor choices
 
-Three admin views share the same navigation. Active navigation uses a light green surface and heavier text. Floor controls carry pressed state and six fixed floor labels; this interface has no add or remove floor action. Floor purposes are fixture labels, not confirmed tenant allocation.
+Eight admin views share the same navigation: customers, requests/holds, leases, appointments, floor/spaces, leads, media and tenant-view preview. Active navigation uses a light green surface and heavier text. Floor controls carry pressed state and six fixed floor labels; this interface has no add or remove floor action. Floor purposes are fixture labels, not confirmed tenant allocation.
 
 ### Panels, chips and registers
 
@@ -207,7 +209,29 @@ The customer B-series reference has eleven slots, with endpoint areas of 205 m²
 
 Leads use selectable rows plus a detail inspector; statuses and consultation notes are editable. Media uses selectable thumbnail tiles plus an inspector for project, floor or grouped-space associations. Image previews use contain sizing, and documents retain an authored file icon. Authored line icons use inline SVG, not glyph characters.
 
-The prototype keeps edits in component state and resets on reload. Lead identities are fabricated. File previews use local object URLs; the current selection accepts PNG, JPEG, WebP and PDF up to 10 MB. These client checks do not establish a production security boundary. Authentication, authorization, durable storage and production upload are absent; the architecture document owns the production decision path. The current public static export excludes this demo route and its reference raster. This document records the local operational prototype, not a published admin service.
+### Enterprise dossier and request journey
+
+A searchable company register opens a dossier with overview, request/hold, contract and document sections. Inline actions connect requests and contracts back to their original floor slots. Miniature SVG plans use the same slot geometry as the workspace; their highlighted membership is a navigation aid, not an official drawing.
+
+The contract register starts with four sample leases across three companies and three floors, including single-slot and grouped-slot examples. Search matches contract code, company name and original slot codes; a company selector further narrows the register. Changing filters preserves a visible selection or selects the first matching contract. No matches clears the inspector selection and offers a filter reset. Opening a contract directly from its dossier or converted hold clears register filters so the destination remains visible. Record selection closes the previously open document illustration. Contract details, sample documents and floor navigation retain the same linked original slots.
+
+The four-step strip explains request, review, hold and lease. Submitting a request does not reserve inventory. Approval requires a reviewer-entered duration of 1–720 hours for that demo decision; no production TTL policy is implied. The fixture command checks the complete adjacent selection on one floor and one side of the lobby, including overlapping commitments, before creating a hold. Rejecting a request or cancelling a hold requires a reason. Lease conversion is explicitly labelled a simulated signing action. The demo clock is fixed at 06/10/2026; displayed remaining time does not establish a live expiry service.
+
+### Appointments, audience previews and document samples
+
+Appointment requests are independent of inventory holds. The interface displays Vietnam time and sample 30-minute appointments, with confirm and cancel actions; it does not claim an official operating calendar.
+
+The tenant-view preview switches between a public presentation and An Retail’s own-company portal. The public presentation shows fixture availability and a request form without internal hold deadlines, commercial terms or private document links. The portal renders that sample company’s requests, holds, contracts and appointments. Both are presentation modes inside the admin demo: all workspace fixtures remain in the browser bundle. Audience filtering is not authentication or authorization; the production boundary is recorded in `docs/admin-data-contract.md`.
+
+Document samples are authored HTML sheets with a Georgia heading, signatures marked absent and a visible illustration disclaimer. They are neither uploaded contract files nor signed commitments. No private R2 viewer is implemented.
+
+The prototype keeps edits in its in-memory demo repository and resets on reload. Lead identities are fabricated. File previews use local object URLs; the current selection accepts PNG, JPEG, WebP and PDF up to 10 MB. These client checks do not establish a production security boundary. Authentication, authorization, durable storage and production upload are absent; the architecture document owns the production decision path. This document records the operational prototype; deployment status is owned by deployment evidence rather than inferred from these presentation modes.
+
+### Documentation and review evidence
+
+This refinement preserves the existing frontmatter and `.impeccable/design.json` token sidecar. Source comparison confirms the inherited green, gold, ink, muted and divider variables, flat panels, system sans, six floors and original-slot identity. B2B headers, fields and records use calmer spacing and local surface treatments; these are recorded in `.impeccable/review/polish-documentation.md` and are not promoted to new normative tokens. The earlier B2B documentation report is historical evidence, not the current focus or selection treatment.
+
+The finish reviewer requested recapture because the local server was blocked by EPERM and current desktop/mobile capture was unavailable. Prior screenshots represent the earlier interface and cannot approve this refinement. The build thread reports successful webpack build/static export and typecheck, with no tests run. Source confirms mobile 16px field text, 44px minimum controls, gold keyboard focus and quiet selected row fills. The contract filter/detail mismatch was corrected in source; the source reviewer scored that finding resolved. Rendered appearance and interaction remain unverified. Visual approval is pending valid captures.
 
 ## Do's and Don'ts
 

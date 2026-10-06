@@ -75,8 +75,19 @@ Cấu hình `NEXT_PUBLIC_ADMIN_API_URL` chỉ là URL công khai của backend; 
 DB URL, secret hoặc credential trong biến `NEXT_PUBLIC_*`.
 
 [Hợp đồng API và migration](docs/admin-data-contract.md),
-[schema PostgreSQL dự thảo](database/001_admin_draft.sql) và
+[schema PostgreSQL demo v1](database/001_admin_draft.sql) và
 [thiết kế giao diện](DESIGN.md). Backend/auth/database chưa được triển khai.
+
+## Thiết kế hệ thống B2B đã chốt
+
+- [Thiết kế nghiệp vụ, admin, DB và migration](docs/b2b-leasing-design.md).
+- [Hợp đồng private trên R2 và Workers Free](docs/private-documents-r2.md).
+- [SQL baseline B2B v2](database/design/b2b-leasing-v2.sql) và [hướng dẫn DB](database/README.md).
+- [Thuật ngữ](CONTEXT.md) và [quyết định kiến trúc](docs/adr/0001-b2b-leasing-and-private-documents.md).
+
+Luồng: gửi yêu cầu → chủ đầu tư duyệt → giữ chỗ có hạn. Lịch hẹn độc lập.
+Docs/schema là thiết kế chưa apply; chưa triển khai backend/auth/R2. V2 không
+phải migration chạy nối tiếp v1 và không import fixture thành inventory thật.
 
 ## Architecture Decision: admin
 
@@ -136,3 +147,17 @@ git diff --submodule=log
 Sau khi review, commit gitlink `packages/ui` và lockfile ở repo root. Một fresh
 clone thường checkout submodule ở detached HEAD của commit đã khóa; đây là hành
 vi mặc định của Git submodule.
+
+## Demo hành trình thuê B2B
+
+Mở `/admin-preview/`: giao diện bắt đầu ở **Khách hàng**. Có thể duyệt luồng:
+
+1. Chọn An Retail → **Yêu cầu & giữ chỗ** → mở phương án B.2 + B.3 (328 m²).
+2. Nhập số giờ rồi duyệt giữ chỗ; xem cập nhật ở **Tầng & mặt bằng**.
+3. Mở yêu cầu đã duyệt → **Mô phỏng ký & chuyển thuê** → xem **Hợp đồng**.
+4. Mở **Góc nhìn khách thuê**: trang giới thiệu không hiện thời hạn riêng;
+   Portal An Retail có giữ chỗ, tài liệu mẫu và book lịch của doanh nghiệp.
+
+Demo dùng dữ liệu giả lập trong phiên, tài liệu HTML không có chữ ký. Portal là
+chế độ xem thử, chưa có xác thực; không nhập hồ sơ/hợp đồng thật. Backend,
+authorization và Worker/R2 cần được triển khai theo docs trước khi dùng thật.

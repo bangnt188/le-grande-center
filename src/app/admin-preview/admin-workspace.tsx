@@ -7,9 +7,15 @@ import type { Floor, Slot } from "./space-model";
 import { useAdminData } from "@/features/admin/use-admin-data";
 import { adminLogoUrl, referencePlanUrl } from "@/features/admin/demo-data";
 
-type View = "spaces" | "leads" | "media";
-type IconName = "plan" | "people" | "media" | "arrow" | "search" | "check" | "merge" | "split" | "upload" | "file" | "close" | "external";
+import B2BWorkspace from "./b2b-workspace";
+import type { B2BView } from "./b2b-workspace";
+
+type View = "spaces" | "leads" | "media" | B2BView;
+type IconName = "plan" | "people" | "media" | "arrow" | "search" | "check" | "merge" | "split" | "upload" | "file" | "close" | "external" | "menu" | "calendar" | "request";
 const iconPaths: Record<IconName, ReactNode> = {
+  menu: <><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16m4-10 2 2-2 2"/></>,
+  calendar: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18m-14 4h2m4 0h2"/></>,
+  request: <><path d="M14 3H5v18h14V8zm0 0v5h5M8 12h8m-8 4h3"/><path d="m14 17 1 1 3-3"/></>,
   plan: <><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 10h18M10 10v11M15 3v7"/></>,
   people: <><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5"/></>,
   media: <><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="1"/><path d="m3 17 5-5 4 4 4-6 5 7"/></>,
@@ -31,13 +37,16 @@ function Status({ value }: { value: string }) {
   return <span className={`status-text ${tone}`}><span aria-hidden="true"/>{value}</span>;
 }
 const fmt = (value: number) => new Intl.NumberFormat("vi-VN").format(value);
-const labels: Record<View, string> = { spaces: "Tầng & mặt bằng", leads: "Leads tư vấn", media: "Thư viện media" };
+const labels: Record<View, string> = { customers: "Khách hàng", requests: "Yêu cầu & giữ chỗ", leases: "Hợp đồng", appointments: "Lịch hẹn", preview: "Góc nhìn khách thuê", spaces: "Tầng & mặt bằng", leads: "Leads tư vấn", media: "Thư viện media" };
 
 
 export default function AdminWorkspace() {
-  const [view, setView] = useState<View>("spaces");
+  const sidebarToggleRef = useRef<HTMLButtonElement>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [view, setView] = useState<View>("customers");
   const [floor, setFloor] = useState<Floor>(2);
-  const { slots, groups, leads, media, pending, loading, error, execute, uploadFiles, reload } = useAdminData();
+  const admin = useAdminData();
+  const { slots, groups, leads, media, pending, loading, error, execute, uploadFiles, reload } = admin;
   const [selected, setSelected] = useState<string[]>(["T2-B2", "T2-B3"]);
   const [groupName, setGroupName] = useState("Mặt bằng B.2–B.3");
   const [message, setMessage] = useState("");
@@ -124,21 +133,23 @@ export default function AdminWorkspace() {
     return group ? `Tầng ${group.floor} · ${group.name}` : scope;
   };
 
-  return <div className="admin-frame" data-ui-root data-ui-theme="shopping-mall" data-ui-scheme="light">
-    <aside className="admin-sidebar">
+  return <div className={`admin-frame ${sidebarCollapsed ? "sidebar-is-collapsed" : ""}`} data-ui-root data-ui-theme="shopping-mall" data-ui-scheme="light">
+    <aside id="admin-sidebar" className="admin-sidebar">
       <a className="admin-brand" href="https://legrandecentre.vn/" target="_blank" rel="noreferrer"><img className="brand-logo" src={adminLogoUrl} alt="" /><span><strong>LE GRANDE</strong><small>CENTRE</small></span></a>
       <div className="workspace-label">Không gian quản trị</div>
-      <nav aria-label="Điều hướng quản trị">{(["spaces", "leads", "media"] as View[]).map((item) => <button type="button" className={`nav-item ${view === item ? "is-active" : ""}`} aria-label={labels[item]} aria-current={view === item ? "page" : undefined} key={item} onClick={() => { setView(item); setMessage(""); }}><Icon name={item === "spaces" ? "plan" : item === "leads" ? "people" : "media"}/><span>{labels[item]}</span>{item === "leads" && <span className="nav-count">{leads.filter((item) => item.status === "Mới").length}</span>}</button>)}</nav>
+      <nav aria-label="Điều hướng quản trị">{(["customers", "requests", "leases", "appointments", "spaces", "leads", "media", "preview"] as View[]).map((item) => <button type="button" className={`nav-item ${view === item ? "is-active" : ""}`} title={labels[item]} aria-label={labels[item]} aria-current={view === item ? "page" : undefined} key={item} onClick={() => { setView(item); setMessage(""); if (window.matchMedia("(max-width: 800px)").matches) { setSidebarCollapsed(true); sidebarToggleRef.current?.focus(); } }}><Icon name={item === "spaces" ? "plan" : item === "appointments" ? "calendar" : item === "requests" ? "request" : item === "media" ? "media" : item === "leases" ? "file" : item === "preview" ? "external" : "people"}/><span>{labels[item]}</span>{item === "leads" && <span className="nav-count">{leads.filter((item) => item.status === "Mới").length}</span>}</button>)}</nav>
       <div className="sidebar-project"><span className="project-building"><Icon name="plan" size={28}/></span><strong>Le Grande Centre</strong><span>6 tầng · 3 phân khu</span><p>Thương mại, văn phòng<br/>và không gian trải nghiệm.</p></div>
       <div className="sidebar-person"><span className="avatar">AD</span><span><strong>Chủ đầu tư</strong><small>Workspace demo</small></span></div>
     </aside>
     <div className="admin-main-column">
-      <header className="admin-topbar"><div className="breadcrumb"><span>Le Grande Centre</span><span aria-hidden="true">/</span><strong>{labels[view]}</strong></div><div className="topbar-actions"><span className="demo-label">Demo · Dữ liệu mẫu</span><a href="https://legrandecentre.vn/" target="_blank" rel="noreferrer">Xem website <Icon name="external" size={15}/></a></div></header>
+      <header className="admin-topbar"><div className="topbar-location"><button ref={sidebarToggleRef} type="button" className="sidebar-toggle" aria-controls="admin-sidebar" aria-expanded={!sidebarCollapsed} aria-label={sidebarCollapsed ? "Mở rộng thanh điều hướng" : "Thu gọn thanh điều hướng"} title={sidebarCollapsed ? "Mở rộng thanh điều hướng" : "Thu gọn thanh điều hướng"} onClick={() => setSidebarCollapsed((value) => !value)}><Icon name="menu"/></button><div className="breadcrumb"><span>Le Grande Centre</span><span aria-hidden="true">/</span><strong>{labels[view]}</strong></div></div><div className="topbar-actions"><span className="demo-label">Demo · Dữ liệu mẫu</span><a href="https://legrandecentre.vn/" target="_blank" rel="noreferrer">Xem website <Icon name="external" size={15}/></a></div></header>
       <main id="main-content" className="admin-content">
-        <div className="page-heading"><div><h1>{labels[view]}</h1><p>{view === "spaces" ? "Một góc nhìn rõ ràng cho từng mặt bằng, từng cơ hội khai thác." : view === "leads" ? "Theo dõi nhu cầu, kết nối khách hàng với mặt bằng phù hợp." : "Tập trung bản vẽ, hình ảnh và tài liệu của dự án."}</p></div>{view === "spaces" ? <button className="button secondary" onClick={() => { setView("media"); setActiveMedia("plan-reference"); }}><Icon name="file" size={17}/>Bản vẽ gốc</button> : view === "media" ? <button className="button primary" onClick={() => fileInput.current?.click()}><Icon name="upload" size={17}/>Thêm media</button> : <span className="heading-count">{leads.length} yêu cầu mẫu</span>}</div>
+        <div className="page-heading"><div><h1>{labels[view]}</h1><p>{view === "spaces" ? "Một góc nhìn rõ ràng cho từng mặt bằng, từng cơ hội khai thác." : view === "leads" ? "Theo dõi nhu cầu, kết nối khách hàng với mặt bằng phù hợp." : view === "media" ? "Tập trung bản vẽ, hình ảnh và tài liệu của dự án." : view === "customers" ? "Hồ sơ doanh nghiệp, nhu cầu thuê và mặt bằng trong cùng một nơi." : view === "requests" ? "Từ nhu cầu ban đầu đến giữ chỗ toàn bộ tổ hợp mặt bằng." : view === "leases" ? "Kỳ thuê, mặt bằng và tài liệu riêng của từng doanh nghiệp." : view === "appointments" ? "Kết nối đội leasing với khách hàng qua lịch tư vấn và khảo sát." : "Xem thông tin công khai và trải nghiệm dành riêng cho doanh nghiệp."}</p></div>{view === "spaces" ? <button className="button secondary" onClick={() => { setView("media"); setActiveMedia("plan-reference"); }}><Icon name="file" size={17}/>Bản vẽ gốc</button> : view === "media" ? <button className="button primary" onClick={() => fileInput.current?.click()}><Icon name="upload" size={17}/>Thêm media</button> : view === "leads" ? <span className="heading-count">{leads.length} yêu cầu mẫu</span> : <span className="heading-count">B2B · Demo tương tác</span>}</div>
         <div className="session-notice"><span className="notice-dot" aria-hidden="true"/>Bản demo tương tác. Thay đổi chỉ giữ trong phiên hiện tại; tải lại trang để khôi phục dữ liệu mẫu.</div>
         <div className="feedback" role="status" aria-live="polite">{pending ? "Đang lưu…" : loading ? "Đang tải dữ liệu…" : message}</div>
         {error && <div className="form-error" role="alert">{error} <button className="text-button" onClick={reload}>Tải lại dữ liệu</button></div>}
+
+        {["customers", "requests", "leases", "appointments", "preview"].includes(view) && <B2BWorkspace view={view as B2BView} data={admin} onView={setView} onMessage={setMessage} onFloor={(nextFloor, ids) => { setFloor(nextFloor); setSelected(ids); setView("spaces"); }}/>}
 
         {view === "spaces" && <>
           <div className="floor-nav" role="group" aria-label="Chọn tầng">{FLOORS.map((item) => <button className={`floor-tab ${floor === item ? "is-active" : ""}`} aria-pressed={floor === item} key={item} onClick={() => changeFloor(item)}><span>Tầng {item}</span><small>{item <= 2 ? "Thương mại" : item <= 4 ? "Văn phòng" : "Giải trí"}</small></button>)}</div>
