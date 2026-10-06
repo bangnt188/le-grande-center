@@ -5,12 +5,27 @@
   "type": "module",
   "workspaces": ["packages/ui"],
   "scripts": {
+    "predev": "npm run build:ui",
+    "dev": "next dev",
+    "prebuild": "npm run build:ui",
+    "build": "next build",
+    "postbuild": "node scripts/prepare-public-export.mjs",
+    "typecheck": "npm run typecheck:ui && tsc --noEmit",
     "build:ui": "npm run build --workspace=@mall/ui",
     "typecheck:ui": "npm run typecheck --workspace=@mall/ui",
     "preview:ui": "npm run preview:ui --workspace=@mall/ui",
     "test:ui": "npm run test --workspace=@mall/ui"
   },
   "dependencies": {
-    "@mall/ui": "0.1.0"
+    "@mall/ui": "0.1.0",
+    "next": "16.3.6",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.9.0"
   }
 }

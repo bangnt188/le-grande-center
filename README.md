@@ -1,6 +1,6 @@
 # Le Grande Center
 
-Workspace chuẩn bị cho dự án Le Grande Center. Repo ứng dụng:
+Ứng dụng Le Grande Center. Repo:
 https://github.com/bangnt188/le-grande-center.git.
 
 `main` chỉ chứa README tạm; workspace và cấu hình phát triển nằm trên `dev`.
@@ -25,7 +25,36 @@ Migration: build app trong repo root khi chọn framework, giữ dependency
 `@mall/ui` và import qua các export công khai. Khi cập nhật thư viện, review diff,
 chạy build/typecheck, rồi commit gitlink mới cùng lockfile nếu dependency thay đổi.
 
-## Khởi tạo
+## Ứng dụng Next.js
+
+Repo dùng Next.js 16 App Router, React 19 và static export như bản demo Solar.
+Website công khai hiện là trang chờ bàn giao; chưa thay thế nội dung đang chạy ở
+<https://legrandecentre.vn/>.
+
+```sh
+git clone --branch dev --recurse-submodules https://github.com/bangnt188/le-grande-center.git
+cd le-grande-center
+npm ci
+npm run dev
+```
+
+Mặc định local dùng base path `/le-grande-center/` giống GitHub Pages. Mở
+`http://localhost:3000/le-grande-center/`. Để chạy ở root local, đặt
+`NEXT_PUBLIC_SITE_URL=http://localhost:3000/` trong `.env.local`.
+
+`npm run build` tạo static export ở `out/`, build `@mall/ui` trước và loại
+`out/admin-preview/` khỏi artifact. Route `/admin-preview/` là prototype UI để
+duyệt bố cục; các chỉ số và bản ghi đều là dữ liệu mẫu, không có auth/API, và
+không được xem là hệ thống quản trị vận hành. Chưa cấu hình workflow tự deploy;
+chỉ thêm sau khi landing được bàn giao và quy trình phát hành được xác nhận.
+
+## Architecture Decision: admin
+
+Phân tích luồng quản trị, boundary bảo mật, nội dung và migration trong
+[Architecture Decision Admin](docs/admin-architecture-decision.md). Admin thực
+tế phải chạy trên Next.js server runtime managed; không đặt trên GitHub Pages.
+
+## Khởi tạo shared UI
 
 ```sh
 git clone --branch dev --recurse-submodules https://github.com/bangnt188/le-grande-center.git
@@ -42,8 +71,8 @@ Với clone chưa có submodule:
 git submodule update --init --recursive
 ```
 
-`preview:ui` mở catalog component bằng Vite; chưa phải ứng dụng Le Grande Center.
-Repo hiện chưa có application framework, route, backend hay cấu hình deployment.
+`preview:ui` mở catalog component bằng Vite; đây là preview thư viện, không phải
+ứng dụng Le Grande Center.
 
 ## Theme shopping mall
 
