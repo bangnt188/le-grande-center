@@ -2,6 +2,7 @@ import { makeB2BFixtures } from "./b2b-model";
 import type { Lead, MediaItem, AdminSnapshot } from "./contracts";
 import { FLOORS } from "./space-model";
 import type { Floor, Slot, SpaceGroup } from "./space-model";
+import { STORAGE_LIMIT_BYTES } from "./storage-policy";
 
 // The customer's plan does not identify its floor. Repeated geometry is fixture
 // data for demonstrating workflows, not an assertion about actual inventory.
@@ -37,7 +38,7 @@ const mediaFixtures: MediaItem[] = [
 ];
 
 export function makeDemoSnapshot(): AdminSnapshot {
-  const data = structuredClone({ ...makeB2BFixtures(), revision: 0, slots: makeSlots(), groups: initialGroups, leads: leadFixtures, media: mediaFixtures });
+  const data = structuredClone({ ...makeB2BFixtures(), revision: 0, storage: { usedBytes: Math.round(STORAGE_LIMIT_BYTES * .72), reservedBytes: 0 }, slots: makeSlots(), groups: initialGroups, leads: leadFixtures, media: mediaFixtures });
   const hold = data.reservations[0];
   data.slots = data.slots.map((slot) => hold.slotIds.includes(slot.id) ? { ...slot, status: "Đang giữ chỗ", tenant: "An Retail" } : slot);
   data.groups = data.groups.map((group) => group.slotIds.some((id) => hold.slotIds.includes(id)) ? { ...group, status: "Đang giữ chỗ" } : group);

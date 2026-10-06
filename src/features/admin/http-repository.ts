@@ -1,4 +1,5 @@
 import type { AdminRepository, AdminSnapshot } from "./contracts";
+import { isStorageUsage } from "./storage-policy";
 
 // Transport ready for a separately deployed authenticated backend. No database
 // connection or credentials belong here. Endpoint contracts are documented.
@@ -18,6 +19,7 @@ export function createHttpRepository(baseUrl: string): AdminRepository {
         403: "Bạn không có quyền thực hiện thao tác này.",
         409: "Dữ liệu đã thay đổi. Tải lại trước khi thao tác.",
         413: "Tệp vượt quá dung lượng cho phép.",
+        507: "Không đủ dung lượng lưu trữ. Tải lại số liệu và chọn ít tệp hơn hoặc liên hệ quản trị viên.",
       };
       throw new Error(messages[response.status] ?? `Không thể tải/lưu dữ liệu (${response.status}). Thử lại.`);
     }
@@ -28,6 +30,7 @@ export function createHttpRepository(baseUrl: string): AdminRepository {
     for (const key of ["companies", "requests", "reservations", "leases", "appointments"]) {
       if (!(key in value) || !Array.isArray((value as Record<string, unknown>)[key])) throw new Error("Backend chưa hỗ trợ dữ liệu B2B. Cập nhật workspace contract trước khi kết nối.");
     }
+    if (!("storage" in value) || (value.storage !== null && !isStorageUsage(value.storage))) throw new Error("Backend chưa cung cấp số liệu dung lượng hợp lệ. Upload đã khóa.");
     revision = value.revision;
     return value as AdminSnapshot;
   }

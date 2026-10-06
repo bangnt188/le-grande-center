@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { AdminCommand, AdminSnapshot } from "./contracts";
 import { createDemoRepository } from "./demo-repository";
 import { createHttpRepository } from "./http-repository";
+import { storageUploadIssue } from "./storage-policy";
 
 export function useAdminData() {
   const [repository] = useState(() => process.env.NEXT_PUBLIC_ADMIN_API_URL
@@ -38,9 +39,14 @@ export function useAdminData() {
   return {
     slots: data?.slots ?? [], groups: data?.groups ?? [], leads: data?.leads ?? [], media: data?.media ?? [],
     companies: data?.companies ?? [], requests: data?.requests ?? [], reservations: data?.reservations ?? [], leases: data?.leases ?? [], appointments: data?.appointments ?? [],
-    pending, loading, error,
+    storage: data?.storage ?? null, pending, loading, error,
     execute: (command: AdminCommand) => run(() => repository.execute(command)),
-    uploadFiles: (files: File[], scope: string) => run(() => repository.upload(files, scope)),
+    uploadFiles: (files: File[], scope: string) => run(() => {
+      const issue = storageUploadIssue(data?.storage ?? null, files);
+      if (issue) throw new Error(issue);
+      return repository.upload(files, scope);
+    }),
+    previewStorage: repository.previewStorage ? (bytes: number) => run(() => repository.previewStorage!(bytes)) : undefined,
     reload: () => run(() => repository.read()),
   };
 }
