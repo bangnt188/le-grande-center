@@ -25,6 +25,9 @@ export function createHttpRepository(baseUrl: string): AdminRepository {
     if (!value || typeof value !== "object" || !("revision" in value) || typeof value.revision !== "number" || !("slots" in value) || !Array.isArray(value.slots) || !("groups" in value) || !Array.isArray(value.groups) || !("leads" in value) || !Array.isArray(value.leads) || !("media" in value) || !Array.isArray(value.media)) {
       throw new Error("Dữ liệu API không đúng AdminSnapshot contract.");
     }
+    for (const key of ["companies", "requests", "reservations", "leases", "appointments"]) {
+      if (!(key in value) || !Array.isArray((value as Record<string, unknown>)[key])) throw new Error("Backend chưa hỗ trợ dữ liệu B2B. Cập nhật workspace contract trước khi kết nối.");
+    }
     revision = value.revision;
     return value as AdminSnapshot;
   }

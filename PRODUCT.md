@@ -23,6 +23,16 @@ Giúp đội vận hành xem mặt bằng theo tầng, theo dõi trạng thái s
 - Phạm vi hiện tại là demo Next.js với dữ liệu mẫu; auth, lưu trữ, upload production và phân quyền chưa được triển khai.
 - Chưa có bản vẽ chính thức của cả sáu tầng; không suy diễn fixture thành số liệu thực tế.
 
+## B2B workflow confirmed
+
+- Khách hàng doanh nghiệp có nhu cầu thuê, hợp đồng, lịch hẹn và tài liệu liên kết.
+- Gửi yêu cầu → chủ đầu tư duyệt → giữ chỗ có thời hạn; lịch hẹn độc lập.
+- Hợp đồng/hold deadline chỉ hiển thị trong nội bộ hoặc portal có quyền. Public
+  chỉ hiển thị khả dụng dự kiến được duyệt và đăng ký quan tâm.
+- Tài liệu production dùng R2 private + Worker kiểm tra session/quyền. Demo chỉ
+  mô phỏng hồ sơ và tài liệu mẫu, không có authentication/storage thật.
+- Chính sách TTL/quota/gia hạn chưa chốt; demo yêu cầu người duyệt chọn thời hạn.
+
 ## Brand Commitments
 
 Website tham chiếu: https://legrandecentre.vn/. Bộ theme shopping-mall hiện có trong packages/ui là nguồn màu thương hiệu của ứng dụng. Tên hiển thị dùng Le Grande Centre.

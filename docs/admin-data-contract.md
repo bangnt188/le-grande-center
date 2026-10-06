@@ -81,6 +81,18 @@ query theo interface version tiếp theo, phần sơ đồ và form được gi�
 5. Thay fixture bằng adapter HTTP qua cấu hình; kiểm tra tải/lưu, lỗi/xung đột và
    người dùng đồng thời. GitHub Pages tiếp tục là môi trường demo fixture.
 
+## Thiết kế B2B kế nhiệm
+
+Nghiệp vụ đã chốt trong [Thiết kế B2B](b2b-leasing-design.md); schema mới ở
+[baseline v2](../database/design/b2b-leasing-v2.sql). Đây là design riêng, không
+phải migration tự apply hoặc backend đã nối vào adapter v1.
+
+V2 dùng version mặt bằng và allocation theo thời gian; status text không quyết
+định khả dụng. Revision theo aggregate thay singleton demo. Tài liệu hợp đồng
+xem qua [Worker + R2 private](private-documents-r2.md); signed link chỉ là phương
+án download có hạn khi policy cho phép. Trang public trả projection được duyệt.
+Endpoint/DTO v2 phải được triển khai riêng trước khi chuyển TSX sang dữ liệu thật.
+
 ## Deploy hiện tại
 
 Code nguồn ở `dev`; `npm run deploy:dev` kiểm tra source commit đã push, build
@@ -94,3 +106,29 @@ phù hợp, đưa template vào `.github/workflows`, chuyển Pages sang Actions
 branch policy `github-pages` thành dev. Template tách build/deploy theo
 [GitHub Pages custom workflow](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
 Shared UI luôn lấy commit gitlink đã khóa, không tự nâng branch khi build.
+
+## Demo hành trình B2B (06/10/2026)
+
+Workspace hiện có các view Khách hàng, Yêu cầu & giữ chỗ, Hợp đồng, Lịch hẹn,
+Tầng & mặt bằng, Leads, Media và Góc nhìn khách thuê. Dữ liệu B2B dùng chung
+`AdminSnapshot`, thao tác đi qua `AdminRepository.execute` như các màn hình cũ.
+`b2b-model.ts` là DTO của demo, không phải bản sao đầy đủ schema SQL v2.
+
+- Gửi nhu cầu chưa giữ slot; duyệt yêu cầu cần nhập thời hạn, kiểm tra toàn bộ
+  slot liền kề cùng tầng và kỳ thuê. Lỗi không tạo giữ chỗ một phần.
+- Giữ chỗ cập nhật slot/hồ sơ; hủy có lý do; chuyển thuê chỉ là **mô phỏng ký**.
+  Văn bản HTML minh họa không có chữ ký, không phải file hợp đồng thật.
+- Book lịch tạo yêu cầu hẹn 30 phút, độc lập với giữ slot; admin xác nhận/hủy.
+- Trang giới thiệu chỉ có thông tin khả dụng được chọn làm mẫu; không có ngày
+  hết hợp đồng, countdown nội bộ hoặc tài liệu riêng. Portal mẫu lọc An Retail.
+- Mốc tính thời gian cố định 06/10/2026 để demo nhất quán; chưa có expiry worker.
+
+**Ranh giới bảo mật:** góc nhìn public/portal là chế độ trình diễn bên trong admin
+static, không phải endpoint công khai hay phân quyền thật. Fixture toàn bộ workspace
+vẫn có trong bundle/trình duyệt. Không đưa dữ liệu thật vào bản này. Production phải
+cấp DTO riêng theo audience từ server, xác thực membership/object quyền cho mọi
+request, thực hiện giao dịch và exclusion constraint trong DB, kiểm tra văn bản ký
+trước chuyển thuê, rồi mới nối viewer với Worker/R2 riêng tư. Không dùng lọc React
+để bảo vệ dữ liệu. HTTP adapter từ chối snapshot cũ thiếu các collection B2B.
+
+Chạy tại local: `NEXT_PUBLIC_SITE_URL=http://localhost:3106/ npm run dev -- --port 3106`, mở `/admin-preview/`. URL này đặt base path local thay cho prefix GitHub Pages.
