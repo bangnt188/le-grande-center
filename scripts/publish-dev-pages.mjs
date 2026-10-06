@@ -36,6 +36,10 @@ try {
   publish("init", "--initial-branch=gh-pages");
   publish("config", "user.name", name);
   publish("config", "user.email", email);
+  // Use the active GitHub CLI account rather than another macOS keychain account.
+  // The helper returns credentials directly to Git; no token enters the artifact.
+  publish("config", "credential.helper", "");
+  publish("config", "--add", "credential.helper", "!gh auth git-credential");
   publish("remote", "add", "origin", repository);
   if (git("ls-remote", "origin", "refs/heads/gh-pages")) {
     publish("fetch", "--depth=1", "origin", "gh-pages");
