@@ -13,7 +13,7 @@
     "prebuild": "npm run build:backend && npm run build:ui",
     "build": "next build",
     "postbuild": "node scripts/prepare-public-export.mjs",
-    "typecheck": "npm run typecheck:ui && tsc --noEmit",
+    "typecheck": "npm run build:backend && npm run typecheck:backend && npm run typecheck:ui && tsc --noEmit",
     "build:ui": "npm run build --workspace=@mall/ui",
     "typecheck:ui": "npm run typecheck --workspace=@mall/ui",
     "preview:ui": "npm run preview:ui --workspace=@mall/ui",
@@ -22,14 +22,17 @@
     "deploy:dev": "node scripts/publish-dev-pages.mjs",
     "build:backend": "npm run build --workspace=@shared/backend",
     "typecheck:backend": "npm run typecheck --workspace=@shared/backend",
-    "test:backend": "npm run test --workspace=@shared/backend"
+    "test:backend": "npm run test --workspace=@shared/backend",
+    "check:backend": "npm run check:integrity --workspace=@shared/backend",
+    "test:backend:consumer": "npm run build:backend && node --conditions=react-server --import tsx --test tests/backend-consumer.test.ts"
   },
   "dependencies": {
     "@mall/ui": "0.1.0",
     "next": "16.3.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "@shared/backend": "0.1.0"
+    "@shared/backend": "0.2.1",
+    "server-only": "0.0.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -2,3 +2,7 @@
 	path = packages/ui
 	url = https://github.com/bangnt188/component-ui.git
 	branch = shopping-mall
+[submodule "packages/backend"]
+	path = packages/backend
+	url = https://github.com/bangnt188/lib-ts-be.git
+	branch = main
