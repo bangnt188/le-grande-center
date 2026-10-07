@@ -28,8 +28,8 @@ chạy build/typecheck, rồi commit gitlink mới cùng lockfile nếu dependen
 ## Ứng dụng Next.js
 
 Repo dùng Next.js 16 App Router, React 19 và static export như bản demo Solar.
-Website công khai hiện là trang chờ bàn giao; chưa thay thế nội dung đang chạy ở
-<https://legrandecentre.vn/>.
+Trang chủ là không gian 3D tương tác của Le Grande Centre; không còn trang chờ
+bàn giao nội dung. Repo chưa được xuất bản thay thế domain production.
 
 ```sh
 git clone --branch dev --recurse-submodules https://github.com/bangnt188/le-grande-center.git
@@ -40,6 +40,37 @@ npm run dev
 
 Mặc định local dùng base path `/le-grande-center/` giống GitHub Pages. Mở
 `http://localhost:3000/le-grande-center/admin-preview/` để thử giao diện quản trị.
+
+## Trang chủ B2B và kiến trúc 3D
+
+Mở `http://localhost:3000/le-grande-center/`. Trang chủ ưu tiên công trình, công
+năng theo tầng và liên hệ dự án; không còn giao diện bàn giao hay tải GLB.
+Three.js dựng hình học PBR, không phủ ảnh mặt tiền và không cần React Three Fiber.
+Kính xanh đen hơi tím, mặt tiền trắng lạnh, khe cửa lõm và bồn mái bạc được đối
+chiếu với video-v2 do khách hàng cung cấp. Ánh sáng ngoài trời và khung hình tự
+vừa theo tỷ lệ màn hình; hồ turquoise và tượng ngã ba vẫn giản lược.
+
+Sáu chấm trắng đan xen trái/phải, bám theo xoay/zoom. Bấm/chạm hoặc Tab + Enter
+để chọn riêng một tầng; cũng có nút tầng trong bảng công năng. Bấm lại hoặc
+**Bỏ chọn tầng** để bỏ chọn. Vòng tỏa 2,8 giây lệch nhịp, tắt chuyển động theo
+`prefers-reduced-motion`. Công năng tham chiếu brochure 17 trang: shophouse tầng
+1–2, dịch vụ/văn phòng tầng 3–4, giải trí tầng 5 và dịch vụ ngoài trời tầng 6.
+Rạp chiếu phim/công năng dự kiến không phải xác nhận đơn vị đang hoạt động.
+Không công bố giá, diện tích hay trạng thái khả dụng chưa được xác nhận.
+
+Phim dự án được nén xuống 960×540, giữ toàn bộ thời lượng và âm thanh; có poster,
+điều khiển gốc, tự phát im tiếng khi vào vùng nhìn thấy và dừng khi cuộn khỏi vùng.
+Tôn trọng `prefers-reduced-motion`; video chỉ tải khi phát nhờ `preload="none"`.
+Tài nguyên `project-film.mp4`, `project-film-poster.webp`, `le-grande-brochure.pdf` ở
+`public/`; đường dẫn theo pathname của `siteUrl`, hỗ trợ base path và domain root.
+Khi WebGL không mở được, phim, công năng và liên hệ vẫn dùng được; không giả lập cảnh 3D.
+
+Số điện thoại, email và địa chỉ được đối chiếu trên https://legrandecentre.vn/.
+Liên hệ dùng `tel:` và `mailto:` thật; email điền tầng đang chọn, chỉ mở ứng dụng
+email, không giả báo đã gửi lead. Brochure do khách hàng cung cấp; số liệu đất
+trong các trang không thống nhất nên không đưa lên trang chủ. Mô hình dùng Y
+hướng lên, mặt tiền +Z, tỷ lệ ước lượng, không thay thế hồ sơ thiết kế chính thức.
+Phần quản trị và backend hiện có không thay đổi.
 
 ## Deploy demo từ dev
 

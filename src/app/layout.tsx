@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     default: "Le Grande Center | Trung tâm thương mại",
     template: "%s | Le Grande Center",
   },
-  description: "Thông tin chính thức về Le Grande Center sẽ được cập nhật tại đây.",
+  description: "Khám phá Le Grande Centre: shophouse, dịch vụ, văn phòng và không gian giải trí tại Sóc Trăng. Xem kiến trúc 3D và liên hệ tư vấn mặt bằng.",
   robots: { index: isIndexable, follow: isIndexable },
 };
 
