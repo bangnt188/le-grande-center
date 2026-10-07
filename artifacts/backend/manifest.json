@@ -1,0 +1,13 @@
+{
+  "name": "@shared/backend",
+  "version": "0.1.0",
+  "artifact": "shared-backend-0.1.0.tgz",
+  "sha256": "407a67360d888c08640568fea186fc9f1784475744e3a46226a9234510ab5e23",
+  "validated": [
+    "source typecheck",
+    "source tests",
+    "build",
+    "installed tarball Mall/Solar CRUD, policy and SQL tests",
+    "installed tarball consumer typecheck"
+  ]
+}

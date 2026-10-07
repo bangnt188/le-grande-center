@@ -1,3 +1,4 @@
+import { validScope } from "./policy.js";
 import { BackendError } from "./errors.js";
 import type { CrudRow, CrudRepository } from "./crud.js";
 import type { AccessScope } from "./policy.js";
@@ -12,6 +13,8 @@ export type PostgresOptions<Row extends CrudRow> = {
   /** Trusted mapping of writable form fields to DB columns. */
   columns: Readonly<Record<string, string>>;
   scopeColumns: { tenantId: string } & Partial<Record<"propertyId" | "organizationId" | "ownerId", string>>;
+  /** Required custom scope dimensions and their SQL columns, configured by the application. */
+  dimensionColumns?: Readonly<Record<string, string>>;
   /** Validate DB row and map SQL column names into CrudRow facts. Never return it directly to the browser. */
   decode: (row: unknown) => Row;
 };
@@ -26,14 +29,20 @@ export function createPostgresRepository<Row extends CrudRow, Create, Update>(op
   const version = identifier(options.versionColumn ?? "version");
   const columns = { ...options.columns };
   const scopes = { ...options.scopeColumns };
-  const names = [id, version, ...Object.values(columns).map(identifier), ...Object.values(scopes).map(identifier)];
+  const dimensions = { ...options.dimensionColumns };
+  if (!validScope({ tenantId: "configuration", dimensions: Object.fromEntries(Object.keys(dimensions).map(key => [key, "configured"])) })) throw new BackendError("INVALID_INPUT");
+  const names = [id, version, ...Object.values(columns).map(identifier), ...Object.values(scopes).map(identifier), ...Object.values(dimensions).map(identifier)];
   if (new Set(names).size !== names.length || typeof scopes.tenantId !== "string" || typeof options.query !== "function" || typeof options.decode !== "function") throw new BackendError("INVALID_INPUT");
-  const scopeEntries = (scope: AccessScope): [string, unknown][] => scopeKeys.flatMap(key => {
+  const scopeEntries = (scope: AccessScope): [string, unknown][] => {
+    if (!validScope(scope)) throw new BackendError("INVALID_INPUT");
+    if (Object.keys(scope.dimensions ?? {}).some(key => !Object.hasOwn(dimensions, key)) || Object.keys(dimensions).some(key => !Object.hasOwn(scope.dimensions ?? {}, key))) throw new BackendError("INVALID_INPUT");
+    return [...scopeKeys.flatMap<[string, unknown]>(key => {
     const value = scope[key];
     if (value === undefined && key !== "tenantId") return [];
     if (typeof value !== "string" || !value.trim() || !scopes[key]) throw new BackendError("INVALID_INPUT");
     return [[identifier(scopes[key]!), value]];
-  });
+    }), ...Object.entries(dimensions).map(([key, column]): [string, unknown] => [identifier(column), scope.dimensions![key]])];
+  };
   const dataEntries = (data: unknown): [string, unknown][] => {
     if (!data || typeof data !== "object" || Array.isArray(data)) throw new BackendError("INVALID_INPUT");
     return Object.entries(data).map(([key, value]) => {

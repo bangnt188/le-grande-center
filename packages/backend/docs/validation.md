@@ -1,6 +1,6 @@
 # Validation evidence — 2026-10-06
 
-Target: `@mall/backend` trên Node.js v22.22.2. Phạm vi xác nhận từ yêu cầu tiếp tục xây lib và tự test: CRUD, HTTPS, webhook, crypto; SQL/handlers/validation/response kiểm tra qua các interface phục vụ các luồng đó.
+Target: `@shared/backend` trên Node.js v22.22.2. Phạm vi xác nhận từ yêu cầu tiếp tục xây lib và tự test: CRUD, HTTPS, webhook, crypto; SQL/handlers/validation/response kiểm tra qua các interface phục vụ các luồng đó.
 
 ## TDD và regression
 
@@ -24,7 +24,7 @@ Crypto và access có code từ trước; các test của phần đó được g
 - `npm run build:backend`: PASS, dist + declarations.
 - `npm run test:backend`: **65 passed, 0 failed, 0 skipped**.
 - Import package workspace và 11 subpath từ dist: PASS.
-- `npm ls @mall/backend --depth=0`: link đúng packages/backend.
+- `npm ls @shared/backend --depth=0`: link đúng packages/backend.
 - `npx tsc --noEmit` tại app root: PASS.
 - `git diff --check`: PASS.
 
@@ -35,3 +35,8 @@ Crypto và access có code từ trước; các test của phần đó được g
 DB/transaction/inbox/HTTP transport dùng fixture tại dependency ngoài; crypto và Web Request/Response thật. PostgreSQL tests kiểm tra SQL/params/contract, chưa chạy câu SQL trên PostgreSQL thật. Concurrent-edit/duplicate tests dùng fixture serialization/atomic inbox, không chứng minh isolation/constraints của DB production.
 
 Không có provider login, HTTPS call đến vendor thật, Vercel build/deployment, RLS integration hay migration đã apply. App còn static export; Next backend runtime cần deployment riêng hoặc chuyển cấu hình đúng guide. Không commit/push trong bước này; giữ các thay đổi UI đang tồn tại.
+
+
+## Portable package validation — 2026-10-07
+
+`node scripts/prepare-backend-handoff.mjs` runs source typecheck, build and 70 passing tests. It installs the generated tarball offline into an isolated consumer, then runs 5 passing public-interface tests for Mall/Solar CRUD, scoped policy and parameterized SQL; that consumer also passes TypeScript checking. No source imports or workspace links are used in that consumer. Provider/SQL remain controlled fixtures, not a production database. Solar workspace was inspected read-only and has not been modified or deployed.

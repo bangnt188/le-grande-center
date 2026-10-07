@@ -58,3 +58,8 @@ Phạm vi ban đầu là access guard và mã hóa field; theo yêu cầu tiếp
 ## Kiểm chứng bổ sung
 
 Các interface đã được triển khai theo vòng red → green. Typecheck bao gồm source/tests/examples; tests dùng crypto thật và DB/transport fixture. Chưa kết nối provider, DB, API vendor hoặc deployment Vercel thật. [Hợp đồng tích hợp](../../packages/backend/docs/integration.md) ghi rõ transaction, scope, protocol webhook và giới hạn runtime.
+
+
+## 2026-10-07 — Reuse across Mall and Solar
+
+Package identity becomes `@shared/backend`; UI identities stay project-specific. Custom scopes use nested `dimensions` with exact policy matching and explicitly required SQL mappings. Existing Mall scope fields remain compatible. Business schemas/workflows and deployment remain application-owned. See [portability decision](../../packages/backend/docs/portability.md) for threat model, trade-offs and migration.

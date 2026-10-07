@@ -1,4 +1,8 @@
-# @mall/backend
+# @shared/backend
+
+Framework BE dùng chung cho Mall và Solar. [Ranh giới nghiệp vụ, threat model và hướng dẫn chuyển Solar](./docs/portability.md).
+
+Chuẩn bị artifact đã kiểm tra qua public exports: `node scripts/prepare-backend-handoff.mjs` từ repo Mall.
 
 Bộ lib BE cơ bản bằng TypeScript cho Vercel Node.js 22+. Không có dependency runtime; sử dụng Web Request/Response và Web Crypto. Cần adapter session và kết nối PostgreSQL thật của ứng dụng.
 
@@ -14,13 +18,13 @@ Bộ lib BE cơ bản bằng TypeScript cho Vercel Node.js 22+. Không có depen
 | `webhook` | Xác minh HMAC raw bytes, namespace/timestamp/delivery ID, rotation keys, lưu inbox trước ACK và chống duplicate |
 | `crypto` | Field encryption AES-256-GCM, key ID để rotation, ràng buộc tenant/record/field, lỗi không lộ secret |
 
-Import từ `@mall/backend` hoặc từng subpath như `@mall/backend/crud`. Trong Next app đặt module tích hợp trong `src/server/` với `import 'server-only'`; không đưa khóa/principal vào Client Component. `examples/` là application composition tham khảo, không thuộc public package exports.
+Import từ `@shared/backend` hoặc từng subpath như `@shared/backend/crud`. Trong Next app đặt module tích hợp trong `src/server/` với `import 'server-only'`; không đưa khóa/principal vào Client Component. `examples/` là application composition tham khảo, không thuộc public package exports.
 
 ## CRUD và Next.js
 
 ```ts
 import 'server-only';
-import { createCrudHandlers } from '@mall/backend/handlers';
+import { createCrudHandlers } from '@shared/backend/handlers';
 import { customerService } from '@/server/customer-service';
 
 const routes = createCrudHandlers(customerService, { origin: process.env.APP_ORIGIN! });

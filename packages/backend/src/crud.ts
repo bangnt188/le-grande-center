@@ -1,5 +1,6 @@
 import type { createAccessBackend } from "./access.js";
 import type { AccessContext, AccessResource, AccessScope } from "./policy.js";
+import { validScope } from "./policy.js";
 import { BackendError } from "./errors.js";
 export type CrudRow = AccessScope & { id: string; version: number };
 export type CrudRepository<Row extends CrudRow, Create, Update> = {
@@ -29,7 +30,7 @@ export type CrudOptions<Row extends CrudRow, Create, Update, DTO> = {
 const keys = ["tenantId", "propertyId", "organizationId", "ownerId"] as const;
 const validId = (id: unknown): id is string => typeof id === "string" && id.trim().length > 0 && id.length <= 256;
 function parse<T>(parser: (input: unknown) => T, input: unknown): T {
-  const reserved = ["id", "version", ...keys, "role", "grants", "__proto__", "constructor", "prototype"];
+  const reserved = ["id", "version", ...keys, "dimensions", "role", "grants", "__proto__", "constructor", "prototype"];
   if (!input || typeof input !== "object" || Array.isArray(input) || reserved.some(key => Object.hasOwn(input, key))) throw new BackendError("INVALID_INPUT");
   try {
     const data = parser(input);
@@ -41,10 +42,11 @@ function parse<T>(parser: (input: unknown) => T, input: unknown): T {
 export function createCrud<Row extends CrudRow, Create, Update, DTO>(options: CrudOptions<Row, Create, Update, DTO>) {
   if (!/^[a-z][a-z0-9-]*$/.test(options.type) || ![options.transaction, options.parseCreate, options.parseUpdate, options.project].every(fn => typeof fn === "function")) throw new BackendError("INVALID_INPUT");
   const resource = (unit: CrudUnit<Row, Create, Update>, row?: Row): AccessResource => {
-    if (row && (!validId(row.id) || !Number.isSafeInteger(row.version) || row.version < 1 || keys.some(key => unit.scope[key] !== undefined && unit.scope[key] !== row[key]))) throw new BackendError("UNAVAILABLE");
+    if (!validScope(unit.scope) || (row && !validScope(row, true))) throw new BackendError("UNAVAILABLE");
+    if (row && (!validId(row.id) || !Number.isSafeInteger(row.version) || row.version < 1 || keys.some(key => unit.scope[key] !== undefined && unit.scope[key] !== row[key]) || Object.entries(unit.scope.dimensions ?? {}).some(([key, value]) => row.dimensions?.[key] !== value))) throw new BackendError("UNAVAILABLE");
     const scope = row ?? unit.scope;
     return { kind: row ? "object" : "collection", type: options.type, id: row?.id,
-      tenantId: scope.tenantId, propertyId: scope.propertyId, organizationId: scope.organizationId, ownerId: scope.ownerId };
+      tenantId: scope.tenantId, propertyId: scope.propertyId, organizationId: scope.organizationId, ownerId: scope.ownerId, dimensions: scope.dimensions };
   };
   return {
     async list(request: Request, pagination: { page?: number; pageSize?: number } = {}) {
@@ -81,9 +83,10 @@ export function createCrud<Row extends CrudRow, Create, Update, DTO>(options: Cr
         await unit.access.requireAccess(request, { permission: `${options.type}:update`, resource: resource(unit, current) });
         if (current.version !== expectedVersion) throw new BackendError("CONFLICT");
         const originalScope = keys.map(key => current[key]);
+        const originalDimensions = { ...current.dimensions };
         const row = await unit.repository.update(id, data, expectedVersion, unit.scope);
         if (!row) throw new BackendError("CONFLICT");
-        if (row.id !== id || row.version !== expectedVersion + 1 || keys.some((key, index) => row[key] !== originalScope[index])) throw new BackendError("UNAVAILABLE");
+        if (row.id !== id || row.version !== expectedVersion + 1 || keys.some((key, index) => row[key] !== originalScope[index]) || Object.keys({ ...originalDimensions, ...row.dimensions }).some(key => originalDimensions[key] !== row.dimensions?.[key])) throw new BackendError("UNAVAILABLE");
         const context = await unit.access.requireAccess(request, { permission: `${options.type}:update`, resource: resource(unit, row) });
         return options.project(row, context, "update");
       });

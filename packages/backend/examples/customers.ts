@@ -1,4 +1,4 @@
-/** Copy into an app server-only module; replace relative source import with @mall/backend. */
+/** Copy into an app server-only module; replace relative source import with @shared/backend. */
 import {
   AccessError, BackendError, createAccessBackend, createCrud, createCrudHandlers, createPostgresRepository,
   evaluateAccess, objectInput, textInput, integerInput,
