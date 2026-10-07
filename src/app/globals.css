@@ -15,10 +15,6 @@ a:focus-visible { outline: 2px solid var(--mall-gold-light); outline-offset: 4px
 ::selection { color: var(--mall-ink); background: var(--mall-gold-light); }
 .skip-link { position: fixed; z-index: 20; top: 1rem; left: 1rem; transform: translateY(-180%); padding: 0.8rem 1rem; background: var(--mall-gold-light); color: var(--mall-ink); }
 .skip-link:focus { transform: translateY(0); }
-.handover-page { display: grid; min-height: 100svh; align-content: center; justify-items: center; padding: 2rem; background: radial-gradient(ellipse at 50% 45%, #123a2a, var(--mall-ink) 65%); text-align: center; }
-.handover-mark { color: var(--mall-gold-light); font-family: var(--ui-font-display); font-size: 0.82rem; font-weight: 600; letter-spacing: 0.2em; }
-.handover-page h1 { max-width: 760px; margin: 1.2rem 0; font-family: var(--ui-font-display); font-size: clamp(2.5rem, 6vw, 5rem); font-weight: 400; }
-.handover-page > p:last-child { max-width: 560px; color: var(--mall-muted); line-height: 1.8; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
