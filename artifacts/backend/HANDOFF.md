@@ -1,5 +1,10 @@
 # Shared backend decision and Solar handoff
 
+Current 0.2.1 package layout: repository root, mounted as `packages/backend` submodule in each app. [Pinned-commit workflow](./submodules.md). Vendored-copy steps below are historical.
+
+
+**Runtime decision (introduced in 0.2.0):** [shared application adapters, threat model and migration](./shared-applications.md). The historical preparation notes below describe 0.1.0; Solar now has a separate server target and `src/server/catalog.ts`.
+
 ## Decision
 Use one versioned package, `@shared/backend`, for Mall and Solar. No Next.js, database driver, auth provider or runtime dependency is required. Application adapters supply those integrations. Node >=22 is required. UI packages retain their product identities.
 
@@ -29,7 +34,7 @@ Custom dimensions add configuration overhead but avoid business vocabulary in th
 ## Migration
 1. Build and pack using `scripts/prepare-backend-handoff.mjs` from the Mall repo root. The artifact contains compiled JS/types and docs. It is private; no registry publication occurs.
 2. In Solar add `packages/backend` to workspaces, extract the artifact there, and add dependency `@shared/backend: 0.1.0`; run npm install to generate that project's lockfile. Alternatively install the versioned tarball directly. Prefer a private registry later for one maintained source and reproducible version upgrades; avoid independently editing copies.
-3. Copy/adapt `examples/solar-projects.ts` into Solar's server application and replace its source import with `@shared/backend`. It mirrors the currently inspected Solar Project fields. This is an application adapter, not part of the library exports. Full-form update is intentional; publication/media URL rules belong to Solar.
+3. Use Solar's `src/server/catalog.ts` schema/lifecycle adapter. `examples/solar-projects.ts` illustrates only a contract; it is not an implementation of media, publication or persistence.
 4. Supply real verified sessions, grants, DB schema/decoder, transaction and audit adapters. Add app-specific integration tests before enabling writes. Survey contact data needs Solar's retention/consent/access decisions separately.
 5. Both inspected frontends use `output: 'export'`. Keep static deployment intact; deploy APIs separately on a Node Vercel service or deliberately migrate to a server deployment. Static Pages cannot execute these handlers. No Vercel deployment or real DB is provisioned by this handoff.
 

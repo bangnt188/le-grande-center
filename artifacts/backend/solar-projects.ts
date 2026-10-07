@@ -1,24 +1,24 @@
-/** Application adapter. In Solar use @shared/backend and import 'server-only'. */
+/** Contract example only. Solar's schema/gallery/lifecycle adapter lives in src/server/catalog.ts. */
 import { createCrud, objectInput, textInput, type CrudOptions, type CrudRow } from '@shared/backend';
-// Domain fields mirror Solar's catalog; persistence adds technical id/version/scope.
 export type SolarProjectForm = {
-  title: string; category: string; location: string; description: string; system: string; image: string;
+  title: string; slug: string; summary: string; content: string; category: string; location: string; system: string;
 };
-export type SolarProjectRow = CrudRow & SolarProjectForm;
-export type SolarProjectDTO = SolarProjectForm & { id: string; version: number };
-const fields = ['title', 'category', 'location', 'description', 'system', 'image'] as const;
+export type SolarProjectRow = CrudRow & SolarProjectForm & { status: 'DRAFT' | 'PUBLISHED' | 'HIDDEN' };
+export type SolarProjectDTO = SolarProjectForm & { id: string; version: number; status: SolarProjectRow['status'] };
+const limits = { title: 200, slug: 160, summary: 1000, content: 20000, category: 100, location: 300, system: 150 } as const;
 function parse(input: unknown): SolarProjectForm {
-  const data = objectInput(input, fields);
-  return {
-    title: textInput(data.title), category: textInput(data.category), location: textInput(data.location),
-    description: textInput(data.description, { maxLength: 10000 }), system: textInput(data.system), image: textInput(data.image, { maxLength: 2048 }),
-  };
+  const data = objectInput(input, Object.keys(limits));
+  const slug = textInput(data.slug, { maxLength: 160 });
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) throw new Error('Invalid slug');
+  return { title: textInput(data.title, { maxLength: limits.title }), slug,
+    summary: textInput(data.summary, { minLength: 0, maxLength: limits.summary }),
+    content: textInput(data.content, { minLength: 0, maxLength: limits.content }),
+    category: textInput(data.category, { maxLength: limits.category }), location: textInput(data.location, { maxLength: limits.location }), system: textInput(data.system, { maxLength: limits.system }) };
 }
-/** Transaction, authoritative assignments, audit, storage, publish rules stay in Solar. */
+/** Repository handles tombstones; publish/media/assignments remain application-owned. */
 export function createSolarProjects(transaction: CrudOptions<SolarProjectRow, SolarProjectForm, SolarProjectForm, SolarProjectDTO>['transaction']) {
   return createCrud<SolarProjectRow, SolarProjectForm, SolarProjectForm, SolarProjectDTO>({
     type: 'projects', transaction, parseCreate: parse, parseUpdate: parse,
-    project: row => ({ id: row.id, version: row.version, title: row.title, category: row.category,
-      location: row.location, description: row.description, system: row.system, image: row.image }),
+    project: row => ({ id: row.id, version: row.version, status: row.status, title: row.title, slug: row.slug, summary: row.summary, content: row.content, category: row.category, location: row.location, system: row.system }),
   });
 }

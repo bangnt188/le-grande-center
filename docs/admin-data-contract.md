@@ -71,8 +71,7 @@ Snapshot thống nhất giúp UI có một interface nhỏ và dễ thay adapter
 lớn, backend cần phân trang/filter server thay snapshot toàn bộ; thay hook/list
 query theo interface version tiếp theo, phần sơ đồ và form được giữ lại.
 
-1. Xác nhận inventory/bản vẽ từng tầng; schema `database/001_admin_draft.sql`
-   chưa được apply, chưa có dữ liệu thật hay kết nối cloud.
+1. Xác nhận inventory/bản vẽ từng tầng; `database/schema.sql` chưa apply và chưa có dữ liệu thật hay kết nối cloud.
 2. Triển khai schema cùng lease/reservation, auth, RBAC, audit và upload policy.
 3. Implement ba endpoint theo contract, transaction và idempotency; map FK thành
    DTO; kiểm tra từng field và session trước khi trả dữ liệu.
@@ -83,9 +82,8 @@ query theo interface version tiếp theo, phần sơ đồ và form được gi�
 
 ## Thiết kế B2B kế nhiệm
 
-Nghiệp vụ đã chốt trong [Thiết kế B2B](b2b-leasing-design.md); schema mới ở
-[baseline v2](../database/design/b2b-leasing-v2.sql). Đây là design riêng, không
-phải migration tự apply hoặc backend đã nối vào adapter v1.
+Nghiệp vụ đã chốt trong [Thiết kế B2B](b2b-leasing-design.md); baseline duy nhất ở
+[`database/schema.sql`](../database/schema.sql), chưa apply hoặc nối backend.
 
 V2 dùng version mặt bằng và allocation theo thời gian; status text không quyết
 định khả dụng. Revision theo aggregate thay singleton demo. Tài liệu hợp đồng

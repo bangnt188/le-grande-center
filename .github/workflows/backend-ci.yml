@@ -1,0 +1,27 @@
+name: Shared backend consumer
+on:
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [dev]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.COMPONENT_UI_READ_TOKEN || github.token }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run check:backend
+      - run: npm run typecheck:backend
+      - run: npm run test:backend
+      - run: npm run test:backend:consumer
+      - run: node scripts/prepare-backend-handoff.mjs

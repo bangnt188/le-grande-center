@@ -1,18 +1,12 @@
 # Thiết kế database
 
-Các file trong thư mục này là **SQL thiết kế chưa apply**, không phải migration
-production đã chạy hoặc đã được kiểm thử trên PostgreSQL.
+Schema chưa được áp dụng production; đã smoke test trên PostgreSQL 18.6 disposable.
 
 ## Baseline
 
-| File | Phạm vi |
-| --- | --- |
-| `001_admin_draft.sql` | V1 gắn với demo admin: floor/slot/group/lead/media và global revision |
-| `design/b2b-leasing-v2.sql` | Baseline v2 cho nghiệp vụ B2B đã chốt, schema riêng `leasing` |
+`database/schema.sql` là baseline PostgreSQL duy nhất: B2B cùng sáu trường audit và trigger.
 
-V2 là baseline kế nhiệm, không phải bước `002` tự apply sau `001`. Giữ v1 để truy
-vết demo. Chưa đổi schema mà TSX demo sử dụng và chưa kết nối DB.
-
+Không phải migration production đã chạy. Chạy toàn bộ file trên database mới; không áp vào DB có dữ liệu. Runtime phải đặt `app.actor_id` transaction-local. DB cloud chưa kết nối.
 ## DB constraints trong v2
 
 - Composite FK ngăn trộn property/floor hoặc contact/brand khác doanh nghiệp.
@@ -51,4 +45,4 @@ Các gate này được ghi rõ để baseline không bị hiểu nhầm là bac
 
 [Thiết kế B2B](../docs/b2b-leasing-design.md) ·
 [Tài liệu private R2](../docs/private-documents-r2.md) ·
-[Thuật ngữ](../CONTEXT.md)
+[Portability Neon / Supabase / SQLite](../docs/database-portability.md)

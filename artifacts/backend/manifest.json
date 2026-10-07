@@ -1,13 +1,15 @@
 {
   "name": "@shared/backend",
-  "version": "0.1.0",
-  "artifact": "shared-backend-0.1.0.tgz",
-  "sha256": "407a67360d888c08640568fea186fc9f1784475744e3a46226a9234510ab5e23",
+  "version": "0.2.1",
+  "artifact": "shared-backend-0.2.1.tgz",
+  "sha256": "e15724579e1f3ee80316c19c5e14fc5826297903ea536da3923d7263a02adf25",
   "validated": [
+    "source integrity",
     "source typecheck",
     "source tests",
     "build",
-    "installed tarball Mall/Solar CRUD, policy and SQL tests",
+    "installed tarball Mall/Solar CRUD, operation, selection and transport tests",
+    "installed tarball ESM/CommonJS identity",
     "installed tarball consumer typecheck"
   ]
 }
