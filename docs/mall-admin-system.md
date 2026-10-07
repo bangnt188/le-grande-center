@@ -39,3 +39,23 @@ Các bản capture `.impeccable/review/mall-system-*` bao gồm desktop/mobile c
 **Trade-off:** khoảng trống ở trang cuối là không gian đã dành cho dữ liệu, giúp nút điều hướng không chạy khỏi vị trí người dùng đang thao tác. Nội dung dài hơn mọi trang đã xem có thể tăng chiều cao để tránh cắt nội dung. Không khoá một chiều cao desktop cho mobile. Quy tắc này là quyết định UX của sản phẩm, không phải một chứng nhận 'global'.
 
 **Migration:** cả bảy register dùng cùng primitive của `@mall/ui`; khi thay snapshot bằng API chỉ giữ `layoutKey` cho page size/density, không thêm page number vào key và không mount lại region mỗi lần tải trang.
+
+## Architecture Decision — Mobile master/detail và dữ liệu đang sửa (07/10/2026)
+
+**Hiểu:** full review phát hiện chọn item trên mobile cập nhật chi tiết ngoài viewport, ghi chú có thể mất khi đổi doanh nghiệp, hủy lịch chưa có xác nhận và panel dung lượng đẩy danh sách tệp xuống quá xa.
+
+**Thiết kế:**
+
+- Khách hàng, yêu cầu, hợp đồng, lead, media và mặt bằng public dùng `WorkspaceLayout` có `mobilePresentation="drilldown"`. Mobile mở chi tiết với nút quay lại; desktop giữ hai vùng. `useRecordDetail` quản lý item phát sinh thao tác, focus khi quay lại, fallback khi trigger đã unmount và cuộn tới vùng phù hợp. Tablet hợp đồng vẫn cuộn khi cột chuyển sang stack đến 1200px.
+- `useCompanyNotes` giữ draft theo company ID ở phía trên view switch. Form controlled hiển thị chưa lưu/đã lưu. Đổi doanh nghiệp hoặc màn hình có xác nhận qua `ConfirmDialog`, cho phép tiếp tục và giữ bản nháp. Đóng/tải lại trang có native beforeunload khi còn draft. Lưu thất bại giữ draft; lưu thành công chỉ xoá đúng phiên bản vừa gửi, không xoá chỉnh sửa phát sinh trong khi chờ.
+- Hủy lịch dùng `ConfirmDialog` hiện doanh nghiệp, ngày/giờ và mục đích. Command chỉ chạy khi xác nhận; ref lock chặn click trùng. Không giả lập undo sau khi nghiệp vụ đã hoàn tất.
+- Media mobile giữ progress %, badge trạng thái và dung lượng còn lại ở ngoài. `Button` mở/đóng thông tin chi tiết, số liệu dự phòng và select trạng thái demo. Trạng thái chưa có số liệu/đạt cap luôn cho biết upload đang khóa, độc lập với vùng thu gọn. Desktop tiếp tục hiện đầy đủ thông tin.
+- Token text phụ và warning được tăng tương phản; các thao tác nhỏ trên mobile có vùng chạm ít nhất 44px. Sơ đồ và tab có hướng dẫn cuộn ngang. Dùng controls và dialog có sẵn trong `@mall/ui`.
+
+**Validate security:** draft chỉ sống trong bộ nhớ phiên, không ghi PII vào localStorage. Điều hướng/focus không đổi quyền truy cập. Dialog xác nhận không thay thế kiểm tra authorization, trạng thái và transaction của cancellation phía backend; command hiện tại vẫn đi qua repository. Quota vẫn được kiểm tra ở repository, phần thu gọn chỉ thay cách trình bày.
+
+**Trade-off:** drilldown giảm chiều dài mobile và làm kết quả click rõ hơn, nhưng cần một lần quay lại để so sánh item khác. Draft phiên tránh lưu dữ liệu nhạy cảm lâu dài, đồng thời không khôi phục được sau reload nếu người dùng bỏ qua cảnh báo. beforeunload phụ thuộc hành vi browser và không bảo đảm khi hệ điều hành đóng ứng dụng; draft bền vững cần một thiết kế lưu phía server riêng.
+
+**Migration:** giữ `WorkspaceLayout`/`ConfirmDialog` và các hook phía app khi nối backend. Draft production cần version/optimistic concurrency, lưu có xác nhận và quyền theo company ID. Chính sách cancellation thực tế và quota được backend thực thi.
+
+**Bằng chứng của lượt triển khai:** TypeScript pass; SSR render pass cho 5 B2B view và root admin; 3 test repository hiện có pass. UI/backend package build pass. Full Next build bị chặn khi fetch Google Fonts do network/DNS của sandbox. Server local bị chặn `listen EPERM`, Chromium bị chặn MachPort; vì vậy chưa có ảnh hoặc xác minh tương tác trình duyệt sau sửa. Backlog review được giữ mở cho bước xác minh trực quan.

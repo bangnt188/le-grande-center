@@ -9,9 +9,12 @@ import { StorageUsagePanel } from "@/features/admin/storage-usage-panel";
 import { storageState } from "@/features/admin/storage-policy";
 import { referencePlanUrl } from "@/features/admin/demo-data";
 
+import { useRecordDetail } from "@/features/admin/use-record-detail";
+import { useCompanyNotes } from "@/features/admin/use-company-notes";
+
 import B2BWorkspace from "./b2b-workspace";
 import { LeGrandeAdminShell } from "@/features/admin/le-grande-admin-shell";
-import { AdminPageHeader, AdminPanel, PaginatedContent, Button, Input, Select, Textarea, Checkbox, Badge, Table, Breadcrumbs, LoadingIndicator, Alert, type ToastTone, type AdminNavigationItem } from "@mall/ui";
+import { AdminPageHeader, AdminPanel, PaginatedContent, WorkspaceLayout, ConfirmDialog, Button, Input, Select, Textarea, Checkbox, Badge, Table, Breadcrumbs, LoadingIndicator, Alert, type ToastTone, type AdminNavigationItem } from "@mall/ui";
 import { AdminNotificationsProvider, useAdminNotifications } from "@/features/admin/admin-notifications";
 import { AdminPagination, useAdminPagination } from "@/features/admin/admin-pagination";
 import type { B2BView } from "./b2b-workspace";
@@ -53,6 +56,9 @@ function AdminWorkspaceContent() {
   const [view, setView] = useState<View>("customers");
   const [floor, setFloor] = useState<Floor>(2);
   const admin = useAdminData();
+  const details = useRecordDetail(view);
+  const notes = useCompanyNotes(admin.companies, admin.execute);
+  const dialogContainer = useRef<HTMLDivElement>(null);
   const { slots, groups, leads, media, pending, loading, error, execute, uploadFiles, reload } = admin;
   const [selected, setSelected] = useState<string[]>(["T2-B2", "T2-B3"]);
   const [groupName, setGroupName] = useState("Mặt bằng B.2–B.3");
@@ -145,14 +151,17 @@ function AdminWorkspaceContent() {
     return group ? `Tầng ${group.floor} · ${group.name}` : scope;
   };
 
-  const navigation: AdminNavigationItem[] = (["customers", "requests", "leases", "appointments", "spaces", "leads", "media", "preview"] as View[]).map(item => ({ id: item, label: labels[item], icon: <Icon name={item === "spaces" ? "plan" : item === "appointments" ? "calendar" : item === "requests" ? "request" : item === "media" ? "media" : item === "leases" ? "file" : item === "preview" ? "external" : "people"}/>, badge: item === "leads" ? leads.filter(lead => lead.status === "Mới").length : undefined, destination: { kind: "action", onSelect: () => { setView(item); setMessage(""); } } }));
+  const navigation: AdminNavigationItem[] = (["customers", "requests", "leases", "appointments", "spaces", "leads", "media", "preview"] as View[]).map(item => ({ id: item, label: labels[item], icon: <Icon name={item === "spaces" ? "plan" : item === "appointments" ? "calendar" : item === "requests" ? "request" : item === "media" ? "media" : item === "leases" ? "file" : item === "preview" ? "external" : "people"}/>, badge: item === "leads" ? leads.filter(lead => lead.status === "Mới").length : undefined, destination: { kind: "action", onSelect: () => notes.navigate(() => { setView(item); setMessage(""); }) } }));
   return <LeGrandeAdminShell navigation={navigation} activeItemId={view} location={<Breadcrumbs label="Vị trí quản trị" items={[{ label: "Le Grande Centre", href: "https://legrandecentre.vn/" }, { label: labels[view], href: "#admin-workspace", current: true }]}/>}>
+        <div ref={dialogContainer} className="admin-dialog-host"/>
+        <ConfirmDialog open={!!notes.pendingNavigation} title="Ghi chú chưa lưu" description="Bạn có ghi chú doanh nghiệp chưa lưu. Nếu tiếp tục, bản nháp vẫn được giữ trong phiên này; tải lại hoặc đóng trang sẽ làm mất bản nháp." confirmLabel="Tiếp tục, giữ bản nháp" cancelLabel="Ở lại" onClose={notes.stay} onConfirm={notes.continue} portalContainer={dialogContainer}/>
+        <div ref={details.scopeRef}>
         <AdminPageHeader title={labels[view]} description={view === "spaces" ? "Một góc nhìn rõ ràng cho từng mặt bằng, từng cơ hội khai thác." : view === "leads" ? "Theo dõi nhu cầu, kết nối khách hàng với mặt bằng phù hợp." : view === "media" ? "Tập trung bản vẽ, hình ảnh và tài liệu của dự án." : view === "customers" ? "Hồ sơ doanh nghiệp, nhu cầu thuê và mặt bằng trong cùng một nơi." : view === "requests" ? "Từ nhu cầu ban đầu đến giữ chỗ toàn bộ tổ hợp mặt bằng." : view === "leases" ? "Kỳ thuê, mặt bằng và tài liệu riêng của từng doanh nghiệp." : view === "appointments" ? "Kết nối đội leasing với khách hàng qua lịch tư vấn và khảo sát." : "Xem thông tin công khai và trải nghiệm dành riêng cho doanh nghiệp."} actions={view === "spaces" ? <Button variant="secondary" className="button secondary" onClick={() => { setView("media"); setActiveMedia("plan-reference"); }}><Icon name="file" size={17}/>Bản vẽ gốc</Button> : view === "media" ? <Button variant="primary" className="button primary" disabled={uploadDisabled} onClick={() => fileInput.current?.click()}><Icon name="upload" size={17}/>Thêm media</Button> : view === "leads" ? <span className="heading-count">{leads.length} yêu cầu mẫu</span> : <span className="heading-count">B2B · Demo tương tác</span>}/>
 
         {loading && <LoadingIndicator label="Đang tải dữ liệu…"/>}
         {error && !slots.length && <Button variant="secondary" onClick={reload}>Tải lại dữ liệu</Button>}
 
-        {["customers", "requests", "leases", "appointments", "preview"].includes(view) && <B2BWorkspace view={view as B2BView} data={admin} onView={setView} onMessage={setMessage} onFloor={(nextFloor, ids) => { setFloor(nextFloor); setSelected(ids); setView("spaces"); }}/>}
+        {["customers", "requests", "leases", "appointments", "preview"].includes(view) && <B2BWorkspace view={view as B2BView} data={admin} notes={notes} onView={setView} onMessage={setMessage} onFloor={(nextFloor, ids) => notes.navigate(() => { setFloor(nextFloor); setSelected(ids); setView("spaces"); })}/>}
 
         {view === "spaces" && <>
           <div className="floor-nav" role="group" aria-label="Chọn tầng">{FLOORS.map((item) => <Button variant="quiet" className={`floor-tab ${floor === item ? "is-active" : ""}`} aria-pressed={floor === item} key={item} onClick={() => changeFloor(item)}><span>Tầng {item}</span><small>{item <= 2 ? "Thương mại" : item <= 4 ? "Văn phòng" : "Giải trí"}</small></Button>)}</div>
@@ -161,6 +170,7 @@ function AdminWorkspaceContent() {
             <AdminPanel className="plan-panel" labelledBy="plan-heading">
               <div className="section-toolbar"><div className="segmented"><Button variant="quiet" id="plan-heading" aria-pressed={planTab === "plan"} className={planTab === "plan" ? "is-active" : ""} onClick={() => setPlanTab("plan")}><Icon name="plan" size={16}/>Sơ đồ tương tác</Button><Button variant="quiet" aria-pressed={planTab === "reference"} className={planTab === "reference" ? "is-active" : ""} onClick={() => setPlanTab("reference")}>Bản vẽ tham chiếu</Button></div><span className="plan-scale">Không theo tỷ lệ kỹ thuật</span></div>
               {planTab === "plan" ? <>
+                <p className="plan-scroll-hint">Vuốt ngang để xem toàn bộ tầng, từ B.1 đến B.11.</p>
                 <div className="plan-scroll" tabIndex={0} aria-label="Sơ đồ tầng, cuộn ngang trên màn hình nhỏ"><div className="plan-canvas"><div className="rear-corridor">HÀNH LANG PHÍA SAU</div><div className="plan-core"><span className="stair-symbol" aria-hidden="true"/><strong>Sảnh giữa</strong><span>Thang bộ<br/>& thang máy</span><div className="void-space">Thông tầng</div></div>{planSpaces.map((space) => {
                   const member = space.members[0];
                   const isSelected = space.members.every((item) => selected.includes(item.id));
@@ -209,33 +219,33 @@ function AdminWorkspaceContent() {
           </AdminPanel>
         </>}
 
-        {view === "leads" && <div className="records-layout">
+        {view === "leads" && <WorkspaceLayout className="records-layout" mobilePresentation="drilldown" detailOpen={details.open} onDetailOpenChange={details.setOpen} returnFocusRef={details.returnFocusRef} detailLabel="Chi tiết khách tư vấn" backLabel="Quay lại danh sách tư vấn" primary={
           <AdminPanel className="records-panel"><div className="register-heading"><h2>Hộp thư tư vấn</h2><div className="filters"><label className="search-field"><Icon name="search" size={17}/><span className="sr-only">Tìm lead</span><Input placeholder="Tìm khách hàng, nhu cầu…" value={leadQuery} onChange={(event) => setLeadQuery(event.target.value)}/></label><label><span className="sr-only">Lọc trạng thái lead</span><Select value={leadFilter} onChange={(event) => setLeadFilter(event.target.value)}><option value="">Tất cả trạng thái</option>{[...new Set(leads.map((item) => item.status))].map((status) => <option key={status}>{status}</option>)}</Select></label></div></div>
-            <PaginatedContent layoutKey={leadPages.pageSize}><div className="lead-list">{leadPages.rows.map((item) => <Button variant="quiet" key={item.id} className={`lead-row ${activeLead === item.id ? "is-active" : ""}`} onClick={() => setActiveLead(item.id)}><span className="lead-avatar">{item.initials}</span><span className="lead-information"><strong>{item.name}</strong><span>{item.interest}</span><small>{item.id} · {item.source} · {item.time}</small></span><span className="lead-row-end"><Status value={item.status}/><small>Tầng {item.floor}</small></span></Button>)}{!visibleLeads.length && <div className="empty-result">Không có lead phù hợp. <Button variant="quiet" className="text-button" onClick={() => { setLeadQuery(""); setLeadFilter(""); }}>Xóa bộ lọc</Button></div>}</div>
+            <PaginatedContent layoutKey={leadPages.pageSize}><div className="lead-list">{leadPages.rows.map((item) => <Button variant="quiet" key={item.id} className={`lead-row ${activeLead === item.id ? "is-active" : ""}`} onClick={() => { setActiveLead(item.id); details.openDetail(); }}><span className="lead-avatar">{item.initials}</span><span className="lead-information"><strong>{item.name}</strong><span>{item.interest}</span><small>{item.id} · {item.source} · {item.time}</small></span><span className="lead-row-end"><Status value={item.status}/><small>Tầng {item.floor}</small></span></Button>)}{!visibleLeads.length && <div className="empty-result">Không có lead phù hợp. <Button variant="quiet" className="text-button" onClick={() => { setLeadQuery(""); setLeadFilter(""); }}>Xóa bộ lọc</Button></div>}</div>
             </PaginatedContent><AdminPagination state={leadPages} label="lead"/><p className="panel-note">Thông tin khách hàng giả lập, không chứa dữ liệu cá nhân thật.</p>
           </AdminPanel>
-          <aside className="record-inspector">{lead ? <>
+          } detail={<aside className="record-inspector">{lead ? <>
             <h2>{lead.name}</h2><p className="muted">{lead.id}</p><dl><dt>Nhu cầu</dt><dd>{lead.interest}</dd><dt>Nguồn</dt><dd>{lead.source}</dd><dt>Tầng quan tâm</dt><dd>Tầng {lead.floor}</dd></dl>
             <form key={lead.id} onSubmit={async (event) => { event.preventDefault(); const fields = new FormData(event.currentTarget); const status = String(fields.get("status") ?? "").trim(); if (!status) return; if (await execute({ type: "update-lead", leadId: lead.id, status, note: String(fields.get("note") ?? "").trim() })) setMessage("Đã cập nhật lead."); }}><label>Trạng thái<Input name="status" defaultValue={lead.status} list="lead-statuses" maxLength={60} required/></label><datalist id="lead-statuses"><option value="Mới"/><option value="Đang tư vấn"/><option value="Đã xử lý"/></datalist><label>Ghi chú tư vấn<Textarea name="note" rows={4} maxLength={600} defaultValue={lead.note}/></label><Button variant="primary" type="submit" className="button primary full">Lưu lead</Button></form>
             <Button variant="secondary" className="button secondary full split-button" onClick={() => { changeFloor(lead.floor); setView("spaces"); }}>Xem mặt bằng tầng {lead.floor}<Icon name="arrow" size={17}/></Button>
-          </> : <p>Chọn một lead để xem nhu cầu và ghi chú tư vấn.</p>}</aside>
-        </div>}
+          </> : <p>Chọn một lead để xem nhu cầu và ghi chú tư vấn.</p>}</aside>}/>}
 
         {view === "media" && <>
           <Input ref={fileInput} className="sr-only" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" multiple disabled={uploadDisabled} onChange={upload} tabIndex={-1}/>
           <StorageUsagePanel usage={admin.storage} pending={pending} previewUsage={admin.previewStorage}/>
           <p className="media-instruction">Ảnh PNG, JPG, WebP hoặc PDF · Tối đa 10 MB/tệp · Xem trước trong phiên demo.</p>
-          <div className="records-layout"><AdminPanel className="records-panel">
+          <WorkspaceLayout className="records-layout" mobilePresentation="drilldown" detailOpen={details.open} onDetailOpenChange={details.setOpen} returnFocusRef={details.returnFocusRef} detailLabel="Chi tiết tệp dự án" backLabel="Quay lại thư viện media" primary={<AdminPanel className="records-panel">
             <div className="register-heading"><h2>Tệp dự án <span>{media.length}</span></h2><div className="filters"><label className="search-field"><Icon name="search" size={17}/><span className="sr-only">Tìm media</span><Input placeholder="Tìm tên tệp…" value={mediaQuery} onChange={(event) => setMediaQuery(event.target.value)}/></label><label><span className="sr-only">Lọc loại media</span><Select value={mediaFilter} onChange={(event) => setMediaFilter(event.target.value)}><option value="">Tất cả loại tệp</option><option>Ảnh</option><option>Tài liệu</option></Select></label></div></div>
-            <PaginatedContent layoutKey={mediaPages.pageSize}><div className="media-grid">{mediaPages.rows.map((item) => <Button variant="quiet" className={`media-tile ${activeMedia === item.id ? "is-active" : ""}`} key={item.id} onClick={() => setActiveMedia(item.id)}><span className={`media-thumbnail ${item.kind === "Tài liệu" ? "document" : ""}`}>{item.kind === "Ảnh" && item.url ? <img src={item.url} alt=""/> : <><Icon name="file" size={40}/><span>{item.url ? "PDF" : "Tệp mẫu"}</span></>}</span><strong>{item.name}</strong><span>{mediaScopeLabel(item.scope)}</span><small>{item.size}</small></Button>)}</div>
+            <PaginatedContent layoutKey={mediaPages.pageSize}><div className="media-grid">{mediaPages.rows.map((item) => <Button variant="quiet" className={`media-tile ${activeMedia === item.id ? "is-active" : ""}`} key={item.id} onClick={() => { setActiveMedia(item.id); details.openDetail(); }}><span className={`media-thumbnail ${item.kind === "Tài liệu" ? "document" : ""}`}>{item.kind === "Ảnh" && item.url ? <img src={item.url} alt=""/> : <><Icon name="file" size={40}/><span>{item.url ? "PDF" : "Tệp mẫu"}</span></>}</span><strong>{item.name}</strong><span>{mediaScopeLabel(item.scope)}</span><small>{item.size}</small></Button>)}</div>
             {!visibleMedia.length && <div className="empty-result">Không tìm thấy tệp. <Button variant="quiet" className="text-button" onClick={() => { setMediaQuery(""); setMediaFilter(""); }}>Xóa bộ lọc</Button></div>}
             </PaginatedContent><AdminPagination state={mediaPages} label="media"/>
-          </AdminPanel><aside className="record-inspector">{mediaItem ? <>
+          </AdminPanel>} detail={<aside className="record-inspector">{mediaItem ? <>
             <h2>Chi tiết media</h2><div className="media-detail-preview">{mediaItem.kind === "Ảnh" && mediaItem.url ? <img src={mediaItem.url} alt={mediaItem.name}/> : <Icon name="file" size={44}/>}</div><h3>{mediaItem.name}</h3><p className="muted">{mediaItem.size}</p>
             {mediaItem.reference && <p className="panel-note">Bản vẽ khách hàng chưa xác định tầng. Sơ đồ tương tác chỉ mô phỏng bố cục để duyệt luồng.</p>}
             <form key={mediaItem.id} onSubmit={async (event) => { event.preventDefault(); const data = new FormData(event.currentTarget); const scope = String(data.get("scope")); if (await execute({ type: "link-media", mediaId: mediaItem.id, scope })) setMessage("Đã cập nhật liên kết media."); }}><label>Liên kết với tầng / mặt bằng<Select name="scope" defaultValue={mediaItem.scope}><option>Chưa xác nhận tầng</option><option>Toàn dự án</option>{FLOORS.map((item) => <option key={item}>Tầng {item}</option>)}{groups.map((group) => <option key={group.id} value={`group:${group.id}`}>{`Tầng ${group.floor} · ${group.name}`}</option>)}</Select></label><Button variant="primary" type="submit" className="button primary full">Lưu liên kết</Button></form>
             {mediaItem.url ? <a className="button secondary full split-button" href={mediaItem.url} target="_blank" rel="noreferrer">Mở tệp gốc<Icon name="external" size={16}/></a> : <p className="panel-note">Đây là mục mẫu. Thêm tệp thật vào phiên demo để xem trước.</p>}
-          </> : <div className="selection-empty"><Icon name="media" size={32}/><h3>Chọn một tệp</h3><p>Xem thông tin và liên kết tệp với tầng hoặc mặt bằng ghép.</p></div>}</aside></div>
+          </> : <div className="selection-empty"><Icon name="media" size={32}/><h3>Chọn một tệp</h3><p>Xem thông tin và liên kết tệp với tầng hoặc mặt bằng ghép.</p></div>}</aside>}/>
         </>}
+        </div>
     </LeGrandeAdminShell>;
 }
