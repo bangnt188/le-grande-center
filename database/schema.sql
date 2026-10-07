@@ -1,7 +1,84 @@
--- PostgreSQL design baseline v2. NOT applied, NOT a sequential migration from v1.
+-- Single PostgreSQL B2B baseline with audit columns and trigger.
 -- Review docs/b2b-leasing-design.md and database/README.md before implementation.
 -- No real property, customer, floor plan or slot inventory is seeded.
 BEGIN;
+
+-- Generic audit trigger for every leasing table, declared below.
+CREATE SCHEMA row_audit;
+REVOKE ALL ON SCHEMA row_audit FROM PUBLIC;
+CREATE FUNCTION row_audit.stamp() RETURNS trigger
+LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog AS $$
+DECLARE
+  actor text := current_setting('app.actor_id', true);
+  stamp_time timestamptz := statement_timestamp();
+BEGIN
+  IF actor IS NULL OR actor !~ '[^[:space:]]' OR length(actor) > 255 THEN
+    RAISE EXCEPTION 'app.actor_id must be set to a trusted internal identity';
+  END IF;
+  IF TG_OP = 'INSERT' THEN
+    NEW.created_at := stamp_time;
+    NEW.created_by := actor;
+  ELSE
+    NEW.created_at := OLD.created_at;
+    NEW.created_by := OLD.created_by;
+  END IF;
+  NEW.updated_at := stamp_time;
+  NEW.updated_by := actor;
+  IF NEW.deleted_at IS NULL THEN
+    NEW.deleted_by := NULL;
+  ELSIF TG_OP = 'INSERT' OR OLD.deleted_at IS NULL THEN
+    NEW.deleted_at := stamp_time;
+    NEW.deleted_by := actor;
+  ELSE
+    NEW.deleted_at := OLD.deleted_at;
+    NEW.deleted_by := OLD.deleted_by;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+REVOKE ALL ON FUNCTION row_audit.stamp() FROM PUBLIC;
+
+CREATE PROCEDURE row_audit.apply(schema_name text, table_names text[], baseline_actor text)
+LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog AS $$
+DECLARE table_name text;
+BEGIN
+  IF schema_name IS NULL OR schema_name !~ '[^[:space:]]' OR table_names IS NULL
+     OR cardinality(table_names) = 0 OR baseline_actor IS NULL
+     OR baseline_actor !~ '[^[:space:]]' OR length(baseline_actor) > 255 THEN
+    RAISE EXCEPTION 'Explicit schema, tables, and baseline actor are required';
+  END IF;
+  FOREACH table_name IN ARRAY table_names LOOP
+    IF to_regclass(format('%I.%I', schema_name, table_name)) IS NULL THEN
+      RAISE EXCEPTION 'Baseline audit table %.% does not exist', schema_name, table_name;
+    END IF;
+  END LOOP;
+  FOREACH table_name IN ARRAY table_names LOOP
+    EXECUTE format('ALTER TABLE %I.%I
+      ADD COLUMN IF NOT EXISTS created_at timestamptz,
+      ADD COLUMN IF NOT EXISTS created_by text,
+      ADD COLUMN IF NOT EXISTS updated_at timestamptz,
+      ADD COLUMN IF NOT EXISTS updated_by text,
+      ADD COLUMN IF NOT EXISTS deleted_at timestamptz,
+      ADD COLUMN IF NOT EXISTS deleted_by text', schema_name, table_name);
+    EXECUTE format('UPDATE %I.%I SET
+      created_at = coalesce(created_at, updated_at, statement_timestamp()),
+      created_by = coalesce(created_by, $1),
+      updated_at = coalesce(updated_at, created_at, statement_timestamp()),
+      updated_by = coalesce(updated_by, $1),
+      deleted_by = CASE WHEN deleted_at IS NULL THEN NULL ELSE coalesce(deleted_by, $1) END', schema_name, table_name) USING baseline_actor;
+    EXECUTE format('ALTER TABLE %I.%I
+      ALTER COLUMN created_at SET NOT NULL,
+      ALTER COLUMN created_by SET NOT NULL,
+      ALTER COLUMN updated_at SET NOT NULL,
+      ALTER COLUMN updated_by SET NOT NULL,
+      ADD CONSTRAINT %I CHECK ((deleted_at IS NULL) = (deleted_by IS NULL))', schema_name, table_name, table_name || '_audit_deleted_pair');
+    EXECUTE format('CREATE TRIGGER row_audit_stamp BEFORE INSERT OR UPDATE ON %I.%I
+      FOR EACH ROW EXECUTE FUNCTION row_audit.stamp()', schema_name, table_name);
+  END LOOP;
+END;
+$$;
+REVOKE ALL ON PROCEDURE row_audit.apply(text, text[], text) FROM PUBLIC;
+
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 CREATE SCHEMA leasing;
 REVOKE ALL ON SCHEMA leasing FROM PUBLIC;
@@ -426,7 +503,7 @@ CREATE TABLE leasing.document_retention (
   retention_until timestamptz,
   legal_hold boolean NOT NULL DEFAULT false,
   policy_reference text NOT NULL,
-  updated_by uuid NOT NULL REFERENCES leasing.users,
+  policy_updated_by uuid NOT NULL REFERENCES leasing.users,
   updated_at timestamptz NOT NULL DEFAULT now(),
   FOREIGN KEY (document_version_id, property_id) REFERENCES leasing.document_versions(id, property_id)
 );
@@ -518,6 +595,9 @@ CREATE INDEX allocations_lease ON leasing.slot_allocations(lease_id) WHERE relea
 CREATE INDEX documents_customer ON leasing.documents(property_id, organization_id);
 CREATE INDEX appointments_time ON leasing.appointments(property_id, lower(scheduled_period));
 CREATE INDEX outbox_pending ON leasing.outbox_events(created_at) WHERE published_at IS NULL;
+
+-- Add audit fields before the frozen/append-only business guards.
+CALL row_audit.apply('leasing', ARRAY['organizations', 'brands', 'contacts', 'users', 'organization_memberships', 'properties', 'property_customers', 'staff_assignments', 'floors', 'plan_versions', 'slots', 'slot_versions', 'slot_measurements', 'slot_frontages', 'slot_connections', 'spaces', 'space_versions', 'space_members', 'workflow_statuses', 'leasing_requests', 'request_spaces', 'reservations', 'reservation_extensions', 'leases', 'lease_versions', 'slot_allocations', 'appointment_resources', 'appointments', 'appointment_participants', 'resource_bookings', 'documents', 'document_versions', 'document_retention', 'document_access_grants', 'lease_documents', 'plan_documents', 'space_publications', 'audit_events', 'command_receipts', 'outbox_events'], 'system:baseline-v2');
 
 -- Freeze published/signed/sealed records. Changes create a new version.
 CREATE FUNCTION leasing.reject_frozen_version_change() RETURNS trigger LANGUAGE plpgsql AS $$

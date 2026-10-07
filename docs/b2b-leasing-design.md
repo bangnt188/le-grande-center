@@ -66,7 +66,7 @@ erDiagram
 ```
 
 ERD mô tả quan hệ lõi; toàn bộ bảng/constraint nằm trong
-[SQL baseline v2](../database/design/b2b-leasing-v2.sql). SQL hỗ trợ tạo draft
+[SQL baseline duy nhất](../database/schema.sql). SQL hỗ trợ tạo draft
 trước khi có thành viên/tài liệu; điều kiện publish/execute do command xác nhận.
 
 ### Nhóm dữ liệu

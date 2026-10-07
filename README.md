@@ -75,19 +75,18 @@ Cấu hình `NEXT_PUBLIC_ADMIN_API_URL` chỉ là URL công khai của backend; 
 DB URL, secret hoặc credential trong biến `NEXT_PUBLIC_*`.
 
 [Hợp đồng API và migration](docs/admin-data-contract.md),
-[schema PostgreSQL demo v1](database/001_admin_draft.sql) và
+[SQL baseline duy nhất](database/schema.sql) và
 [thiết kế giao diện](DESIGN.md). Backend/auth/database chưa được triển khai.
 
 ## Thiết kế hệ thống B2B đã chốt
 
 - [Thiết kế nghiệp vụ, admin, DB và migration](docs/b2b-leasing-design.md).
 - [Hợp đồng private trên R2 và Workers Free](docs/private-documents-r2.md).
-- [SQL baseline B2B v2](database/design/b2b-leasing-v2.sql) và [hướng dẫn DB](database/README.md).
+- [SQL baseline PostgreSQL duy nhất](database/schema.sql) và [hướng dẫn DB](database/README.md).
 - [Thuật ngữ](CONTEXT.md) và [quyết định kiến trúc](docs/adr/0001-b2b-leasing-and-private-documents.md).
 
 Luồng: gửi yêu cầu → chủ đầu tư duyệt → giữ chỗ có hạn. Lịch hẹn độc lập.
-Docs/schema là thiết kế chưa apply; chưa triển khai backend/auth/R2. V2 không
-phải migration chạy nối tiếp v1 và không import fixture thành inventory thật.
+SQL là thiết kế chưa apply; auth/backend/database vẫn chưa kết nối.
 
 ## Architecture Decision: admin
 
@@ -168,3 +167,11 @@ Mở `/admin-preview/`: giao diện bắt đầu ở **Khách hàng**. Có thể
 Demo dùng dữ liệu giả lập trong phiên, tài liệu HTML không có chữ ký. Portal là
 chế độ xem thử, chưa có xác thực; không nhập hồ sơ/hợp đồng thật. Backend,
 authorization và Worker/R2 cần được triển khai theo docs trước khi dùng thật.
+
+## Backend readiness và storage generic
+
+[Checklist trước khi khách hàng tạo tài khoản](docs/backend-readiness.md) tách phần
+code còn thiếu khỏi tài khoản/credentials cần cấp. R2/Cloudinary có module generic
+trong shared backend và [lệnh smoke upload/read/delete](packages/backend/docs/storage.md).
+Đây không phải production integration đã deploy; quota/Worker/session/DB vẫn cần
+hoàn thiện trước khi bật dữ liệu thật.

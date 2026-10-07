@@ -21,7 +21,7 @@ trên mỗi tài liệu. Đây là ranh giới bền vững giúp giữ UI khi t
 
 ## Migration
 
-Baseline v2 ở `database/design/b2b-leasing-v2.sql`, schema riêng `leasing`.
-Không phải migration tự động từ `001_admin_draft.sql`. Xác nhận bản vẽ, map ID,
+Baseline PostgreSQL duy nhất ở `database/schema.sql`, schema `leasing`.
+Đây là schema mới, chưa apply/migrate dữ liệu. Xác nhận bản vẽ, map ID,
 backfill và triển khai auth/commands/storage trước khi chuyển adapter HTTP.
 Kế hoạch và các điểm chưa chốt: [Thiết kế B2B](../b2b-leasing-design.md).
