@@ -65,8 +65,11 @@ export interface ContactGateway {
   submit(values: Readonly<ContactValues>): Promise<ContactReceipt>;
 }
 
-// Explicitly selected by the preview UI. No network, persistence or simulated
-// production receipt; a future HTTP adapter must implement the same interface.
+// Demo only: Solar-style timing/outcomes, without sending or storing form data.
 export const previewContactGateway: ContactGateway = {
-  async submit() { return { kind: "preview" }; },
+  async submit() {
+    await new Promise(resolve => setTimeout(resolve, 700));
+    if (Math.random() < 0.5) throw new Error("Demo submission failed");
+    return { kind: "preview" };
+  },
 };

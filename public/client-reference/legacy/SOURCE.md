@@ -15,3 +15,11 @@ Copying published files does not independently establish the legal status of the
 ## Reasons-to-choose section kept for later use
 
 Source section: `https://legrandecentre.vn/#amenities`, fetched 2026-10-08. Full six-item marketing copy and CTA are retained in `LEGACY_PROJECT_REASONS`; native renderer is `ProjectReasons`. CTA destination is adapted from the old `#contact` anchor to the current `/lien-he/` route. HTML/CSS source evidence is at `docs/design-evidence/legacy/reasons-source.html` and `legacy-page-source.css`. No old reveal script or CSS is loaded by the application. The section is not currently mounted on a page.
+
+## Header branding
+
+- `logo-without-text.png`: original https://legrandecentre.vn/images/logo/logo-without-text.png, transparent 2363×2363 PNG, resized to 256×256 for the shared public header; 25230 bytes, SHA-256 `67294e15a323245234b9d7fe1876f0757910b0b277f9d28ccf2fd1afdd71c24a`.
+- `icon.png`: original https://legrandecentre.vn/icon.png, resized to 64×64 for the browser tab; 3474 bytes, SHA-256 `7c00744046e77868ff781e24993204b3663f9e673065d7fc08a641de94feabb8`.
+- The uppercase wordmark and gold active/hover underline reproduce the published header’s branding in native components. Navigation still uses this project’s five approved routes, not the legacy anchor menu. These are project branding assets, not third-party branding substitutes.
+
+Assets were fetched from the project’s public site at the user’s request; that source alone is not an independent trademark-rights clearance.

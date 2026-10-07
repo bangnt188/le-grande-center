@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { readContactValues, validateContact, type ContactErrors, type ContactGateway } from "./contact-model";
 import { CONTACT_RATE_LIMIT_KEY, normalizeRateLimit, recordContactSuccess, formatCountdown, type ContactRateLimitState } from "./contact-rate-limit";
 
 export function useContactForm(gateway: ContactGateway) {
   const [errors, setErrors] = useState<ContactErrors>({});
   const [status, setStatus] = useState<"idle" | "preview" | "received" | "error">("idle");
+  const dismissNotice = useCallback(() => setStatus("idle"), []);
   const [submitting, setSubmitting] = useState(false);
   const [ready, setReady] = useState(false);
   const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
@@ -96,5 +97,5 @@ export function useContactForm(gateway: ContactGateway) {
   }
 
   const remaining = cooldownUntil === null ? 0 : Math.max(0, cooldownUntil - now);
-  return { errors, status, submit, submitting, ready, coolingDown: remaining > 0, countdown: formatCountdown(remaining) };
+  return { errors, status, dismissNotice, submit, submitting, ready, coolingDown: remaining > 0, countdown: formatCountdown(remaining) };
 }
