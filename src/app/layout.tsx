@@ -34,6 +34,7 @@ export const metadata: Metadata = {
   },
   description: "Khám phá Le Grande Centre: shophouse, dịch vụ, văn phòng và không gian giải trí tại Sóc Trăng. Xem kiến trúc 3D và liên hệ tư vấn mặt bằng.",
   robots: { index: isIndexable, follow: isIndexable },
+  icons: { icon: new URL("client-reference/legacy/icon.png", siteUrl) },
 };
 
 export const viewport: Viewport = {

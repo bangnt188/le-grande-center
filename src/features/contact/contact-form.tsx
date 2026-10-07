@@ -1,15 +1,15 @@
 "use client";
 
-import { Button, CheckboxField, SelectField, TextareaField, TextField } from "@mall/ui";
+import { Button, CheckboxField, SelectField, TextareaField, TextField, Toast } from "@mall/ui";
 import { AREA_OPTIONS, BUSINESS_OPTIONS, TIMING_OPTIONS, previewContactGateway } from "./contact-model";
 import { useContactForm } from "./use-contact-form";
 import styles from "./contact-form.module.css";
 
 export function ContactForm({ visitPhone }: { visitPhone: string }) {
-  const { errors, status, submit, submitting, ready, coolingDown, countdown } = useContactForm(previewContactGateway);
+  const { errors, status, dismissNotice, submit, submitting, ready, coolingDown, countdown } = useContactForm(previewContactGateway);
   const field = { controlClassName: styles.control, labelClassName: styles.label, containerClassName: styles.field };
   return <div className={styles.frame} data-ui-scheme="light">
-    <form className={styles.form} onSubmit={submit} noValidate aria-label="Yêu cầu tư vấn mặt bằng">
+    <form className={styles.form} onSubmit={submit} noValidate aria-label="Yêu cầu tư vấn mặt bằng" aria-describedby="contact-preview-note">
       <div className={styles.fields}>
         <TextField {...field} id="contact-name" name="name" label="Họ tên" required autoComplete="name" placeholder="Nguyễn Văn A" maxLength={100} error={errors.name}/>
         <TextField {...field} id="contact-company" name="company" label="Tên doanh nghiệp" autoComplete="organization" placeholder="Tên thương hiệu / công ty" maxLength={150} error={errors.company}/>
@@ -29,11 +29,16 @@ export function ContactForm({ visitPhone }: { visitPhone: string }) {
         <a className={styles.visit} href={visitPhone}>Đặt lịch tham quan <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10" stroke="currentColor" strokeWidth="1.5"/></svg></a>
       </div>
       {coolingDown && <div className={styles.cooldown}><p role="status">Bạn đã gửi nhiều yêu cầu trong thời gian ngắn. Vui lòng chờ trước khi gửi tiếp.</p><span aria-live="off">Thời gian còn lại: <strong>{countdown}</strong></span></div>}
-      <div aria-live="polite" aria-atomic="true">
-        {status === "preview" && <p className={styles.receipt}>Cảm ơn bạn đã quan tâm đến Le Grande Centre. Để được tư vấn ngay, vui lòng liên hệ hotline.</p>}
-        {status === "received" && <p className={styles.receipt}>Yêu cầu đã được tiếp nhận. Đội ngũ Le Grande Centre sẽ liên hệ với bạn.</p>}
-        {status === "error" && <p className={styles.error}>Chưa gửi được yêu cầu. Thông tin của bạn vẫn được giữ trên form để thử lại.</p>}
-      </div>
+      <p className={styles.previewNote} id="contact-preview-note">Bản xem trước: kết quả gửi được mô phỏng. Thông tin chưa được lưu hoặc chuyển cho đội tư vấn.</p>
+      {status !== "idle" && <div className={styles.toastRegion} role="region" aria-label="Thông báo gửi yêu cầu">
+        <Toast
+          tone={status === "error" ? "error" : "success"}
+          title={status === "error" ? "Gửi thử chưa thành công" : status === "preview" ? "Gửi thử thành công" : "Đã tiếp nhận yêu cầu"}
+          text={status === "error" ? "Lần gửi mô phỏng chưa thành công. Thông tin vẫn được giữ trên form; bạn có thể gửi lại." : status === "preview" ? "Đã hoàn tất lần gửi mô phỏng, chưa chuyển thông tin cho đội tư vấn. Vui lòng gọi hotline để được hỗ trợ ngay." : "Đội ngũ Le Grande Centre sẽ liên hệ tư vấn với bạn."}
+          closeLabel="Đóng thông báo"
+          onDismiss={dismissNotice}
+        />
+      </div>}
     </form>
   </div>;
 }
