@@ -18,7 +18,7 @@ Ví dụ **module server của ứng dụng**, đọc khóa khi request cần d�
 
 ```ts
 import 'server-only';
-import { createFieldCipher } from '@mall/backend/crypto';
+import { createFieldCipher } from '@shared/backend/crypto';
 
 export function fieldCipher() {
   const activeKeyId = process.env.FIELD_ACTIVE_KEY_ID;

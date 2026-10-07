@@ -6,6 +6,8 @@ export type AccessScope = {
   propertyId?: string;
   organizationId?: string;
   ownerId?: string;
+  /** Application-owned exact-match dimensions; never accepted from form input. */
+  dimensions?: Readonly<Record<string, string>>;
 };
 export type AccessGrant = {
   permission: string;
@@ -40,8 +42,12 @@ const nonEmpty = (value: unknown): value is string => typeof value === "string" 
 const timestamp = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value) && value > 0;
 const record = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === "object" && !Array.isArray(value);
 
-function validScope(scope: unknown): scope is AccessScope {
-  return record(scope) && nonEmpty(scope.tenantId) && scopeKeys.every(key => scope[key] === undefined || nonEmpty(scope[key]));
+export function validScope(scope: unknown, allowOtherKeys = false): scope is AccessScope {
+  return record(scope) && (allowOtherKeys || Object.keys(scope).every(key => [...scopeKeys, "dimensions"].includes(key as typeof scopeKeys[number]))) && nonEmpty(scope.tenantId) && scopeKeys.every(key => scope[key] === undefined || nonEmpty(scope[key]))
+    && (scope.dimensions === undefined || (record(scope.dimensions)
+      && Object.keys(scope.dimensions).length <= 32
+      && Object.entries(scope.dimensions).every(([key, value]) => /^[a-zA-Z][a-zA-Z0-9_]{0,62}$/.test(key)
+        && !["__proto__", "constructor", "prototype"].includes(key) && nonEmpty(value))));
 }
 function validGrant(grant: unknown): grant is AccessGrant {
   if (!record(grant) || typeof grant.permission !== "string" || !permissionPattern.test(grant.permission)) return false;
@@ -59,7 +65,7 @@ export function isAccessPrincipal(value: unknown): value is AccessPrincipal {
 function validResource(resource: unknown): resource is AccessResource {
   if (!record(resource)) return false;
   const { type, kind, id } = resource;
-  if (!validScope(resource) || !nonEmpty(type)) return false;
+  if (!validScope(resource, true) || !nonEmpty(type)) return false;
   if (kind === "object") return nonEmpty(id);
   return kind === "collection" && id === undefined;
 }
@@ -71,10 +77,12 @@ function matches(grant: AccessGrant, permission: string, resource: AccessResourc
   // Missing facts must not bypass a narrower deny. For collections, a denied
   // object might be in the result; this engine cannot build exclusion predicates.
   if (grant.effect === "deny") {
-    return scopeKeys.every(key => resource[key] === undefined || grant.scope[key] === undefined || grant.scope[key] === resource[key]);
+    return scopeKeys.every(key => resource[key] === undefined || grant.scope[key] === undefined || grant.scope[key] === resource[key])
+      && Object.entries(grant.scope.dimensions ?? {}).every(([key, value]) => resource.dimensions?.[key] === undefined || resource.dimensions[key] === value);
   }
   if (grant.resourceId !== undefined && (resource.kind !== "object" || grant.resourceId !== resource.id)) return false;
-  return scopeKeys.every(key => grant.scope[key] === undefined || grant.scope[key] === resource[key]);
+  return scopeKeys.every(key => grant.scope[key] === undefined || grant.scope[key] === resource[key])
+    && Object.entries(grant.scope.dimensions ?? {}).every(([key, value]) => resource.dimensions?.[key] === value);
 }
 
 /** Deny by default. No wildcard, role-name shortcut, or administrator bypass. */

@@ -1,10 +1,12 @@
 {
-  "name": "@mall/backend",
+  "name": "@shared/backend",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "files": [
-    "dist"
+    "dist",
+    "docs",
+    "VERCEL.md"
   ],
   "exports": {
     ".": {

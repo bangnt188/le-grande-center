@@ -20,16 +20,16 @@
     "test:ui": "npm run test --workspace=@mall/ui",
     "test:admin": "node --import tsx --test tests/admin-repository.test.ts",
     "deploy:dev": "node scripts/publish-dev-pages.mjs",
-    "build:backend": "npm run build --workspace=@mall/backend",
-    "typecheck:backend": "npm run typecheck --workspace=@mall/backend",
-    "test:backend": "npm run test --workspace=@mall/backend"
+    "build:backend": "npm run build --workspace=@shared/backend",
+    "typecheck:backend": "npm run typecheck --workspace=@shared/backend",
+    "test:backend": "npm run test --workspace=@shared/backend"
   },
   "dependencies": {
     "@mall/ui": "0.1.0",
     "next": "16.3.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "@mall/backend": "0.1.0"
+    "@shared/backend": "0.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
