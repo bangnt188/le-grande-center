@@ -263,3 +263,31 @@ The company list and dossier share one operational layout. Lease and request rec
 - **Don't** style slot geometry as rounded cards or hide the original members of a grouped space.
 - **Don't** apply admin typography or semantic overrides to the public identity.
 - **Don't** present repeated fixture geometry or sample documents as confirmed inventory or signed records.
+
+## Public image-to-3D experience — confirmed redesign
+
+The supplied sunset image and https://realestate-neotix.vercel.app/ govern the public experience, not the admin workspace. Mode: Experience. Home leads with the exact supplied image, edge-to-edge, a quiet project title and the explicit “Khám phá” action. The image is a labelled concept reference, not evidence of the existing building architecture.
+
+`/kham-pha/` is a full-viewport scene, not an embedded card: canvas fills the screen; a persistent “Thoát” link returns home. Floor information lives in a dismissible HTML panel; controls recede onto charcoal surfaces. Mobile uses the same canvas-first flow with a bounded information sheet and 44px touch controls.
+
+Public palette replaces green with midnight slate `#19252b`, charcoal `#242b2c`, amber `#e7bd79`, limestone paper `#f1e9dc`, cream `#fff2dc`. Keep Playfair Display and Be Vietnam Pro. Scene mood is golden sunset, dark reflective road, warm lighting and lush landscape. Preserve the actual building geometry, never copy the reference building.
+
+Free horizontal360° orbit and overhead elevation are required; presets are starting points, not orbit corridors. Limit distant zoom, not all-view building fit. Cars and people move on defined paths; motion can pause and respects reduced-motion/hidden tabs. Load 3D only after entering the experience. Admin colors, data truth and public-claim approval rules remain unchanged.
+
+## Homepage navigation refinement — 08/10/2026
+
+Prioritize the public homepage for client review. Use five destinations with separate pages: Trang chủ, Mặt bằng / Cho thuê, Tổng quan từng tầng, Tổng quan Le Grande, Liên hệ. The homepage retains the existing cover, project film and contact section; its main cover action opens leasing information, with 3D as a second action. Six floor links form an editorial list beneath the introduction. Programme descriptions share one public content module with the overview pages and viewer; they do not represent live inventory.
+
+The shared header uses a horizontal desktop menu and a native mobile disclosure. Keep the dark slate, cream and amber public identity. Separate pages reuse the header and contain available public project information; no leasing workflow is added. Verification: TypeScript passed, four new routes returned HTTP 200, the mobile menu navigated to the leasing page, and 1440px/390px browser checks showed no horizontal page overflow. Screenshots inspected at `/tmp/le-grande-home-desktop.png`, `/tmp/le-grande-home-mobile.png` and `/tmp/le-grande-home-floors.png`. These checks cover local UI and navigation, not production deployment.
+
+## Canva content import — 08/10/2026
+
+Keep the exact shared navigation: Trang chủ, Mặt bằng/Cho thuê, Tổng quan từng tầng, Tổng quan Le Grande, Liên hệ. Apply the supplied Canva layout and content below that navigation on the leasing, project overview and contact pages. These pages use scoped green and cream styling, native filters and floor selection, local attributed imagery and shared contact details. Floor overview links select the corresponding leasing floor by hash. The sample A01–A05 plan is illustrative; floors 2–6 await technical data. Customer portal stays hidden.
+
+Local visual inspection covered all three pages at 1440px and 390px, with no horizontal page overflow and all images loaded. Area filtering was checked manually. This is a local UI update; production CMS integration and publication remain outside this change.
+
+## Contact form and legacy editorial sections — 08/10/2026
+
+Contact follows the supplied Canva two-column composition: project contacts on the left, a cream framed form on the right. At narrow widths, information then fields flow in DOM order; form controls use 16px mobile type and minimum 48px height. The form uses existing shared UI fields with local semantic tokens, a clear preview notice, explicit unchecked consent, inline validation and honest completion messages. Three completed preview submissions in five minutes trigger a five-minute countdown, retained across reloads. Preview never stores contact details.
+
+The old legrandecentre.vn site now governs the investor letter and project document sections. Preserve its centered serif title, green/gold emphasis, pale decorative stock background, quote rhythm, diamond SVG divider and leadership signature. Keep its three document groups; only actual available files get download anchors. Brochure uses the verified local file; decision is copied from the public old site. Dedicated floor plans and building permit await files because the old floor-plan URL returns brochure bytes and the permit URL is missing. Route composition and shared navigation stay intact.

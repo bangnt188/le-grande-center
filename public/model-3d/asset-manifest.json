@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "sceneVersion": "2026-10-07.3",
+  "assetManifestHash": "cf7b3823b1c6a9f0a6748ffb3789df08e8e5029dbb2ea4ef30eb6449dd62a882",
+  "assets": [
+    {
+      "id": "building",
+      "file": "assets/building-578abef2f86d.glb",
+      "bytes": 3220176,
+      "sha256": "578abef2f86d3bac7093bf03e48fd7c4a590d1d6c6ee958d5ebc6bfc33ea6650",
+      "meshes": 12,
+      "textures": 7,
+      "source": "src/app/model-3d/model.ts — preserved project geometry",
+      "license": "Project-authored; distribution as part of Le Grande Centre only",
+      "confidence": "illustrative"
+    },
+    {
+      "id": "tree",
+      "file": "assets/tree-7da461dd6b73.glb",
+      "bytes": 2958464,
+      "sha256": "7da461dd6b730380c423e117bcf3cecf0e169731f1e418eceb82958d3ea63058",
+      "meshes": 4,
+      "textures": 12,
+      "source": "Poly Haven: Island Tree 02 — Rob Tuytel, Rico Cilliers; Shrub 02 — Rico Cilliers",
+      "license": "CC0-1.0 — https://polyhaven.com/license",
+      "confidence": "illustrative"
+    },
+    {
+      "id": "vehicle",
+      "file": "assets/vehicle-cded5c3562e9.glb",
+      "bytes": 2111260,
+      "sha256": "cded5c3562e9ce8b4ceeb8a1aa7db2725757557ef8c193ff6fdeebe90a5dc8b6",
+      "meshes": 22,
+      "textures": 16,
+      "source": "Car Concept — Eric Chadwick / Darmstadt Graphics Group GmbH (2024), based on Unity Fan CC0 concept; Khronos glTF Sample Assets",
+      "license": "CC-BY-4.0; steering emblem and license-plate pieces removed; logos/textures removed; see ASSET-LICENSE.md",
+      "confidence": "illustrative"
+    },
+    {
+      "id": "person",
+      "file": "assets/person-282d393ed8df.glb",
+      "bytes": 297256,
+      "sha256": "282d393ed8df7216d8e8657472e8164f32ce650a1ee768282bcc67f7891d6201",
+      "meshes": 1,
+      "textures": 0,
+      "source": "Cesium Man — Cesium (2017), Khronos glTF Sample Assets; skinned walking character",
+      "license": "CC-BY-4.0; trademark-bearing diffuse texture omitted and replaced with neutral material; skin/walk animation retained; see ASSET-LICENSE.md",
+      "confidence": "illustrative"
+    },
+    {
+      "id": "lamp",
+      "file": "assets/lamp-faa7f3c26b39.glb",
+      "bytes": 17440,
+      "sha256": "faa7f3c26b39c46f97df1c9e4ace1e7ece4c049ba9c3b59fb675d03f585fb75e",
+      "meshes": 2,
+      "textures": 0,
+      "source": "scripts/scene-assets.ts — original authored geometry",
+      "license": "Project-authored; distribution as part of Le Grande Centre only",
+      "confidence": "illustrative"
+    },
+    {
+      "id": "bench",
+      "file": "assets/bench-b3fce609b684.glb",
+      "bytes": 42032,
+      "sha256": "b3fce609b6844ba6aef7028a589fb965fbcd7bac99c70a278460c9a027d3fe8f",
+      "meshes": 2,
+      "textures": 0,
+      "source": "scripts/scene-assets.ts — original authored geometry",
+      "license": "Project-authored; distribution as part of Le Grande Centre only",
+      "confidence": "illustrative"
+    },
+    {
+      "id": "monument",
+      "file": "assets/monument-6c5f29820b71.glb",
+      "bytes": 48432,
+      "sha256": "6c5f29820b710517829a316181892059289f6e155324231e65a7b31fd3d2323e",
+      "meshes": 2,
+      "textures": 0,
+      "source": "scripts/scene-assets.ts — original authored geometry",
+      "license": "Project-authored; distribution as part of Le Grande Centre only",
+      "confidence": "illustrative"
+    }
+  ]
+}

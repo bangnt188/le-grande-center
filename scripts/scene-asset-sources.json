@@ -1,0 +1,112 @@
+[
+  {
+    "id": "island_tree_02",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/island_tree_02/island_tree_02_1k.gltf",
+    "md5": "825057164e987894cbfc6c462977fa71",
+    "files": [
+      {
+        "file": "textures/island_tree_02_nor_gl_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/island_tree_02/island_tree_02_nor_gl_1k.jpg",
+        "md5": "d8b8bc86de9934a743fc9b0a5470e695",
+        "size": 1157226
+      },
+      {
+        "file": "textures/island_tree_02_diff_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/island_tree_02/island_tree_02_diff_1k.jpg",
+        "md5": "b7435527d9628527ce47d89fc1468e9a",
+        "size": 738738
+      },
+      {
+        "file": "textures/island_tree_02_arm_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/island_tree_02/island_tree_02_arm_1k.jpg",
+        "md5": "e487f91bcb37a2a1109ef6234f1db27e",
+        "size": 688305
+      },
+      {
+        "file": "textures/island_tree_02_leaves_nor_gl_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/island_tree_02/island_tree_02_leaves_nor_gl_1k.jpg",
+        "md5": "a08ffb98b5ffb7dfa682e05a1639c642",
+        "size": 379443
+      },
+      {
+        "file": "textures/island_tree_02_leaves_diff_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/island_tree_02/island_tree_02_leaves_diff_1k.jpg",
+        "md5": "1356cbb5a5dd1318f9f2a01eddbf03e1",
+        "size": 191886
+      },
+      {
+        "file": "textures/island_tree_02_leaves_arm_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/island_tree_02/island_tree_02_leaves_arm_1k.jpg",
+        "md5": "27b06c4a53ff115ed7d51ee94e417257",
+        "size": 489476
+      },
+      {
+        "file": "textures/island_tree_02_branches_nor_gl_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/island_tree_02/island_tree_02_branches_nor_gl_1k.jpg",
+        "md5": "789084affb01f4a22290a848558f5e12",
+        "size": 819101
+      },
+      {
+        "file": "textures/island_tree_02_branches_diff_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/island_tree_02/island_tree_02_branches_diff_1k.jpg",
+        "md5": "7792907fe2b2b748c129a2384192a579",
+        "size": 528304
+      },
+      {
+        "file": "textures/island_tree_02_branches_arm_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/island_tree_02/island_tree_02_branches_arm_1k.jpg",
+        "md5": "5b6f5b3838f4a8f60fea14fa3a3fef9f",
+        "size": 484806
+      },
+      {
+        "file": "island_tree_02.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/island_tree_02/island_tree_02.bin",
+        "md5": "7fa9d6ee752b670cabb65053a5c6395b",
+        "size": 40686576
+      }
+    ]
+  },
+  {
+    "id": "shrub_02",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/shrub_02/shrub_02_1k.gltf",
+    "md5": "8f7254d279c0c49c0b3edfe260aa5c86",
+    "files": [
+      {
+        "file": "textures/shrub_02_arm_1k.jpg",
+        "size": 313715,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_02/shrub_02_arm_1k.jpg",
+        "md5": "28c218aeb7cab930d99ee16578984241"
+      },
+      {
+        "file": "textures/shrub_02_nor_gl_1k.jpg",
+        "size": 490815,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_02/shrub_02_nor_gl_1k.jpg",
+        "md5": "51a7f2db7e06a207171fd725585241d5"
+      },
+      {
+        "file": "shrub_02.bin",
+        "size": 758692,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/shrub_02/shrub_02.bin",
+        "md5": "683b5475238310899eac1458520903e6"
+      },
+      {
+        "file": "textures/shrub_02_diff_1k.jpg",
+        "size": 395120,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_02/shrub_02_diff_1k.jpg",
+        "md5": "3f4ae281928de030c7d4e41ad5b88a8b"
+      }
+    ]
+  },
+  {
+    "id": "vehicle",
+    "url": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/edc7c9e67c639d230715049ee31f9a96a6babbbe/Models/CarConcept/glTF-Binary/CarConcept.glb",
+    "sha256": "c272098089d78c5cd9fd9f24ff50ee8acf8d932c55f2d55fc10adb6c8998966b",
+    "files": []
+  },
+  {
+    "id": "person",
+    "url": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/edc7c9e67c639d230715049ee31f9a96a6babbbe/Models/CesiumMan/glTF-Binary/CesiumMan.glb",
+    "sha256": "b7001eaeea8254bd44773bcd247e78696d94169388fbb2a1800fc69434e777d9",
+    "files": []
+  }
+]
