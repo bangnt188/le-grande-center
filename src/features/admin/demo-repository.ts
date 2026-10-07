@@ -1,7 +1,7 @@
 import { applyB2BCommand, hasCommitment } from "./b2b-commands";
 import type { AdminCommand, AdminRepository, AdminSnapshot } from "./contracts";
 import { makeDemoSnapshot } from "./demo-data";
-import { mergeIssue } from "./space-model";
+import { FLOORS, mergeIssue } from "./space-model";
 import { STORAGE_LIMIT_BYTES, storageUploadIssue } from "./storage-policy";
 
 export function createDemoRepository(): AdminRepository {
@@ -15,6 +15,10 @@ export function createDemoRepository(): AdminRepository {
   };
   const exists = (items: { id: string }[], id: string) => {
     if (!items.some((item) => item.id === id)) throw new Error("Bản ghi không còn tồn tại. Tải lại dữ liệu.");
+  };
+  const validateMediaScope = (scope: string) => {
+    const allowed = ["Chưa xác nhận tầng", "Toàn dự án", ...FLOORS.map(floor => `Tầng ${floor}`), ...data.slots.map(slot => `slot:${slot.id}`), ...data.groups.map(group => `group:${group.id}`)];
+    if (!allowed.includes(scope)) throw new Error("Tầng hoặc mặt bằng liên kết không tồn tại. Chọn lại liên kết media.");
   };
   function apply(command: AdminCommand) {
     switch (command.type) {
@@ -58,8 +62,7 @@ export function createDemoRepository(): AdminRepository {
       }
       case "link-media": {
         exists(data.media, command.mediaId);
-        const allowed = ["Chưa xác nhận tầng", "Toàn dự án", ...[1,2,3,4,5,6].map((floor) => `Tầng ${floor}`), ...data.groups.map((group) => `group:${group.id}`)];
-        if (!allowed.includes(command.scope)) throw new Error("Tầng hoặc mặt bằng liên kết không tồn tại.");
+        validateMediaScope(command.scope);
         data.media = data.media.map((item) => item.id === command.mediaId ? { ...item, scope: command.scope } : item);
         break;
       }
@@ -75,6 +78,7 @@ export function createDemoRepository(): AdminRepository {
       try { apply(command); return snapshot(); } catch (error) { data = previous; throw error; }
     },
     async upload(files, scope) {
+      validateMediaScope(scope);
       const issue = storageUploadIssue(data.storage, files);
       if (issue) throw new Error(issue);
       const accepted = new Set(["image/png", "image/jpeg", "image/webp", "application/pdf"]);

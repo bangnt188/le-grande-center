@@ -43,12 +43,13 @@ Mặc định local dùng base path `/le-grande-center/` giống GitHub Pages. M
 
 ## Trang chủ B2B và kiến trúc 3D
 
-Mở `http://localhost:3000/le-grande-center/`. Trang chủ ưu tiên công trình, công
-năng theo tầng và liên hệ dự án; không còn giao diện bàn giao hay tải GLB.
-Three.js dựng hình học PBR, không phủ ảnh mặt tiền và không cần React Three Fiber.
-Kính xanh đen hơi tím, mặt tiền trắng lạnh, khe cửa lõm và bồn mái bạc được đối
-chiếu với video-v2 do khách hàng cung cấp. Ánh sáng ngoài trời và khung hình tự
-vừa theo tỷ lệ màn hình; hồ turquoise và tượng ngã ba vẫn giản lược.
+Mở `http://localhost:3000/le-grande-center/`: ảnh hoàng hôn khách cung cấp lấp viewport,
+bấm **Khám phá** để vào `/le-grande-center/kham-pha/` 3D toàn màn hình; **Thoát** về
+trang chủ. Không tải WebGL/GLB trước khi vào. Viewer tải asset tự host; site/hồ/ánh
+sáng/tương tác dùng Three.js, không cần R3F.
+Building GLB được xuất từ `src/app/model-3d/model.ts`, giữ hình khối và nhịp kiến trúc
+đối chiếu video dự án. Ảnh tham khảo chỉ quyết định màu/cột/vòng xoay/cảnh quan,
+không quyết định building. Sân trước → đường/vòng xoay; hồ sau. Kích thước vẫn minh họa.
 
 Sáu chấm trắng đan xen trái/phải, bám theo xoay/zoom. Bấm/chạm hoặc Tab + Enter
 để chọn riêng một tầng; cũng có nút tầng trong bảng công năng. Bấm lại hoặc
@@ -71,6 +72,35 @@ email, không giả báo đã gửi lead. Brochure do khách hàng cung cấp; s
 trong các trang không thống nhất nên không đưa lên trang chủ. Mô hình dùng Y
 hướng lên, mặt tiền +Z, tỷ lệ ước lượng, không thay thế hồ sơ thiết kế chính thức.
 Phần quản trị và backend hiện có không thay đổi.
+
+### Asset pipeline và public viewer
+
+`npm run models:export` mở authoring server tại `http://127.0.0.1:4174/__author`;
+mở URL bằng Chromium để xuất lại 6 context GLB, giữ nguyên building GLB đã duyệt
+và ghi `public/model-3d/asset-manifest.json`. Nguồn tải được pin URL/checksum trong
+`scripts/scene-asset-sources.json`, cache tại thư mục tạm của hệ thống.
+Tên file theo SHA-256, texture nhúng tối đa 1024px, không cần decoder hay Blender.
+`npm run check:scene-assets` kiểm tra bytes/hash/GLB/resource limits; tự chạy trước build.
+`npm run test:scene` kiểm tra allowlist, scene mismatch, ID/tầng, freshness và lỗi tải.
+
+`scene.ts` sở hữu IDs/anchors/presets; `viewer-projection.json` là publication tĩnh
+đọc-only, không lấy admin snapshot. Bản hiện có chỉ gồm brochure và vị trí minh họa;
+không có diện tích, tenant hay availability. Mỗi claim sau này phải được publisher
+duyệt riêng; parser loại field private. Giới hạn 64 KiB, freshness bảo thủ 24 giờ;
+quá hạn hoặc lệch scene thì không chọn slot/hiện claims, 3D/tầng/CTA vẫn hoạt động.
+Không tự đổi updatedAt để kéo dài publication. SLA production cần chủ dự án chốt.
+
+Bốn preset `front/aerial/rearLake/side` là điểm khởi đầu/reset; xoay ngang360°, nhìn
+gần thẳng từ trên cao, zoom gần tự do và chỉ cap zoom xa. Không ép fit khi orbit.
+Hoàng hôn mặc định theo ảnh; building giữ nguyên geometry. Tầng/slot chọn bằng
+canvas hoặc panel HTML; email mang ID, không tạo reservation. HIGH/MEDIUM/LOW
+giảm context/DPR/shadow/AO trước building. Xe chạy tuyến đường/vòng xoay; người có
+rig và animation đi bộ trên vỉa hè. Có nút dừng/chạy, tự dừng khi reduced-motion,
+tab hidden hoặc thoát. Cây Poly Haven CC0, xe và người Khronos CC-BY4 được tải về,
+tối ưu và tự host; nguồn/license/checksum trong `public/model-3d/ASSET-LICENSE.md`.
+
+Chi tiết triển khai, số đo và cổng production còn cần thiết bị thật:
+[scene redesign](docs/architecture-3d-scene-redesign.md).
 
 ## Deploy demo từ dev
 

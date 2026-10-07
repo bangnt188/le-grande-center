@@ -128,3 +128,8 @@ body:has(.legrande-admin){background:#f5f3eb}
   .legrande-admin .storage-details-toggle { display:inline-flex;min-block-size:44px;margin-block-start:4px;padding-inline:0; }
   .storage-details:not([data-expanded]) { display:none; }
 }
+.legrande-admin .scope-workflow-nav { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-bottom: 24px; }
+.legrande-admin .scope-workflow-nav label, .legrande-admin .scope-upload-target { display: grid; gap: 8px; color: var(--ink); font-size: 14px; }
+.legrande-admin .scope-upload-target { max-width: 32rem; margin-block: 16px; }
+.legrande-admin .scope-workflow-nav select, .legrande-admin .scope-upload-target select { width: 100%; min-height: 44px; }
+@media (max-width: 520px) { .legrande-admin .scope-workflow-nav label { width: 100%; } }
