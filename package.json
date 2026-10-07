@@ -8,6 +8,7 @@
     "packages/backend"
   ],
   "scripts": {
+    "pull": "node scripts/pull-submodules.mjs",
     "predev": "npm run build:backend && npm run build:ui",
     "dev": "next dev",
     "prebuild": "npm run build:backend && npm run build:ui",
