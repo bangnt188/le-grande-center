@@ -13,7 +13,7 @@
     "prebuild": "npm run build:backend && npm run build:ui",
     "build": "next build",
     "postbuild": "node scripts/prepare-public-export.mjs",
-    "typecheck": "npm run build:backend && npm run typecheck:backend && npm run typecheck:ui && tsc --noEmit",
+    "typecheck": "npm run build:backend && npm run typecheck:backend && npm run build:ui && npm run typecheck:ui && tsc --noEmit",
     "build:ui": "npm run build --workspace=@mall/ui",
     "typecheck:ui": "npm run typecheck --workspace=@mall/ui",
     "preview:ui": "npm run preview:ui --workspace=@mall/ui",
