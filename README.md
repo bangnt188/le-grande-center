@@ -112,6 +112,13 @@ Với clone chưa có submodule:
 git submodule update --init --recursive
 ```
 
+`npm run pull` updates submodules from their configured branches: backend
+`main`, Mall UI `shopping-mall`. It stops if a submodule has uncommitted
+changes. Review the updated commits, then commit the new gitlinks in this app
+repository to pin the versions used by its build. Both submodule repos are
+private; authenticate with `gh auth login` or configure Git credentials that
+can read both repositories.
+
 `preview:ui` mở catalog component bằng Vite; đây là preview thư viện, không phải
 ứng dụng Le Grande Center.
 
