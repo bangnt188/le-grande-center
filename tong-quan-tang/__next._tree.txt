@@ -11,5 +11,5 @@
 :HL["/le-grande-center/_next/static/media/8ffc259da9d23054-s.p.10uaeld2xxvpt.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 :HL["/le-grande-center/_next/static/media/a3bcb02a0e9e5d11-s.p.25pbmqxk8u2s7.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 :HL["/le-grande-center/_next/static/media/a4f4f75ad654963f-s.p.1hvvd1t-trplq.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
-:HL["/le-grande-center/_next/static/chunks/0i9gne8ie22ta.css","style"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"tong-quan-tang","param":null,"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}},"staleTime":300,"buildId":"DB41JGs5X6VfRxj63yStd"}
+:HL["/le-grande-center/_next/static/chunks/2t-t-g_456-mp.css","style"]
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"tong-quan-tang","param":null,"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}},"staleTime":300,"buildId":"_z8sVS7bXdfn4q1QgxW04"}
