@@ -14,7 +14,7 @@ export function ContactForm({ visitPhone, units }: { visitPhone: string; units: 
   return <div className={styles.frame} data-ui-scheme="light">
     <SurveyForm submission={submission} className={styles.form} onSubmit={submit} noValidate aria-label="Yêu cầu tư vấn mặt bằng" aria-describedby="contact-demo-intro">
       <p id="contact-demo-intro" className={styles.demoIntro}><strong>Form demo</strong>Thông tin không được gửi hoặc lưu. Để trao đổi thực tế, <a href={visitPhone}>gọi hotline cho thuê</a> hoặc dùng email ở phần liên hệ.</p>
-      {inquiry && <p className={styles.inquiry}>Từ sơ đồ: <strong>{inquiry.id} · Tầng {inquiry.floorId} · {inquiry.area.toLocaleString("vi-VN")} m²</strong>. Bạn có thể chỉnh nhu cầu bên dưới.</p>}
+      {inquiry && <p className={styles.inquiry}>Từ sơ đồ: <strong>{inquiry.id} · Tầng {inquiry.floorId} · {inquiry.area.toLocaleString("vi-VN")} m²</strong>. Bạn có thể chỉnh nhu cầu bên dưới.<br/>Hướng mặt ngoài (tham khảo): {inquiry.orientation}.</p>}
       <div className={styles.fields}>
         <TextField {...field} id="contact-name" name="name" label="Họ tên" required autoComplete="name" placeholder="Nguyễn Văn A" maxLength={100} error={errors.name}/>
         <TextField {...field} id="contact-company" name="company" label="Tên doanh nghiệp" autoComplete="organization" placeholder="Tên thương hiệu / công ty" maxLength={150} error={errors.company}/>

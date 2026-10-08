@@ -60,7 +60,7 @@ Nguồn kỹ thuật: code Solar `src/features/survey/survey-form.tsx` và `src/
 
 ## Cập nhật trải nghiệm khách thuê — 08/10/2026
 
-- CTA từ mặt bằng giữ mã ô qua `/lien-he/?unit=C.12`; contact đối chiếu mã với catalog brochure được truyền vào, không nhận diện tích/tầng từ query tùy ý. Mã hợp lệ điền sẵn ô/tầng và nhóm diện tích, có tóm tắt diện tích thực và cho phép chỉnh sửa. Mã không hợp lệ giữ form yêu cầu chung; không phản chiếu chuỗi query vào dữ liệu dự án.
+- CTA từ mặt bằng giữ mã ô qua `/lien-he/?unit=C.12`; contact đối chiếu mã với catalog brochure được truyền vào, không nhận diện tích/tầng/hướng từ query tùy ý. Mã hợp lệ điền sẵn ô/tầng và nhóm diện tích, có tóm tắt diện tích thực, hướng mặt ngoài tham khảo từ catalog và cho phép chỉnh sửa nhu cầu. Hướng không được gọi là hướng cửa đã xác nhận; F.1 nội khu giữ trạng thái chưa xác nhận. Mã không hợp lệ giữ form yêu cầu chung; không phản chiếu chuỗi query vào dữ liệu dự án.
 - Gửi demo lỗi giữ mọi giá trị. Thành công reset dữ liệu người dùng nhập về mặc định, giữ ngữ cảnh ô đang xem nếu có. Reload URL giữ được mã ô và nhóm diện tích; không lưu PII hay draft vào storage.
 - Đã smoke trên Chromium 1440×960 và 390×844: C.12/tầng 3/83 m² đi qua cả CTA chi tiết và CTA chung; validation 5 trường bắt buộc focus họ tên; cả hai kết quả demo đã quan sát; lỗi giữ nội dung chỉnh sửa, thành công reset, unknown unit để trống. Sơ đồ trong brochure trả HTTP 200 và có link trang 5. Không thay API, consent, quota hay shared UI package.
 

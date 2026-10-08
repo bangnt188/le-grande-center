@@ -1,4 +1,4 @@
-import type { LeasingFloor, LeasingUnit, PlanShape } from "./leasing-model";
+import type { LeasingFloor, LeasingOrientation, LeasingUnit, PlanShape } from "./leasing-model";
 
 export const BROCHURE_PATH = "/le-grande-brochure.pdf";
 
@@ -10,10 +10,27 @@ const flexible = ["Mặt bằng linh hoạt"];
 const cinema = ["Rạp chiếu phim (dự kiến)"];
 const outdoor = ["Dịch vụ ngoài trời"];
 
-function row(floorId: number, prefix: string, first: number, sizes: readonly (readonly [number, number])[], depth: number, x: number, y: number, types: readonly string[]): LeasingUnit[] {
+// Named boundaries on brochure p.5 registered against the north-up Maps site.
+// Geographic aspects are approximate; they do not certify doors, views or survey bearings.
+export const BROCHURE_ORIENTATION: LeasingOrientation = {
+  front: "Nam", rear: "Bắc", lakeSide: "Tây", waterworksSide: "Đông",
+  sourceUrl: "https://www.google.com/maps/place/Le+Grande+Centre/@9.6101864,105.9692089,17z/data=!3m1!4b1!4m6!3m5!1s0x31a04d86b7d9a867:0x58da1a5e9f7000e3!8m2!3d9.6101864!4d105.9717892!16s%2Fg%2F11nb37lyjk",
+};
+const { front, rear: rearDirection, lakeSide, waterworksSide } = BROCHURE_ORIENTATION;
+const frontRear = front + " / " + rearDirection;
+const cornerOrientations: Readonly<Partial<Record<string, string>>> = {
+  "A.1": frontRear + " / " + lakeSide, "A.11": frontRear + " / " + waterworksSide,
+  "B.1": frontRear + " / " + lakeSide, "B.11": frontRear + " / " + waterworksSide,
+  "C.12": front + " / " + lakeSide, "C.23": front + " / " + waterworksSide,
+  "D.12": front + " / " + lakeSide, "D.23": front + " / " + waterworksSide,
+  "E.6": front + " / " + lakeSide,
+};
+
+function row(floorId: number, prefix: string, first: number, sizes: readonly (readonly [number, number])[], depth: number, x: number, y: number, types: readonly string[], orientation: string): LeasingUnit[] {
   return sizes.map(([area, width], index) => {
+    const id = `${prefix}.${first + index}`;
     const unit: LeasingUnit = {
-      id: `${prefix}.${first + index}`, floorId, area, types,
+      id, floorId, area, types, orientation: cornerOrientations[id] ?? orientation,
       dimensions: { width, depth },
       plan: { x, y, width: width * 10, height: depth * 10 },
       ...(floorId < 3 ? { note: `Liên thông với căn ${floorId === 1 ? "B" : "A"}.${first + index} ở tầng ${floorId === 1 ? 2 : 1} theo brochure.` } : {}),
@@ -32,22 +49,23 @@ const upperEast = [[78, 8], [78, 8], [78, 8], [78, 8], [78, 8], [54, 5.5]] as co
 const lower = [[83, 9.9], [67, 8], [67, 8], [67, 8], [67, 8], [67, 8], [67, 8], [67, 8], [67, 8], [67, 8], [67, 8], [83, 9.9]] as const;
 
 export const BROCHURE_UNITS: readonly LeasingUnit[] = [
-  ...row(1, "A", 1, aWest, 19, 0, 20, shophouse),
-  ...row(1, "A", 6, aEast, 19, 500, 20, shophouse),
-  ...row(2, "B", 1, bWest, 20.5, 0, 20, shophouse),
-  ...row(2, "B", 6, bEast, 20.5, 500, 20, shophouse),
-  ...row(3, "C", 1, upperWest, 9.8, 45, 20, flexible),
-  ...row(3, "C", 6, upperEast, 9.8, 500, 20, flexible),
-  ...row(3, "C", 12, lower, 8.4, 0, 136, flexible),
-  ...row(4, "D", 1, upperWest, 9.8, 45, 20, flexible),
-  ...row(4, "D", 6, upperEast, 9.8, 500, 20, flexible),
-  ...row(4, "D", 12, lower, 8.4, 0, 136, flexible),
-  ...row(5, "E", 1, [[79, 8.1], [78, 8], [78, 8], [78, 8]], 9.8, 19, 20, flexible),
-  ...row(5, "E", 5, [[1000, 50]], 20, 500, 20, cinema),
-  ...row(5, "E", 6, [[83, 9.9], [67, 8], [67, 8], [67, 8], [67, 8], [67, 8]], 8.4, 0, 136, flexible),
-  ...row(6, "F", 1, [[46, 7.8]], 6, 340, 80, []),
+  ...row(1, "A", 1, aWest, 19, 0, 20, shophouse, frontRear),
+  ...row(1, "A", 6, aEast, 19, 500, 20, shophouse, frontRear),
+  ...row(2, "B", 1, bWest, 20.5, 0, 20, shophouse, frontRear),
+  ...row(2, "B", 6, bEast, 20.5, 500, 20, shophouse, frontRear),
+  ...row(3, "C", 1, upperWest, 9.8, 45, 20, flexible, rearDirection),
+  ...row(3, "C", 6, upperEast, 9.8, 500, 20, flexible, rearDirection),
+  ...row(3, "C", 12, lower, 8.4, 0, 136, flexible, front),
+  ...row(4, "D", 1, upperWest, 9.8, 45, 20, flexible, rearDirection),
+  ...row(4, "D", 6, upperEast, 9.8, 500, 20, flexible, rearDirection),
+  ...row(4, "D", 12, lower, 8.4, 0, 136, flexible, front),
+  ...row(5, "E", 1, [[79, 8.1], [78, 8], [78, 8], [78, 8]], 9.8, 19, 20, flexible, rearDirection),
+  ...row(5, "E", 5, [[1000, 50]], 20, 500, 20, cinema, rearDirection + " / " + front + " / " + waterworksSide),
+  ...row(5, "E", 6, [[83, 9.9], [67, 8], [67, 8], [67, 8], [67, 8], [67, 8]], 8.4, 0, 136, flexible, front),
+  ...row(6, "F", 1, [[46, 7.8]], 6, 340, 80, [], "Nội khu — hướng chưa xác nhận"),
   { id: "F.2", floorId: 6, area: 1020, types: outdoor,
-    note: "Không gian ngoài trời; brochure gợi ý café, ăn uống, ngắm cảnh, hội nghị và sự kiện. Không có kích thước cạnh đầy đủ trong tài liệu.",
+    orientation: front + " / " + lakeSide + " / " + rearDirection + " / " + waterworksSide,
+    note: "Không gian ngoài trời đa hướng; brochure gợi ý café, ăn uống, ngắm cảnh, hội nghị và sự kiện. Không có kích thước cạnh đầy đủ trong tài liệu.",
     plan: { x: 0, y: 20, width: 1000, height: 200,
       polygon: "polygon(0% 0%, 34% 0%, 34% 60%, 50% 60%, 50% 80%, 100% 80%, 100% 100%, 0% 100%)",
       labelPosition: { x: 17, y: 45 },

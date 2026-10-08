@@ -8,8 +8,13 @@ export type LeasingFloor = Readonly<{
   id: number; label: string; description: string; sourcePage: number;
   sharedAreas: readonly (PlanShape & { label: string })[];
 }>;
+export type LeasingOrientation = Readonly<{
+  front: string; rear: string; lakeSide: string; waterworksSide: string;
+  sourceUrl: string;
+}>;
 export type LeasingUnit = Readonly<{
   id: string; floorId: number; area: number; types: readonly string[];
+  orientation: string; // Approximate exterior aspect, not a certified entrance direction.
   dimensions?: Readonly<{ width: number; depth: number }>;
   note?: string;
   plan: PlanShape;
