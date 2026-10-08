@@ -11,8 +11,9 @@
 .description { margin: 0 0 28px; color: #52655d; font-size: 13px; line-height: 1.9; }
 .downloads { display: grid; gap: 12px; margin-top: auto; width: 100%; }
 .download { display: inline-flex; align-items: center; justify-content: center; gap: 12px; width: 100%; min-height: 48px; padding: 12px 16px; border: 1px solid #ad8a48; background: transparent; color: #193b31; font: inherit; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
-.download:hover:not(:disabled) { background: #193b31; color: #fffaf0; border-color: #193b31; }
+.download:hover { background: #193b31; color: #fffaf0; border-color: #193b31; }
 .download:focus-visible { outline: 2px solid #8a6b2d; outline-offset: 4px; }
-.download:disabled { border-color: #b9b5aa; color: #656b5e; cursor: not-allowed; }
-.pending { margin: 8px 0 0; font-size: 11px; color: #656b5e; line-height: 1.8; }
+.pending { padding-top: 12px; border-top: 1px solid #e3ddcd; color: #52655d; font-size: 14px; line-height: 1.8; }
+.pending strong { display: block; color: #193b31; font-weight: 600; }
+.pending p { margin: 4px 0 0; }
 @media (max-width: 800px) { .grid { grid-template-columns: 1fr; max-width: 500px; } .section { padding-block: 48px; } .document { padding: 28px 24px; } }

@@ -1,5 +1,6 @@
 import { ADDRESS, EMAIL, LEASING_PHONES, MANAGEMENT_PHONE } from "./site-content";
 import { ContactForm } from "@/features/contact/contact-form";
+import { BROCHURE_UNITS } from "./brochure-leasing";
 import styles from "./project-contact.module.css";
 
 export function ProjectContact() {
@@ -8,5 +9,5 @@ export function ProjectContact() {
     <div><dt>Email</dt><dd><a href={`mailto:${EMAIL}`}>{EMAIL}</a></dd></div>
     <div><dt>Địa chỉ</dt><dd><address>{ADDRESS}</address><a className={styles.mapLink} href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ADDRESS)}`} target="_blank" rel="noopener noreferrer">Xem vị trí trên bản đồ</a></dd></div>
     <div><dt>Ban quản lý dự án</dt><dd><a href={MANAGEMENT_PHONE.href}>{MANAGEMENT_PHONE.label}</a><small>Hỗ trợ vận hành & quản lý</small></dd></div>
-  </dl></div><ContactForm visitPhone={LEASING_PHONES[0].href}/></section>;
+  </dl></div><ContactForm visitPhone={LEASING_PHONES[0].href} units={BROCHURE_UNITS}/></section>;
 }

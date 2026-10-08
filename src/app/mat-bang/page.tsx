@@ -1,5 +1,4 @@
 import { PublicPageLayout } from "@/features/public/public-page-layout";
-import { LeasingSuggestion } from "@/features/public/leasing-suggestion";
 import { ProjectHero } from "@/features/public/project-sections";
 import { LeasingExplorer } from "@/features/public/leasing-explorer";
 import { PROJECT_IMAGES } from "@/features/public/canva-content";
@@ -11,6 +10,5 @@ export default function SpacesPage() {
   return <PublicPageLayout active="/mat-bang/" variant="project">
     <ProjectHero title={<>Mặt bằng<br/><em>cho thuê.</em></>} description="Chọn một tầng để bắt đầu, hoặc lọc theo loại hình và diện tích bạn cần." image={PROJECT_IMAGES.facade}/>
     <LeasingExplorer floors={BROCHURE_FLOORS} units={BROCHURE_UNITS} sourceDocument={BROCHURE_PATH} contactEmail={EMAIL} initialSelectedId="A.1"/>
-    <LeasingSuggestion/>
   </PublicPageLayout>;
 }

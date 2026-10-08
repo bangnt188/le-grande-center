@@ -1,5 +1,5 @@
 export type DocumentDownload = { label: string } & (
-  { path: string; filename: string; pending?: never } |
+  { path: string; filename?: string; pending?: never } |
   { pending: string; path?: never; filename?: never }
 );
 export type ProjectDocumentGroup = {
