@@ -1,11 +1,17 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useSurveySubmission } from "@mall/ui/forms";
+import type { LeasingUnit } from "../public/leasing-model";
 import { readContactValues, validateContact, type ContactErrors, type ContactValues } from "./contact-model";
 
-export function useContactForm() {
+export function useContactForm(units: readonly LeasingUnit[]) {
   const [errors, setErrors] = useState<ContactErrors>({});
+  const [inquiry, setInquiry] = useState<LeasingUnit | null>(null);
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("unit");
+    setInquiry(units.find(unit => unit.id === id) ?? null);
+  }, [units]);
   const submission = useSurveySubmission<ContactValues>({
     mode: "demo",
     storageKey: "legrande:contact-preview-rate-limit:v1",
@@ -29,5 +35,5 @@ export function useContactForm() {
     if (await submission.submit(values) === "success") form.reset();
   }
 
-  return { errors, submission, submit };
+  return { errors, submission, submit, inquiry };
 }

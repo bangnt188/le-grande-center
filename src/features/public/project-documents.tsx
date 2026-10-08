@@ -24,8 +24,8 @@ export function ProjectDocuments({ groups }: { groups: readonly ProjectDocumentG
     <div className={styles.grid}>{groups.map(group => <article key={group.id} className={styles.document}>
       <div className={styles.icon}><DocumentIcon kind={group.icon}/></div>
       <h3>{group.title}</h3><p className={styles.description}>{group.description}</p>
-      <div className={styles.downloads}>{group.downloads.map((item, index) => <div key={item.label}>
-        {item.path ? <a className={styles.download} href={`${assetBase}${item.path}`} download={item.filename}>{item.label}<DownloadIcon/></a> : <><button className={styles.download} type="button" disabled aria-describedby={`document-${group.id}-${index}-pending`}>{item.label}<DownloadIcon/></button><p className={styles.pending} id={`document-${group.id}-${index}-pending`}>{item.pending}</p></>}
+      <div className={styles.downloads}>{group.downloads.map(item => <div key={item.label}>
+        {item.path ? <a className={styles.download} href={`${assetBase}${item.path}`} download={item.filename} target={item.filename ? undefined : "_blank"} rel={item.filename ? undefined : "noopener noreferrer"}>{item.label}{item.filename && <DownloadIcon/>}</a> : <div className={styles.pending}><strong>{item.label}</strong><p>{item.pending}</p></div>}
       </div>)}</div>
     </article>)}</div>
   </section>;

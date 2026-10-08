@@ -2,25 +2,28 @@
 
 import { Button, CheckboxField, SelectField, TextareaField, TextField } from "@mall/ui";
 import { SurveyForm } from "@mall/ui/forms";
+import type { LeasingUnit } from "../public/leasing-model";
 import { AREA_OPTIONS, BUSINESS_OPTIONS, TIMING_OPTIONS } from "./contact-model";
 import { useContactForm } from "./use-contact-form";
 import styles from "./contact-form.module.css";
 
-export function ContactForm({ visitPhone }: { visitPhone: string }) {
-  const { errors, submission, submit } = useContactForm();
+export function ContactForm({ visitPhone, units }: { visitPhone: string; units: readonly LeasingUnit[] }) {
+  const { errors, submission, submit, inquiry } = useContactForm(units);
   const { submitting, ready, coolingDown, countdown } = submission;
   const field = { controlClassName: styles.control, labelClassName: styles.label, containerClassName: styles.field };
   return <div className={styles.frame} data-ui-scheme="light">
-    <SurveyForm submission={submission} className={styles.form} onSubmit={submit} noValidate aria-label="Yêu cầu tư vấn mặt bằng">
+    <SurveyForm submission={submission} className={styles.form} onSubmit={submit} noValidate aria-label="Yêu cầu tư vấn mặt bằng" aria-describedby="contact-demo-intro">
+      <p id="contact-demo-intro" className={styles.demoIntro}><strong>Form demo</strong>Thông tin không được gửi hoặc lưu. Để trao đổi thực tế, <a href={visitPhone}>gọi hotline cho thuê</a> hoặc dùng email ở phần liên hệ.</p>
+      {inquiry && <p className={styles.inquiry}>Từ sơ đồ: <strong>{inquiry.id} · Tầng {inquiry.floorId} · {inquiry.area.toLocaleString("vi-VN")} m²</strong>. Bạn có thể chỉnh nhu cầu bên dưới.</p>}
       <div className={styles.fields}>
         <TextField {...field} id="contact-name" name="name" label="Họ tên" required autoComplete="name" placeholder="Nguyễn Văn A" maxLength={100} error={errors.name}/>
         <TextField {...field} id="contact-company" name="company" label="Tên doanh nghiệp" autoComplete="organization" placeholder="Tên thương hiệu / công ty" maxLength={150} error={errors.company}/>
         <TextField {...field} id="contact-phone" name="phone" label="Số điện thoại" type="tel" required autoComplete="tel" inputMode="tel" placeholder="0900 000 000" maxLength={32} error={errors.phone}/>
         <TextField {...field} id="contact-email" name="email" label="Email" type="email" required autoComplete="email" placeholder="you@company.com" maxLength={254} error={errors.email}/>
         <SelectField {...field} id="contact-business" name="business" label="Loại hình kinh doanh" required defaultValue="" placeholder="Chọn một lựa chọn" options={BUSINESS_OPTIONS} error={errors.business}/>
-        <SelectField {...field} id="contact-area" name="area" label="Diện tích mong muốn" defaultValue="" options={[{ value: "", label: "Chọn một lựa chọn" }, ...AREA_OPTIONS]} error={errors.area}/>
+        <SelectField {...field} key={"area-" + (inquiry?.id ?? "general")} id="contact-area" name="area" label="Diện tích mong muốn" defaultValue={inquiry ? inquiry.area < 100 ? "under-100" : inquiry.area <= 150 ? "100-150" : "over-150" : ""} options={[{ value: "", label: "Chọn một lựa chọn" }, ...AREA_OPTIONS]} error={errors.area}/>
         <SelectField {...field} id="contact-timing" name="timing" label="Thời gian dự kiến thuê" defaultValue="" options={[{ value: "", label: "Chọn một lựa chọn" }, ...TIMING_OPTIONS]} error={errors.timing}/>
-        <TextField {...field} id="contact-space" name="space" label="Mặt bằng đang quan tâm" placeholder="Ví dụ: A.3 / Tầng 1" maxLength={150} error={errors.space}/>
+        <TextField {...field} key={"space-" + (inquiry?.id ?? "general")} id="contact-space" name="space" label="Mặt bằng đang quan tâm" defaultValue={inquiry ? inquiry.id + " / Tầng " + inquiry.floorId : ""} placeholder="Ví dụ: A.3 / Tầng 1" maxLength={150} error={errors.space}/>
         <TextareaField {...field} containerClassName={`${styles.field} ${styles.wide}`} id="contact-note" name="note" label="Ghi chú" rows={4} placeholder="Mô tả thêm về nhu cầu của bạn" maxLength={2000} error={errors.note}/>
       </div>
       <CheckboxField id="contact-consent" name="consent" required containerClassName={styles.consent} label="Tôi đồng ý để đội ngũ Le Grande Centre liên hệ tư vấn về nhu cầu mặt bằng." error={errors.consent}/>

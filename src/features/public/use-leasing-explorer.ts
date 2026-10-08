@@ -37,6 +37,6 @@ export function useLeasingExplorer(floors: readonly LeasingFloor[], inventory: r
   const visible = units.filter(unit => (!type || unit.types.includes(type)) && matchesArea(unit.area, area));
   const selected = visible.find(unit => unit.id === selectedId) ?? visible[0] ?? null;
   return { floor: floors.find(item => item.id === floorId), units, visible, selected, type, area,
-    unitTypes: [...new Set(inventory.flatMap(unit => [...unit.types]))],
+    unitTypes: [...new Set(units.flatMap(unit => [...unit.types]))],
     setType, setArea, setSelectedId, chooseFloor, clearFilters };
 }

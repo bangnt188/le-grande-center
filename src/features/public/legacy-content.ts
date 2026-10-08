@@ -1,4 +1,5 @@
 import type { ProjectDocumentGroup } from "./project-document-model";
+import { BROCHURE_PATH } from "./brochure-leasing";
 import type { ProjectReasonsContent } from "./project-reasons-model";
 
 export const INVESTOR_LETTER = [
@@ -15,19 +16,22 @@ export const PROJECT_DOCUMENTS: readonly ProjectDocumentGroup[] = [
   {
     id: "brochure", title: "Brochure Dự Án", icon: "document",
     description: "Tổng quan xây dựng, vị trí phân khu chiến lược và định vị thương mại.",
-    downloads: [{ label: "Tải Brochure", path: "/le-grande-brochure.pdf", filename: "brochure-le-grande-centre.pdf" }],
+    downloads: [{ label: "Tải Brochure", path: BROCHURE_PATH, filename: "brochure-le-grande-centre.pdf" }],
   },
   {
     id: "floor-plan", title: "Phân Bổ Mặt Bằng", icon: "plan",
-    description: "Sơ đồ chi tiết từng tầng, kích thước quy chuẩn và diện tích từng ô.",
-    downloads: [{ label: "Tải Sơ Đồ", pending: "Chờ cập nhật sơ đồ mặt bằng chi tiết." }],
+    description: "Sơ đồ bố trí sáu tầng, mã ô và diện tích theo brochure dự án.",
+    downloads: [
+      { label: "Xem sơ đồ trong brochure", path: BROCHURE_PATH + "#page=5" },
+      { label: "Sơ đồ kỹ thuật riêng", pending: "Chờ cung cấp sơ đồ kỹ thuật riêng; brochure không thay thế hồ sơ này." },
+    ],
   },
   {
     id: "legal", title: "Hồ Sơ Pháp Lý", icon: "shield",
     description: "Tóm tắt tình trạng pháp lý, và giấy phép xây dựng, và các chứng từ liên quan",
     downloads: [
       { label: "Tải Quyết Định", path: "/client-reference/legacy/documents/quyet-dinh.pdf", filename: "quyet-dinh-le-grande-centre.pdf" },
-      { label: "Tải Giấy Phép XD", pending: "Chờ bổ sung giấy phép xây dựng." },
+      { label: "Giấy phép xây dựng", pending: "Chờ bổ sung giấy phép xây dựng." },
     ],
   },
 ];

@@ -5,6 +5,7 @@
   --mall-gold-light: #e8c84a;
   --mall-paper: #f4f0e4;
   --mall-muted: #b8c2ba;
+  --public-header-height: 96px;
 }
 
 * { box-sizing: border-box; }
@@ -15,6 +16,8 @@ a:focus-visible { outline: 2px solid var(--mall-gold-light); outline-offset: 4px
 ::selection { color: var(--mall-ink); background: var(--mall-gold-light); }
 .skip-link { position: fixed; z-index: 20; top: 1rem; left: 1rem; transform: translateY(-180%); padding: 0.8rem 1rem; background: var(--mall-gold-light); color: var(--mall-ink); }
 .skip-link:focus { transform: translateY(0); }
+
+@media (max-width: 700px) { :root { --public-header-height: 80px; } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
