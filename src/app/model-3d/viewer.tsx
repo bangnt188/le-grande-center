@@ -211,7 +211,7 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
         <p className={styles.additionalPhones}>Liên hệ khác: <a href="tel:0944634243">0944 634 243</a> · <a href="tel:0931060768">0931 060 768</a></p>
       </div>
     </section>
-    <footer className={styles.footer}><Link href="/" className={styles.footerBrand}>Le Grande Centre</Link><p>Thương mại · Dịch vụ · Giải trí</p><a href="https://legrandecentre.vn/" target="_blank" rel="noopener noreferrer">Website dự án <Arrow /></a></footer></>}
+    </>}
   </main>;
 }
 
