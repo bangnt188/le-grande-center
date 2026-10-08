@@ -58,18 +58,3 @@ export function validateContact(values: ContactValues): ContactErrors {
   if (!values.consent) errors.consent = "Vui lòng đồng ý để chúng tôi liên hệ tư vấn.";
   return errors;
 }
-
-// A gateway may acknowledge receipt only after durable persistence on the API.
-export type ContactReceipt = { kind: "preview" } | { kind: "received"; id: string };
-export interface ContactGateway {
-  submit(values: Readonly<ContactValues>): Promise<ContactReceipt>;
-}
-
-// Demo only: Solar-style timing/outcomes, without sending or storing form data.
-export const previewContactGateway: ContactGateway = {
-  async submit() {
-    await new Promise(resolve => setTimeout(resolve, 700));
-    if (Math.random() < 0.5) throw new Error("Demo submission failed");
-    return { kind: "preview" };
-  },
-};

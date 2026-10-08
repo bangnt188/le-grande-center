@@ -38,9 +38,6 @@
 .visit:hover { background: #f2ecdf; }
 .visit:focus-visible { outline: 2px solid #8a6b2d; outline-offset: 3px; }
 .cooldown { margin: 20px 0 0; padding-top: 16px; border-top: 1px solid #ddd7c8; color: #355345; font-size: 12px; line-height: 1.8; }
-.previewNote { margin: 20px 0 0; color: #5b6257; font-size: 12px; line-height: 1.8; }
-.toastRegion { position: fixed; z-index: 1000; inset-block-start: calc(20px + env(safe-area-inset-top)); inset-inline-end: 20px; width: min(22rem, calc(100vw - 32px)); }
-.toastRegion > * { width: 100%; }
 .cooldown p { margin: 0 0 4px; }
 .cooldown strong { font-variant-numeric: tabular-nums; }
 @media (max-width: 1000px) { .form { padding: 24px; } }
