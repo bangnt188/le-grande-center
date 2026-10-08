@@ -74,3 +74,26 @@ Giữ nguyên diện tích in trong PDF, không tính lại từ kích thước 
 Không tự di chuyển ID/dữ liệu CMS demo `T<n>-B<n>` sang inventory public: đó là fixture nghiệp vụ khác, có liên kết media và workflow mẫu. Cutover backend cần khách/Kỹ thuật duyệt catalog và ánh xạ ID theo phạm vi production; lượt này không ghi DB, không sửa trạng thái thuê, không thêm form hoặc API.
 
 Kiểm chứng cập nhật 08/10/2026: TypeScript đạt; browser Chromium 1440×960 và 390×844 không tràn ngang/ảnh lỗi trong 5 trang. Tầng 3 chỉ có loại hình phù hợp; chọn C.12 bằng Enter giữ focus trong màn hình, nút chi tiết giữ tầng 3, CTA giữ C.12/tầng 3/83 m² sang form. Tầng 1 lọc dưới 100 m² ra rỗng và xóa lọc phục hồi 11 ô. Link homepage sang tổng quan tầng 4 hiện nhãn bên dưới header (96px desktop, 80px mobile) với token offset chung. Sơ đồ brochure/tài liệu chờ được phân biệt. Không xác minh Safari/thiết bị thật, production CMS hoặc độ chính xác CAD.
+
+## Hướng mặt ngoài tham khảo — 08/10/2026
+
+Nguồn đối chiếu: [Google Maps — Le Grande Centre](https://www.google.com/maps/place/Le+Grande+Centre/@9.6101864,105.9692089,17z/data=!3m1!4b1!4m6!3m5!1s0x31a04d86b7d9a867:0x58da1a5e9f7000e3!8m2!3d9.6101864!4d105.9717892!16s%2Fg%2F11nb37lyjk) và `public/le-grande-brochure.pdf`, trang 5–10. Dùng tọa độ place 9.6101864, 105.9717892; longitude 105.9692089 là camera, không phải địa điểm.
+
+Bản vẽ trang 5 ghi cạnh dưới là Nguyễn Chí Thanh, trái giáp khu hồ, phải giáp nhà máy nước. Đối chiếu bản đồ north-up: dưới/mặt tiền Nam, trên/phía sau Bắc, trái Tây, phải Đông. Đây là suy luận địa lý tham khảo; PDF không có mũi tên Bắc, ảnh vệ tinh còn thể hiện khu đất trước xây dựng nên không phải phép đo footprint hiện trạng. Không xuất bản góc phương vị chính xác hay cam kết tầm nhìn/cửa riêng.
+
+`LeasingUnit.orientation` bắt buộc cho 81 mã public. `BROCHURE_ORIENTATION` cung cấp nguồn và bốn cạnh cho route truyền vào renderer, không đưa inventory vào component trình bày. Hướng xuất hiện ở danh sách, chi tiết, accessible name của ô sơ đồ và ngữ cảnh form; chú giải bản đồ có link đối chiếu nguồn.
+
+| Nhóm ô | Hướng mặt ngoài tham khảo |
+| --- | --- |
+| A/B, dãy shophouse liên thông | Nam / Bắc; ô .1 thêm Tây, .11 thêm Đông |
+| C/D.1–.11; E.1–.4 | Bắc; không tự gán đầu Tây/Đông vì WC/vùng đệm ở cạnh |
+| C/D.12–.23 | Nam; .12 thêm Tây, .23 thêm Đông |
+| E.6–E.11 | Nam; E.6 thêm Tây, E.11 không nằm đầu Đông của building |
+| E.5 | Bắc / Nam / Đông; không gian đa mặt ngoài, không gán một cửa chính |
+| F.1 | Nội khu — hướng chưa xác nhận; nằm cạnh lõi sảnh/WC, cần bản vẽ cửa để kết luận |
+| F.2 | Ngoài trời đa hướng Nam / Tây / Bắc / Đông; không coi là một mặt bằng có một hướng cửa |
+
+Hướng mặt ngoài không đồng nghĩa hướng tiếp cận từ hành lang: dãy trên C/D/E vào từ hành lang phía dưới và dãy dưới tiếp cận từ phía trên; brochure không vẽ cửa cho từng ô phân chia. Không thay các fixture CMS `T<n>-B<n>` bằng hướng public nếu chưa ánh xạ ID/hồ sơ.
+
+Kiểm chứng: smoke catalog 81 ô, đủ số lượng 11/11/23/23/11/2 ở sáu tầng và 16 trường hợp biên/ngoại lệ; `npx tsc --noEmit` đạt. Browser Chromium desktop 1440×960/mobile 390×844 kiểm tra các ô A.1, B.11, C.1/C.12/C.23, D.23, E.5/E.11, F.1/F.2. C.12 giữ Nam/Tây sang contact cùng mã/tầng/83 m² và group dưới 100 m²; Enter và nút chi tiết giữ hash tầng, focus/nhãn không bị header che. Không tràn ngang trang; không có page error/request failure trong mobile smoke. Không xác minh hướng cửa từng ô bằng hồ sơ khảo sát hoặc thiết bị thật.
+
