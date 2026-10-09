@@ -37,7 +37,7 @@ if not third_out.exists():
     from tempfile import TemporaryDirectory
     with TemporaryDirectory() as temp:
         original = Path(temp) / "drone.jpg"
-        downloaded = gdown.download(id="17hGy3euZz90ZwRy4vO6DoOYwO2EzmaSX", output=str(original), quiet=False, fuzzy=True)
+        downloaded = gdown.download(id="17hGy3euZz90ZwRy4vO6DoOYwO2EzmaSX", output=str(original), quiet=False)
         if not downloaded or not original.exists():
             raise SystemExit("Could not download third photo from shared Google Drive.")
         optimize(original, third_out)
