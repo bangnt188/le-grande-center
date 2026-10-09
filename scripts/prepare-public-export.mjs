@@ -3,12 +3,9 @@ import { resolve } from "node:path";
 
 // An explicit opt-in publishes fixture-only UI on the dev Pages site.
 // Real administration remains a separately authenticated backend deployment.
-// No static out/ artifact exists for the server target. Never touch its build.
-const target = process.env.DEPLOY_TARGET || "demo";
-if (target !== "demo" && target !== "server") throw new Error("Unknown DEPLOY_TARGET.");
-if (target === "demo" && process.env.INCLUDE_ADMIN_DEMO !== "true") {
+if (process.env.INCLUDE_ADMIN_DEMO !== "true") {
   rmSync(resolve("out", "admin-preview"), { recursive: true, force: true });
   rmSync(resolve("out", "admin-demo"), { recursive: true, force: true });
-} else if (target === "demo" && (process.env.NEXT_PUBLIC_ADMIN_DEMO !== "true" || process.env.NEXT_PUBLIC_ADMIN_API_URL)) {
+} else if (process.env.NEXT_PUBLIC_ADMIN_DEMO !== "true" || process.env.NEXT_PUBLIC_ADMIN_API_URL) {
   throw new Error("Public admin demo requires explicit demo mode and no backend API.");
 }

@@ -162,8 +162,16 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
           <figcaption><span>01</span>Mặt tiền thương mại và toàn khối công trình.</figcaption>
         </figure>
         <figure className={styles.leadSecondaryFigure} {...reveal({ preset: "lift-in", duration: 880, soft: true })}>
-          <div className={styles.leadMediaFrame}><img className={styles.leadMediaImage} src={`${assetBase}/images/le-grande-aerial-context.webp`} alt="Le Grande Centre trong bối cảnh vòng xoay và khu vực trung tâm" loading="lazy" decoding="async" /></div>
-          <figcaption><span>02</span>Vị trí kết nối với trục đô thị và cảnh quan xung quanh.</figcaption>
+          <div className={styles.leadMediaFrame}><img className={styles.leadMediaImage} src={`${assetBase}/images/le-grande-aerial-context.webp`} alt="Le Grande Centre trong bối cảnh đô thị" loading="lazy" decoding="async" /></div>
+          <figcaption><span>02</span>Cảnh quan và liên kết giao thông xung quanh.</figcaption>
+        </figure>
+        <figure className={styles.leadThirdFigure} {...reveal("media")}>
+          <div className={styles.leadMediaFrame}><img className={styles.leadMediaImage} src={`${assetBase}/images/le-grande-aerial-third.webp`} alt="Góc nhìn drone bổ sung về khu vực Le Grande Centre" loading="lazy" decoding="async" /></div>
+          <figcaption><span>03</span>Một góc nhìn khác về công trình và khu vực.</figcaption>
+        </figure>
+        <figure className={styles.leadFourthFigure} {...reveal({ preset: "fade-up", duration: 800, intensity: "subtle" })}>
+          <div className={styles.leadMediaFrame}><img className={styles.leadMediaImage} src={`${assetBase}/images/le-grande-hero-drive.webp`} alt="Hình ảnh giới thiệu dự án Le Grande Centre" loading="lazy" decoding="async" /></div>
+          <figcaption><span>04</span>Hình ảnh chủ đạo giới thiệu Le Grande Centre.</figcaption>
         </figure>
       </div>
     </section>

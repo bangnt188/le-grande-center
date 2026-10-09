@@ -47,6 +47,11 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Prepare four optimized gallery images
+        run: |
+          python3 -m pip install --user Pillow gdown
+          python3 scripts/prepare-gallery-images.py
+
       - name: Typecheck
         run: npm run typecheck
 
