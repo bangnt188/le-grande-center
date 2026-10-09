@@ -1,16 +1,9 @@
-/* App identity maps onto existing system components. */
+/* Application geometry inherits the shared shopping-mall visual system. */
 .legrande-admin{
-  --ink:#203a2e;--muted:#59685d;--line:#e3e5db;--green:#163e2f;--gold:#9b7938;
-  --ui-color-canvas:#f5f3eb;--ui-color-surface:#fffefa;--ui-color-surface-raised:#f4f5ef;
-  --ui-color-text-primary:var(--ink);--ui-color-text-secondary:var(--muted);--ui-color-border:var(--line);
-  --ui-color-action:var(--green);--ui-color-action-hover:#245541;--ui-color-action-foreground:#fffdf6;
-  --ui-color-accent:var(--gold);--ui-color-accent-hover:#88662b;--ui-color-accent-foreground:#fff;
-  --ui-color-focus:#9b7938;--ui-admin-selected-surface:#e9eee5;--ui-admin-selected-border:#98ad9e;
-  --ui-color-success:#246b43;--ui-color-warning:#755718;--ui-color-error:#a43d30;
-  --ui-color-disabled-surface:#eeeee7;--ui-color-disabled:#788279;
-  --ui-radius-control:8px;--ui-admin-title-size:34px;--ui-admin-title-font:Georgia,"Times New Roman",serif;
-  --ui-admin-sidebar-width:248px;--ui-admin-content-padding:36px;--ui-font-size-sm:13px;--ui-font-size-md:14px;
-  --ui-shadow-overlay:0 12px 36px rgb(22 62 47 / .16);--ui-control-block-size:42px;
+  --ink:var(--ui-color-text-primary);--muted:var(--ui-color-text-secondary);--line:var(--ui-color-border-subtle);--green:var(--ui-color-action);--gold:var(--ui-color-warning);--surface-soft:var(--ui-color-surface);--selected-soft:var(--ui-color-action-subtle);
+  --ui-admin-selected-surface:var(--ui-color-action-subtle);--ui-admin-selected-border:var(--ui-color-border);
+  --ui-admin-title-size:34px;--ui-admin-title-font:var(--ui-font-display);
+  --ui-admin-sidebar-width:248px;--ui-admin-content-padding:36px;
 }
 body:has(.legrande-admin){background:#f5f3eb}
 .mall-admin-shell>aside,.mall-admin-shell>[role=dialog]{
@@ -26,7 +19,7 @@ body:has(.legrande-admin){background:#f5f3eb}
 .mall-admin-shell main h1+p{font-size:14px;line-height:1.7;margin-top:10px}
 .mall-admin-shell>aside nav{gap:8px}
 .b2b-dossier-layout{--ui-workspace-columns:320px minmax(0,1fr);gap:28px}
-.legrande-admin .records-panel,.legrande-admin .plan-panel,.legrande-admin .slot-register,.legrande-admin .space-inspector,.legrande-admin .record-inspector{border-color:var(--line);border-radius:12px;background:var(--ui-color-surface)}
+.legrande-admin .records-panel,.legrande-admin .plan-panel,.legrande-admin .slot-register,.legrande-admin .space-inspector,.legrande-admin .record-inspector{border-color:var(--line);border-radius:var(--ui-radius-surface);background:var(--ui-color-surface-raised)}
 .b2b-panel-heading{padding:24px;gap:18px}
 .b2b-panel-heading h2,.register-heading h2{font-size:17px;letter-spacing:-.01em}
 .b2b-company-row{padding:22px 24px;justify-content:flex-start;align-items:flex-start;font-weight:400;line-height:1.65}
@@ -42,7 +35,7 @@ body:has(.legrande-admin){background:#f5f3eb}
 .b2b-facts{line-height:1.75}
 .legrande-admin .button{font-size:13px;font-weight:600;min-height:42px;gap:8px}
 .legrande-admin .text-button{min-height:36px;padding:7px 9px;font-size:12px;font-weight:500;background:transparent;color:var(--green);white-space:normal}
-.legrande-admin input:not([type=checkbox]),.legrande-admin select,.legrande-admin textarea{border-color:var(--line);background:var(--ui-color-surface-raised);border-radius:8px;min-height:42px;color:var(--ink);font-size:13px}
+.legrande-admin input:not([type=checkbox]),.legrande-admin select,.legrande-admin textarea{background:var(--ui-color-surface-raised);min-height:var(--ui-control-block-size);color:var(--ink)}
 .legrande-admin [type=checkbox]{accent-color:var(--green)}
 .legrande-admin .lead-row,.legrande-admin .b2b-request-row{font-weight:400;justify-content:flex-start;line-height:1.6}
 .legrande-admin .media-tile{font-weight:400;justify-content:stretch}
