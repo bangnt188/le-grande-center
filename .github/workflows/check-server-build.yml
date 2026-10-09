@@ -1,0 +1,54 @@
+# Checks server target without deploying or exposing any live customer data.
+# github-pages environment is used solely for the read-only private submodule secret.
+name: Check Mall server build
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mall-server-build
+  cancel-in-progress: true
+
+jobs:
+  server-build:
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    environment: github-pages
+    steps:
+      - name: Checkout Mall
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Fetch private pinned submodules
+        env:
+          SUBMODULE_READ_TOKEN: ${{ secrets.SUBMODULE_READ_TOKEN || secrets.COMPONENT_UI_READ_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$SUBMODULE_READ_TOKEN" || { echo "::error::Missing private submodule read token"; exit 1; }
+          git -c "url.https://x-access-token:$SUBMODULE_READ_TOKEN@github.com/.insteadOf=https://github.com/" submodule update --init --recursive --depth=1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Validate server build (no deploy)
+        env:
+          NEXT_PUBLIC_SITE_URL: https://mall.example.invalid/
+          SEO_INDEXABLE: 'false'
+        run: |
+          npm run build:server
+          test -f .next/BUILD_ID
