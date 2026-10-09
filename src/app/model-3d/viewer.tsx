@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { createRevealEngine, reveal, revealGroup } from "@mall/ui/motion";
 import type { View, Selection, SceneActions } from "./runtime";
 import { loadPublicProjection, type ProjectionResult } from "./projection";
 import type { Quality } from "./rendering";
@@ -19,6 +20,7 @@ const FLOORS = [1, 2, 3, 4, 5, 6];
 
 
 export default function ModelViewer({ showAdminLink, assetBase, immersive = false }: { showAdminLink: boolean; assetBase: string; immersive?: boolean }) {
+  const motionRoot = useRef<HTMLElement>(null);
   const host = useRef<HTMLDivElement>(null);
   const filmVideo = useRef<HTMLVideoElement>(null);
   const dots = useRef<(HTMLButtonElement | null)[]>([]);
@@ -41,6 +43,16 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
   const emailSubject = `Tìm hiểu Le Grande Centre${selectedFloor === null ? "" : ` – Tầng ${selectedFloor}`}${selectedSlot ? ` – ${selectedSlot}` : ""}`;
   const emailBody = `Kính gửi Le Grande Centre,\n\nDoanh nghiệp chúng tôi muốn tìm hiểu ${selectedFloor === null ? "không gian tại dự án" : `tầng ${selectedFloor} (${selectedProgram?.title})`}${selectedSlot ? `, mặt bằng ${selectedSlot}` : ""}. Vui lòng xác nhận mặt bằng, công năng và tình trạng khả dụng hiện tại.\n\nXin cảm ơn.`;
   const emailHref = `mailto:ntmcongty@gmail.com?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+
+  useEffect(() => {
+    if (immersive || !motionRoot.current) return;
+    const engine = createRevealEngine({
+      threshold: 0.12,
+      rootMargin: "0px 0px -8% 0px",
+      respectReducedMotion: true,
+    }).start(motionRoot.current);
+    return () => engine.destroy();
+  }, [immersive]);
 
   useEffect(() => {
     const video = filmVideo.current;
@@ -127,7 +139,7 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
     selectFloor(nearest);
   }
 
-  return <main className={`${styles.page} ${immersive ? styles.immersive : ""}`} id="main-content" onKeyDown={event => { if (event.key === "Escape" && panelOpen) { setPanelOpen(false); event.currentTarget.querySelector<HTMLButtonElement>("[aria-controls=viewer-information]")?.focus(); } }}>
+  return <main ref={motionRoot} className={`${styles.page} ${immersive ? styles.immersive : ""}`} id="main-content" onKeyDown={event => { if (event.key === "Escape" && panelOpen) { setPanelOpen(false); event.currentTarget.querySelector<HTMLButtonElement>("[aria-controls=viewer-information]")?.focus(); } }}>
     {!immersive && <><SiteHeader overlay showAdminLink={showAdminLink}/>
     <section className={styles.cover} aria-labelledby="cover-heading">
       <img className={styles.coverImage} src={`${assetBase}/model-3d/explore-cover.webp`} alt="Phối cảnh hoàng hôn: tượng đài, cảnh quan và không gian bên hồ" fetchPriority="high" />
@@ -135,11 +147,24 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
       <div className={styles.coverActions}><Link className={styles.exploreLink} href="/mat-bang/" prefetch={false}><span>Xem mặt bằng</span><Arrow /><small>Tìm không gian cho doanh nghiệp</small></Link><Link className={styles.coverExplore} href="/kham-pha/" prefetch={false}>Khám phá công trình 3D <Arrow/></Link></div>
     </section>
 
-    <section className={styles.lead} aria-labelledby="project-heading">
-      <h2 id="project-heading">Không gian kinh doanh.<br /><em>Dấu ấn bên hồ.</em></h2>
-      <div className={styles.intro}>
-        <p>Le Grande Centre kết nối thương mại, dịch vụ và giải trí trong một công trình sáu tầng trên đường Nguyễn Chí Thanh, bên Hồ Nước Ngọt.</p>
-        <div className={styles.leadActions}><Link className={styles.primaryLink} href="/tong-quan/">Tổng quan Le Grande <Arrow /></Link><Link className={styles.textLink} href="/lien-he/">Trao đổi với dự án</Link></div>
+    <section className={styles.lead} aria-labelledby="project-heading" {...revealGroup({ stagger: "relaxed" })}>
+      <div className={styles.leadCopy}>
+        <p className={styles.leadKicker} {...reveal({ preset: "fade-up", duration: 640, intensity: "subtle" })}>Le Grande Centre · Không gian thương mại</p>
+        <h2 id="project-heading" {...reveal("sectionHeading")}>Không gian kinh doanh.<br /><em>Dấu ấn bên hồ.</em></h2>
+        <div className={styles.intro} {...reveal("sectionDescription")}>
+          <p>Le Grande Centre kết nối thương mại, dịch vụ và giải trí trong một công trình sáu tầng trên đường Nguyễn Chí Thanh, bên Hồ Nước Ngọt.</p>
+          <div className={styles.leadActions}><Link className={styles.primaryLink} href="/tong-quan/">Tổng quan Le Grande <Arrow /></Link><Link className={styles.textLink} href="/lien-he/">Trao đổi với dự án</Link></div>
+        </div>
+      </div>
+      <div className={styles.leadGallery} {...revealGroup({ stagger: "tight" })}>
+        <figure className={styles.leadPrimaryFigure} {...reveal("media")}>
+          <div className={styles.leadMediaFrame}><img className={styles.leadMediaImage} src={`${assetBase}/images/le-grande-aerial-close.webp`} alt="Le Grande Centre nhìn cận cảnh từ trên cao" loading="lazy" decoding="async" /></div>
+          <figcaption><span>01</span>Mặt tiền thương mại và toàn khối công trình.</figcaption>
+        </figure>
+        <figure className={styles.leadSecondaryFigure} {...reveal({ preset: "lift-in", duration: 880, soft: true })}>
+          <div className={styles.leadMediaFrame}><img className={styles.leadMediaImage} src={`${assetBase}/images/le-grande-aerial-context.webp`} alt="Le Grande Centre trong bối cảnh vòng xoay và khu vực trung tâm" loading="lazy" decoding="async" /></div>
+          <figcaption><span>02</span>Vị trí kết nối với trục đô thị và cảnh quan xung quanh.</figcaption>
+        </figure>
       </div>
     </section>
 
