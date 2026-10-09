@@ -1,0 +1,84 @@
+name: Deploy dev site to GitHub Pages
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: legrande-dev-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev'
+    steps:
+      - name: Checkout dev
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Fetch pinned private submodules
+        env:
+          SUBMODULE_READ_TOKEN: ${{ secrets.COMPONENT_UI_READ_TOKEN || secrets.SUBMODULE_READ_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "$SUBMODULE_READ_TOKEN" ]; then
+            echo "::error::Set COMPONENT_UI_READ_TOKEN or SUBMODULE_READ_TOKEN with read access to both private submodule repositories."
+            exit 1
+          fi
+          git -c "url.https://x-access-token:$SUBMODULE_READ_TOKEN@github.com/.insteadOf=https://github.com/" submodule update --init --recursive --depth=1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Verify public admin demo contract
+        run: npm run test:admin
+
+      - name: Build static site
+        env:
+          NEXT_PUBLIC_SITE_URL: https://bangnt188.github.io/le-grande-center/
+          NEXT_PUBLIC_ADMIN_DEMO: 'true'
+          INCLUDE_ADMIN_DEMO: 'true'
+          SEO_INDEXABLE: 'false'
+        run: npm run build
+
+      - name: Validate static export
+        run: |
+          test -f out/index.html
+          test -f out/admin-preview/index.html
+          test -f out/admin-demo/floor-plan.png
+
+      - name: Publish gh-pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          publish_dir="$(mktemp -d)"
+          trap 'rm -rf "$publish_dir"' EXIT
+          git -C "$publish_dir" init
+          git -C "$publish_dir" config user.name "github-actions[bot]"
+          git -C "$publish_dir" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$publish_dir" remote add origin "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git"
+          git -C "$publish_dir" fetch --depth=1 origin gh-pages
+          git -C "$publish_dir" checkout -B gh-pages FETCH_HEAD
+          find "$publish_dir" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a out/. "$publish_dir/"
+          touch "$publish_dir/.nojekyll"
+          printf '{"sourceBranch":"dev","sourceCommit":"%s"}\n' "$GITHUB_SHA" > "$publish_dir/deployment.json"
+          git -C "$publish_dir" add -A
+          git -C "$publish_dir" commit -m "Deploy dev ${GITHUB_SHA:0:7}"
+          git -C "$publish_dir" push origin HEAD:gh-pages
