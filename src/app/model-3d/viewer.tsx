@@ -2,15 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { createRevealEngine, reveal, revealGroup } from "@mall/ui/motion";
 import type { View, Selection, SceneActions } from "./runtime";
 import { loadPublicProjection, type ProjectionResult } from "./projection";
 import type { Quality } from "./rendering";
 import styles from "./viewer.module.css";
 import { SiteHeader } from "@/features/public/site-header";
 import { ADDRESS, PROGRAMS, PUBLIC_FLOORS } from "@/features/public/site-content";
-import { ScrollMotion } from "@/features/public/scroll-motion";
-
+import { ScrollMotion } from "@mall/ui/motion";
+import { LayeredScrollStory } from "@mall/ui";
 const VIEWS: { id: View; label: string }[] = [
   { id: "front", label: "Mặt tiền" },
   { id: "aerial", label: "Tổng thể" },
@@ -21,7 +20,6 @@ const FLOORS = [1, 2, 3, 4, 5, 6];
 
 
 export default function ModelViewer({ showAdminLink, assetBase, immersive = false }: { showAdminLink: boolean; assetBase: string; immersive?: boolean }) {
-  const motionRoot = useRef<HTMLElement>(null);
   const host = useRef<HTMLDivElement>(null);
   const filmVideo = useRef<HTMLVideoElement>(null);
   const dots = useRef<(HTMLButtonElement | null)[]>([]);
@@ -45,15 +43,6 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
   const emailBody = `Kính gửi Le Grande Centre,\n\nDoanh nghiệp chúng tôi muốn tìm hiểu ${selectedFloor === null ? "không gian tại dự án" : `tầng ${selectedFloor} (${selectedProgram?.title})`}${selectedSlot ? `, mặt bằng ${selectedSlot}` : ""}. Vui lòng xác nhận mặt bằng, công năng và tình trạng khả dụng hiện tại.\n\nXin cảm ơn.`;
   const emailHref = `mailto:ntmcongty@gmail.com?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
 
-  useEffect(() => {
-    if (immersive || !motionRoot.current) return;
-    const engine = createRevealEngine({
-      threshold: 0.12,
-      rootMargin: "0px 0px -8% 0px",
-      respectReducedMotion: true,
-    }).start(motionRoot.current);
-    return () => engine.destroy();
-  }, [immersive]);
 
   useEffect(() => {
     const video = filmVideo.current;
@@ -140,38 +129,39 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
     selectFloor(nearest);
   }
 
-  return <main ref={motionRoot} className={`${styles.page} ${immersive ? styles.immersive : ""}`} id="main-content" onKeyDown={event => { if (event.key === "Escape" && panelOpen) { setPanelOpen(false); event.currentTarget.querySelector<HTMLButtonElement>("[aria-controls=viewer-information]")?.focus(); } }}>
+  return <main className={`${styles.page} ${immersive ? styles.immersive : ""}`} id="main-content" onKeyDown={event => { if (event.key === "Escape" && panelOpen) { setPanelOpen(false); event.currentTarget.querySelector<HTMLButtonElement>("[aria-controls=viewer-information]")?.focus(); } }}>
     {!immersive && <ScrollMotion />}
-    {!immersive && <><SiteHeader overlay showAdminLink={showAdminLink}/>
-    <section className={styles.cover} aria-labelledby="cover-heading">
-      <img className={styles.coverImage} src={`${assetBase}/model-3d/explore-cover.webp`} alt="Phối cảnh hoàng hôn: tượng đài, cảnh quan và không gian bên hồ" fetchPriority="high" decoding="async" />
+    {!immersive && <LayeredScrollStory>
+    <SiteHeader overlay showAdminLink={showAdminLink}/>
+    <LayeredScrollStory.Hero><section className={styles.cover} aria-labelledby="cover-heading">
+    <img className={styles.coverImage} src={`${assetBase}/model-3d/explore-cover.webp`} alt="Phối cảnh hoàng hôn: tượng đài, cảnh quan và không gian bên hồ" fetchPriority="high" decoding="async" />
       <div className={styles.coverTitle}><h1 id="cover-heading">Le Grande<br /><em>Centre.</em></h1><p>Thương mại, dịch vụ và giải trí.<br/>Sáu tầng kết nối bên Hồ Nước Ngọt.</p></div>
       <div className={styles.coverActions}><Link className={styles.exploreLink} href="/mat-bang/" prefetch={false}><span>Xem mặt bằng</span><Arrow /><small>Tìm không gian cho doanh nghiệp</small></Link><Link className={styles.coverExplore} href="/kham-pha/" prefetch={false}>Khám phá công trình 3D <Arrow/></Link></div>
-    </section>
-
-    <section className={styles.lead} aria-labelledby="project-heading" {...revealGroup({ stagger: "relaxed" })}>
+    </section></LayeredScrollStory.Hero>
+    <LayeredScrollStory.Surface backgroundImage={`${assetBase}/model-3d/explore-cover.webp`}>
+    <section className={styles.lead} aria-labelledby="project-heading">
       <div className={styles.leadCopy}>
-        <p className={styles.leadKicker} {...reveal({ preset: "fade-up", duration: 640, intensity: "subtle" })}>Le Grande Centre · Không gian thương mại</p>
-        <h2 id="project-heading" {...reveal("sectionHeading")}>Không gian kinh doanh.<br /><em>Dấu ấn bên hồ.</em></h2>
-        <div className={styles.intro} {...reveal("sectionDescription")}>
+        <p className={styles.leadKicker}>Le Grande Centre · Không gian thương mại</p>
+        <h2 id="project-heading">Không gian kinh doanh.<br /><em>Dấu ấn bên hồ.</em></h2>
+        <div className={styles.intro}>
           <p>Le Grande Centre kết nối thương mại, dịch vụ và giải trí trong một công trình sáu tầng trên đường Nguyễn Chí Thanh, bên Hồ Nước Ngọt.</p>
           <div className={styles.leadActions}><Link className={styles.primaryLink} href="/tong-quan/">Tổng quan Le Grande <Arrow /></Link><Link className={styles.textLink} href="/lien-he/">Trao đổi với dự án</Link></div>
         </div>
       </div>
-      <div className={styles.leadGallery} {...revealGroup({ stagger: "tight" })}>
-        <figure className={styles.leadPrimaryFigure} {...reveal("media")}>
+      <div className={styles.leadGallery}>
+        <figure className={styles.leadPrimaryFigure}>
           <div className={styles.leadMediaFrame}><img className={styles.leadMediaImage} src={`${assetBase}/images/le-grande-aerial-close.webp`} alt="Le Grande Centre nhìn cận cảnh từ trên cao" loading="lazy" decoding="async" /></div>
           <figcaption><span>01</span>Mặt tiền thương mại và toàn khối công trình.</figcaption>
         </figure>
-        <figure className={styles.leadSecondaryFigure} {...reveal({ preset: "lift-in", duration: 880, soft: true })}>
+        <figure className={styles.leadSecondaryFigure}>
           <div className={styles.leadMediaFrame}><img className={styles.leadMediaImage} src={`${assetBase}/images/le-grande-aerial-context.webp`} alt="Le Grande Centre trong bối cảnh đô thị" loading="lazy" decoding="async" /></div>
           <figcaption><span>02</span>Cảnh quan và liên kết giao thông xung quanh.</figcaption>
         </figure>
-        <figure className={styles.leadThirdFigure} {...reveal("media")}>
+        <figure className={styles.leadThirdFigure}>
           <div className={styles.leadMediaFrame}><img className={styles.leadMediaImage} src={`${assetBase}/images/le-grande-aerial-third.webp`} alt="Góc nhìn drone bổ sung về khu vực Le Grande Centre" loading="lazy" decoding="async" /></div>
           <figcaption><span>03</span>Một góc nhìn khác về công trình và khu vực.</figcaption>
         </figure>
-        <figure className={styles.leadFourthFigure} {...reveal({ preset: "fade-up", duration: 800, intensity: "subtle" })}>
+        <figure className={styles.leadFourthFigure}>
           <div className={styles.leadMediaFrame}><img className={styles.leadMediaImage} src={`${assetBase}/images/le-grande-hero-drive.webp`} alt="Hình ảnh giới thiệu dự án Le Grande Centre" loading="lazy" decoding="async" /></div>
           <figcaption><span>04</span>Hình ảnh chủ đạo giới thiệu Le Grande Centre.</figcaption>
         </figure>
@@ -183,7 +173,7 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
       <div className={styles.floorPreviewList}>{PUBLIC_FLOORS.map(item => <Link key={item.floor} href={`/tong-quan-tang/#tang-${item.floor}`} className={styles.floorPreviewRow}><span>Tầng {item.floor}</span><h3>{item.title}{item.floor >= 5 && <small>Công năng dự kiến</small>}</h3><Arrow/></Link>)}</div>
     </section>
 
-    </>}
+    </LayeredScrollStory.Surface></LayeredScrollStory>}
     {immersive && <section className={styles.explore} id="kham-pha" aria-label="Khám phá kiến trúc và công năng">
       <div className={styles.viewerHeader}><Link href="/" className={styles.exitLink}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m14 6-6 6 6 6M8 12h13" stroke="currentColor" strokeWidth="1.5" /></svg>Thoát</Link><h1>Le Grande Centre</h1><button className={styles.infoToggle} aria-expanded={panelOpen} aria-controls="viewer-information" onClick={() => setPanelOpen(!panelOpen)}>Tầng & mặt bằng</button></div>
       <div className={styles.workspace}>
@@ -231,7 +221,7 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
       </aside>
     </section>}
 
-    {!immersive && <><section className={styles.filmSection} id="phim-du-an" aria-labelledby="film-heading">
+    {!immersive && <LayeredScrollStory.Surface backgroundImage={`${assetBase}/model-3d/explore-cover.webp`}><section className={styles.filmSection} id="phim-du-an" aria-labelledby="film-heading">
       <div className={styles.filmIntro}><h2 id="film-heading">Nhìn từ<br />công trình thực.</h2><p>Mặt tiền trắng – xám, nhịp kiến trúc và bối cảnh bên hồ qua phim dự án.</p></div>
       <figure className={styles.film}><video ref={filmVideo} controls muted preload="none" playsInline poster={`${assetBase}/project-film-poster.webp`} aria-label="Phim kiến trúc Le Grande Centre"><source src={`${assetBase}/project-film.mp4`} type="video/mp4" />Trình duyệt không hỗ trợ video. <a href={`${assetBase}/project-film.mp4`}>Mở phim dự án</a>.</video><figcaption>Phim kiến trúc Le Grande Centre.</figcaption></figure>
     </section>
@@ -246,7 +236,7 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
         <p className={styles.additionalPhones}>Liên hệ khác: <a href="tel:0944634243">0944 634 243</a> · <a href="tel:0931060768">0931 060 768</a></p>
       </div>
     </section>
-    </>}
+    </LayeredScrollStory.Surface>}
   </main>;
 }
 
