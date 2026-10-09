@@ -1,3 +1,6 @@
+# Configure Settings > Pages > Build and deployment > Source: GitHub Actions.
+# Secret COMPONENT_UI_READ_TOKEN (or SUBMODULE_READ_TOKEN) must be able to read
+# the pinned private repositories bangnt188/component-ui and bangnt188/lib-ts-be.
 name: Deploy dev site to GitHub Pages
 on:
   push:
@@ -5,16 +8,16 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: legrande-dev-pages
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
+  build:
     if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout dev
         uses: actions/checkout@v4
@@ -48,6 +51,9 @@ jobs:
       - name: Verify public admin demo contract
         run: npm run test:admin
 
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
       - name: Build static site
         env:
           NEXT_PUBLIC_SITE_URL: https://bangnt188.github.io/le-grande-center/
@@ -61,24 +67,23 @@ jobs:
           test -f out/index.html
           test -f out/admin-preview/index.html
           test -f out/admin-demo/floor-plan.png
+          touch out/.nojekyll
 
-      - name: Publish gh-pages
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          publish_dir="$(mktemp -d)"
-          trap 'rm -rf "$publish_dir"' EXIT
-          git -C "$publish_dir" init
-          git -C "$publish_dir" config user.name "github-actions[bot]"
-          git -C "$publish_dir" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git -C "$publish_dir" remote add origin "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git"
-          git -C "$publish_dir" fetch --depth=1 origin gh-pages
-          git -C "$publish_dir" checkout -B gh-pages FETCH_HEAD
-          find "$publish_dir" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
-          cp -a out/. "$publish_dir/"
-          touch "$publish_dir/.nojekyll"
-          printf '{"sourceBranch":"dev","sourceCommit":"%s"}\n' "$GITHUB_SHA" > "$publish_dir/deployment.json"
-          git -C "$publish_dir" add -A
-          git -C "$publish_dir" commit -m "Deploy dev ${GITHUB_SHA:0:7}"
-          git -C "$publish_dir" push origin HEAD:gh-pages
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish dev site
+        id: deployment
+        uses: actions/deploy-pages@v4
