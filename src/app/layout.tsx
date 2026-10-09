@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Be_Vietnam_Pro, Charis_SIL, Cormorant_Garamond, Playfair_Display } from "next/font/google";
+import { Be_Vietnam_Pro, Cormorant_Garamond, Playfair_Display } from "next/font/google";
 import "@mall/ui/styles";
 import "./globals.css";
 import { isIndexable, siteUrl } from "@/config/site";
@@ -16,15 +16,6 @@ const displayFont = Playfair_Display({
   style: ["normal", "italic"],
   variable: "--font-playfair-display",
   display: "swap",
-});
-
-const literaryFont = Charis_SIL({
-  subsets: ["latin", "vietnamese"],
-  weight: ["400", "700"],
-  style: ["normal", "italic"],
-  variable: "--font-charis-sil",
-  display: "swap",
-  preload: false,
 });
 
 const editorialFont = Cormorant_Garamond({
@@ -56,7 +47,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="vi">
       <body
-        className={[interfaceFont.variable, displayFont.variable, literaryFont.variable, editorialFont.variable].join(" ")}
+        className={[interfaceFont.variable, displayFont.variable, editorialFont.variable].join(" ")}
         data-ui-root
         data-ui-theme="shopping-mall"
         data-ui-scheme="dark"
