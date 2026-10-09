@@ -1,3 +1,5 @@
+# Private shared packages are fetched only for trusted source.
+# GitHub Environment "github-pages" supplies the read-only private submodule token.
 name: Shared backend consumer
 on:
   push:
@@ -5,16 +7,30 @@ on:
   pull_request:
     branches: [dev]
   workflow_dispatch:
+
 permissions:
   contents: read
+
 jobs:
   backend:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    environment: github-pages
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Mall
+        uses: actions/checkout@v4
         with:
-          submodules: recursive
-          token: ${{ secrets.COMPONENT_UI_READ_TOKEN || github.token }}
+          persist-credentials: false
+          submodules: false
+
+      - name: Fetch pinned private submodules
+        env:
+          SUBMODULE_READ_TOKEN: ${{ secrets.SUBMODULE_READ_TOKEN || secrets.COMPONENT_UI_READ_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$SUBMODULE_READ_TOKEN" || { echo "::error::Missing private submodule read token"; exit 1; }
+          git -c "url.https://x-access-token:$SUBMODULE_READ_TOKEN@github.com/.insteadOf=https://github.com/" submodule update --init --recursive --depth=1
+
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
