@@ -1,4 +1,5 @@
 .page { --page-line: color-mix(in srgb, var(--mall-ink) 22%, var(--mall-paper)); --page-muted: color-mix(in srgb, var(--mall-ink) 70%, var(--mall-paper)); min-height: 100svh; background: var(--mall-paper); color: var(--mall-ink); color-scheme: light; }
+.page { --ui-layered-background: var(--mall-paper); --ui-layered-foreground: var(--mall-ink); --ui-layered-cloud: #dce6e8; --ui-layered-mist: #fff; --ui-layered-scroll-margin: var(--public-header-height); }
 .page ::selection { background: var(--mall-gold-light); color: var(--mall-ink); }
 .page h1, .page h2, .brand, .phone { font-family: var(--font-playfair-display), Georgia, serif; font-weight: 400; }
 .page h1 em, .page h2 em { font-family: var(--font-charis-sil), "Charis SIL", var(--font-playfair-display), Georgia, serif; font-weight: 400; font-style: italic; }
@@ -199,11 +200,11 @@
 
 .cover { position: relative; height: 100svh; min-height: 620px; isolation: isolate; color: var(--mall-paper); background: var(--mall-ink); }
 .coverImage { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 56%; z-index: -2; }
-.cover::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgb(10 19 27 / 40%), transparent 50%, rgb(14 18 21 / 72%)); }
+.cover::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgb(10 19 27 / 72%), transparent 70%), linear-gradient(180deg, rgb(10 19 27 / 40%), transparent 50%, rgb(14 18 21 / 72%)); }
 .coverTitle { position: absolute; top: max(160px, 23%); left: 5%; }
 .coverTitle h1 { margin: 0; font-size: clamp(58px, 6.3vw, 92px); line-height: 1.03; letter-spacing: -.035em; }
 .coverTitle h1 em { font-weight: 400; }
-.coverTitle p { font-size: 13px; margin-top: 24px; }
+.coverTitle p { color: var(--mall-paper); font-size: 13px; line-height: 1.85; margin-top: 24px; }
 .coverActions { position: absolute; bottom: 9%; left: 50%; transform: translateX(-50%); display: grid; justify-items: center; gap: 12px; width: max-content; max-width: 88%; }
 .exploreLink { display: grid; grid-template-columns: 1fr 32px; gap: 8px 24px; align-items: center; min-width: 245px; padding: 18px 26px; background: var(--mall-gold); color: var(--mall-ink); box-shadow: 0 8px 30px rgb(0 0 0 / 22%); }
 .coverExplore { display: inline-flex; align-items: center; min-height: 44px; gap: 16px; padding: 8px 12px; border: 1px solid var(--mall-gold); background: var(--mall-ink); color: var(--mall-paper); font-size: 12px; }
