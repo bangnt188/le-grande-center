@@ -18,6 +18,8 @@ jobs:
   build:
     if: github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
+    # COMPONENT_UI_READ_TOKEN is configured as an Environment secret.
+    environment: github-pages
     steps:
       - name: Checkout dev
         uses: actions/checkout@v4
