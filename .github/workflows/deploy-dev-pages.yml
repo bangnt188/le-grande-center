@@ -62,7 +62,7 @@ jobs:
           NEXT_PUBLIC_ADMIN_DEMO: 'true'
           INCLUDE_ADMIN_DEMO: 'true'
           SEO_INDEXABLE: 'false'
-        run: npm run build
+        run: npm run build:demo
 
       - name: Validate static export
         run: |
