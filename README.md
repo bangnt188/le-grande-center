@@ -72,6 +72,7 @@ email, không giả báo đã gửi lead. Brochure do khách hàng cung cấp; s
 trong các trang không thống nhất nên không đưa lên trang chủ. Mô hình dùng Y
 hướng lên, mặt tiền +Z, tỷ lệ ước lượng, không thay thế hồ sơ thiết kế chính thức.
 Phần quản trị và backend hiện có không thay đổi.
+Motion công khai dùng Lenis/GSAP ScrollTrigger trên năm route; xem [motion notes](docs/public-motion.md).
 
 ### Asset pipeline và public viewer
 

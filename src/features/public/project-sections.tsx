@@ -13,7 +13,7 @@ export function ProjectHero({ title, description, image }: {
   const assetBase = new URL(siteUrl).pathname.replace(/\/+$/, "");
   return <section className={styles.hero}>
     <div><h1>{title}</h1><p>{description}</p></div>
-    <figure><img className={styles.heroImage} src={`${assetBase}${image.path}`} alt={image.alt}/><figcaption>{image.caption}</figcaption></figure>
+    <figure><img className={styles.heroImage} src={`${assetBase}${image.path}`} alt={image.alt} decoding="async"/><figcaption>{image.caption}</figcaption></figure>
   </section>;
 }
 

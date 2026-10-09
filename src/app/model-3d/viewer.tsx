@@ -9,6 +9,7 @@ import type { Quality } from "./rendering";
 import styles from "./viewer.module.css";
 import { SiteHeader } from "@/features/public/site-header";
 import { ADDRESS, PROGRAMS, PUBLIC_FLOORS } from "@/features/public/site-content";
+import { ScrollMotion } from "@/features/public/scroll-motion";
 
 const VIEWS: { id: View; label: string }[] = [
   { id: "front", label: "Mặt tiền" },
@@ -140,9 +141,10 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
   }
 
   return <main ref={motionRoot} className={`${styles.page} ${immersive ? styles.immersive : ""}`} id="main-content" onKeyDown={event => { if (event.key === "Escape" && panelOpen) { setPanelOpen(false); event.currentTarget.querySelector<HTMLButtonElement>("[aria-controls=viewer-information]")?.focus(); } }}>
+    {!immersive && <ScrollMotion />}
     {!immersive && <><SiteHeader overlay showAdminLink={showAdminLink}/>
     <section className={styles.cover} aria-labelledby="cover-heading">
-      <img className={styles.coverImage} src={`${assetBase}/model-3d/explore-cover.webp`} alt="Phối cảnh hoàng hôn: tượng đài, cảnh quan và không gian bên hồ" fetchPriority="high" />
+      <img className={styles.coverImage} src={`${assetBase}/model-3d/explore-cover.webp`} alt="Phối cảnh hoàng hôn: tượng đài, cảnh quan và không gian bên hồ" fetchPriority="high" decoding="async" />
       <div className={styles.coverTitle}><h1 id="cover-heading">Le Grande<br /><em>Centre.</em></h1><p>Thương mại, dịch vụ và giải trí.<br/>Sáu tầng kết nối bên Hồ Nước Ngọt.</p></div>
       <div className={styles.coverActions}><Link className={styles.exploreLink} href="/mat-bang/" prefetch={false}><span>Xem mặt bằng</span><Arrow /><small>Tìm không gian cho doanh nghiệp</small></Link><Link className={styles.coverExplore} href="/kham-pha/" prefetch={false}>Khám phá công trình 3D <Arrow/></Link></div>
     </section>
