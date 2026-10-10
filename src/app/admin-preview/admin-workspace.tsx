@@ -8,6 +8,7 @@ import { useAdminData } from "@/features/admin/use-admin-data";
 import { StorageUsagePanel } from "@/features/admin/storage-usage-panel";
 import { storageState } from "@/features/admin/storage-policy";
 import { referencePlanUrl } from "@/features/admin/demo-data";
+import SlotDetail, { type SlotRecordEntry } from "@/features/admin/slot-detail";
 
 import { useRecordDetail } from "@/features/admin/use-record-detail";
 import { useCompanyNotes } from "@/features/admin/use-company-notes";
@@ -20,7 +21,7 @@ import { AdminNotificationsProvider, useAdminNotifications } from "@/features/ad
 import { AdminPagination, useAdminPagination } from "@/features/admin/admin-pagination";
 import type { B2BView } from "./b2b-workspace";
 
-type View = "floors" | "tenants" | "spaces" | "leads" | "media" | B2BView;
+type View = "slot" | "floors" | "tenants" | "spaces" | "leads" | "media" | B2BView;
 type IconName = "plan" | "people" | "media" | "arrow" | "search" | "check" | "merge" | "split" | "upload" | "file" | "close" | "external" | "menu" | "calendar" | "request";
 const iconPaths: Record<IconName, ReactNode> = {
   menu: <><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16m4-10 2 2-2 2"/></>,
@@ -47,14 +48,16 @@ function Status({ value }: { value: string }) {
   return <Badge tone={tone === "available" ? "success" : tone === "new" ? "warning" : "neutral"}>{value}</Badge>;
 }
 const fmt = (value: number) => new Intl.NumberFormat("vi-VN").format(value);
-const labels: Record<View, string> = { floors: "Tầng", tenants: "Tenant", customers: "Hồ sơ doanh nghiệp", requests: "Yêu cầu & giữ chỗ", leases: "Hợp đồng", appointments: "Lịch hẹn", preview: "Xem trước website", spaces: "Căn / Mặt bằng", leads: "Lead", media: "Media" };
+const labels: Record<View, string> = { slot: "Hồ sơ slot", floors: "Tầng", tenants: "Tenant", customers: "Hồ sơ doanh nghiệp", requests: "Yêu cầu & giữ chỗ", leases: "Hợp đồng", appointments: "Lịch hẹn", preview: "Xem trước website", spaces: "Căn / Mặt bằng", leads: "Lead", media: "Media" };
 
 
 export default function AdminWorkspace() {
   return <AdminNotificationsProvider><AdminWorkspaceContent/></AdminNotificationsProvider>;
 }
 function AdminWorkspaceContent() {
-  const [view, setView] = useState<View>("floors");
+  const [view, setActiveView] = useState<View>("floors");
+  const [slotId, setSlotId] = useState("");
+  const [recordEntry, setRecordEntry] = useState<SlotRecordEntry | undefined>();
   const [floor, setFloor] = useState<Floor>(2);
   const admin = useAdminData();
   const details = useRecordDetail(view);
@@ -79,6 +82,73 @@ function AdminWorkspaceContent() {
   const fileInput = useRef<HTMLInputElement>(null);
   const storage = storageState(admin.storage);
   const uploadDisabled = pending || loading || storage.blocked;
+  const notesRef = useRef(notes);
+  notesRef.current = notes;
+  const previousView = useRef<View>("floors");
+  const historyIndex = useRef(0);
+  const pendingHistoryDelta = useRef(0);
+  const restoringHistory = useRef(false);
+  useEffect(() => {
+    const scrollRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
+    const syncLocation = () => {
+      const hash = new URLSearchParams(window.location.hash.slice(1));
+      const state = window.history.state;
+      historyIndex.current = state?.leasingIndex ?? historyIndex.current;
+      const savedFloor = state?.leasingFloor;
+      setRecordEntry(state?.leasingRecord);
+      if (FLOORS.includes(savedFloor)) setFloor(savedFloor);
+      if (hash.has("slot")) {
+        const id = hash.get("slot") ?? "";
+        setSlotId(id); setActiveView("slot");
+        if (!FLOORS.includes(savedFloor)) {
+          const linkedFloor = Number(/^T([1-6])-B\d+$/.exec(id)?.[1]) as Floor;
+          if (FLOORS.includes(linkedFloor)) setFloor(linkedFloor);
+        }
+      } else {
+        const next = state?.leasingView;
+        setActiveView(next && next !== "slot" && Object.hasOwn(labels, next) ? next : "spaces");
+      }
+    };
+    historyIndex.current = window.history.state?.leasingIndex ?? 0;
+    window.history.replaceState({ ...window.history.state, leasingIndex: historyIndex.current }, "");
+    if (new URLSearchParams(window.location.hash.slice(1)).has("slot")) syncLocation();
+    else window.history.replaceState({ ...window.history.state, leasingView: "floors", leasingFloor: 2 }, "");
+    const onHistory = () => {
+      if (restoringHistory.current) { restoringHistory.current = false; return; }
+      const delta = (window.history.state?.leasingIndex ?? historyIndex.current) - historyIndex.current;
+      let proceeded = false;
+      notesRef.current.navigate(() => { proceeded = true; pendingHistoryDelta.current = 0; syncLocation(); });
+      if (!proceeded) pendingHistoryDelta.current = delta;
+    };
+    window.addEventListener("popstate", onHistory);
+    return () => { window.removeEventListener("popstate", onHistory); window.history.scrollRestoration = scrollRestoration; };
+  }, []);
+  useEffect(() => {
+    if (loading) return;
+    if (view === "slot" || previousView.current === "slot") {
+      const heading = details.scopeRef.current?.querySelector<HTMLElement>("h1");
+      heading?.focus({ preventScroll: true });
+      heading?.scrollIntoView({ block: "start" });
+    }
+    previousView.current = view;
+  }, [view, slotId, loading, details.scopeRef]);
+  function setView(next: View, entry?: SlotRecordEntry) {
+    if (next !== view) {
+      window.history.replaceState({ ...window.history.state, leasingView: view, leasingFloor: floor, leasingRecord: recordEntry }, "");
+      window.history.pushState({ ...window.history.state, leasingIndex: ++historyIndex.current, leasingView: next, leasingFloor: floor, leasingRecord: entry }, "", "#admin-workspace");
+    }
+    setRecordEntry(entry);
+    setActiveView(next);
+  }
+  function openSlot(id: string) {
+    notes.navigate(() => {
+      if (view === "slot" && slotId === id) return;
+      window.history.replaceState({ ...window.history.state, leasingView: view, leasingFloor: floor }, "");
+      window.history.pushState({ ...window.history.state, leasingIndex: ++historyIndex.current, leasingView: "slot", leasingFloor: floor }, "", `#slot=${encodeURIComponent(id)}`);
+      setSlotId(id); setActiveView("slot");
+    });
+  }
 
   const floorSlots = slots.filter((slot) => slot.floor === floor);
   const floorGroups = groups.filter((group) => group.floor === floor);
@@ -160,11 +230,16 @@ function AdminWorkspaceContent() {
     notes.navigate(() => { changeFloor(nextFloor); if (slotId) setSelected([slotId]); setView("spaces"); });
   }
   const navigation: AdminNavigationItem[] = primaryViews.map(item => ({ id: item, label: labels[item], icon: <Icon name={item === "floors" || item === "spaces" ? "plan" : item === "media" ? "media" : "people"}/>, badge: item === "leads" ? leads.filter(lead => lead.status === "Mới").length : undefined, destination: { kind: "action", onSelect: () => notes.navigate(() => { setView(item); setMessage(""); }) } }));
-  return <LeGrandeAdminShell navigation={navigation} activeItemId={view} location={<Breadcrumbs label="Vị trí quản trị" items={[{ label: "Le Grande Centre", href: "https://legrandecentre.vn/" }, { label: labels[view], href: "#admin-workspace", current: true }]}/>}>
+  return <LeGrandeAdminShell navigation={navigation} activeItemId={view === "slot" ? "spaces" : view} location={<Breadcrumbs label="Vị trí quản trị" items={[{ label: "Le Grande Centre", href: "https://legrandecentre.vn/" }, ...(view === "slot" ? [{ label: `Căn / Mặt bằng · Tầng ${floor}`, href: "#admin-workspace", linkProps: { onClick: (event: React.MouseEvent<HTMLAnchorElement>) => { event.preventDefault(); notes.navigate(() => setView("spaces")); } } }, { label: slotId || "Slot không xác định", href: `#slot=${encodeURIComponent(slotId)}`, current: true }] : [{ label: labels[view], href: "#admin-workspace", current: true }])]}/>}>
         <div ref={dialogContainer} className="admin-dialog-host"/>
-        <ConfirmDialog open={!!notes.pendingNavigation} title="Ghi chú chưa lưu" description="Bạn có ghi chú doanh nghiệp chưa lưu. Nếu tiếp tục, bản nháp vẫn được giữ trong phiên này; tải lại hoặc đóng trang sẽ làm mất bản nháp." confirmLabel="Tiếp tục, giữ bản nháp" cancelLabel="Ở lại" onClose={notes.stay} onConfirm={notes.continue} portalContainer={dialogContainer}/>
+        <ConfirmDialog open={!!notes.pendingNavigation} title="Ghi chú chưa lưu" description="Bạn có ghi chú doanh nghiệp chưa lưu. Nếu tiếp tục, bản nháp vẫn được giữ trong phiên này; tải lại hoặc đóng trang sẽ làm mất bản nháp." confirmLabel="Tiếp tục, giữ bản nháp" cancelLabel="Ở lại" onClose={() => {
+          const delta = pendingHistoryDelta.current;
+          pendingHistoryDelta.current = 0;
+          if (delta) { restoringHistory.current = true; window.history.go(-delta); }
+          notes.stay();
+        }} onConfirm={notes.continue} portalContainer={dialogContainer}/>
         <div ref={details.scopeRef}>
-        <AdminPageHeader title={labels[view]} description={view === "floors" ? "Tổng quan tầng, căn và media liên quan từ cùng dữ liệu quản trị." : view === "tenants" ? "Theo dõi các đối tác đang gắn với mặt bằng trong dữ liệu mẫu." : view === "spaces" ? "Một góc nhìn rõ ràng cho từng mặt bằng, từng cơ hội khai thác." : view === "leads" ? "Theo dõi nhu cầu, kết nối khách hàng với mặt bằng phù hợp." : view === "media" ? "Tập trung bản vẽ, hình ảnh và tài liệu của dự án." : view === "customers" ? "Hồ sơ doanh nghiệp, nhu cầu thuê và mặt bằng trong cùng một nơi." : view === "requests" ? "Từ nhu cầu ban đầu đến giữ chỗ toàn bộ tổ hợp mặt bằng." : view === "leases" ? "Kỳ thuê, mặt bằng và tài liệu riêng của từng doanh nghiệp." : view === "appointments" ? "Kết nối đội leasing với khách hàng qua lịch tư vấn và khảo sát." : "Xem trước thông tin mặt bằng được giới thiệu trên website."} actions={view === "spaces" ? <Button variant="secondary" className="button secondary" onClick={() => { setView("media"); setActiveMedia("plan-reference"); }}><Icon name="file" size={17}/>Bản vẽ gốc</Button> : view === "media" ? <Button variant="primary" className="button primary" disabled={uploadDisabled} onClick={() => fileInput.current?.click()}><Icon name="upload" size={17}/>Thêm media</Button> : view === "leads" ? <span className="heading-count">{leads.length} yêu cầu mẫu</span> : <span className="heading-count">Dữ liệu mẫu · Trong phiên</span>}/>
+        <AdminPageHeader title={view === "slot" ? `Hồ sơ slot ${slotId || "không xác định"}` : labels[view]} description={view === "slot" ? "Slot gốc, mặt bằng hiện tại và hồ sơ thuê liên quan trong cùng dữ liệu quản trị." : view === "floors" ? "Tổng quan tầng, căn và media liên quan từ cùng dữ liệu quản trị." : view === "tenants" ? "Theo dõi các đối tác đang gắn với mặt bằng trong dữ liệu mẫu." : view === "spaces" ? "Một góc nhìn rõ ràng cho từng mặt bằng, từng cơ hội khai thác." : view === "leads" ? "Theo dõi nhu cầu, kết nối khách hàng với mặt bằng phù hợp." : view === "media" ? "Tập trung bản vẽ, hình ảnh và tài liệu của dự án." : view === "customers" ? "Hồ sơ doanh nghiệp, nhu cầu thuê và mặt bằng trong cùng một nơi." : view === "requests" ? "Từ nhu cầu ban đầu đến giữ chỗ toàn bộ tổ hợp mặt bằng." : view === "leases" ? "Theo dõi hợp đồng và kỳ thuê trong dữ liệu mẫu." : "Nghiệp vụ khai thác · dữ liệu demo."} actions={view === "media" ? <Button variant="primary" disabled={uploadDisabled} onClick={() => fileInput.current?.click()}><Icon name="upload" size={17}/>Thêm tệp</Button> : undefined}/>
 
         <div className="scope-workflow-nav">
           <label>Nghiệp vụ thuê · Demo<Select value={workflowViews.includes(view as B2BView) ? view : ""} onChange={event => { const next = event.target.value as B2BView; if (workflowViews.includes(next)) notes.navigate(() => setView(next)); }}>
@@ -176,10 +251,11 @@ function AdminWorkspaceContent() {
         {view === "floors" && !loading && (!error || slots.length > 0) && <FloorOverview slots={slots} groups={groups} media={media} onSpace={openSpace}/>}
         {view === "tenants" && !loading && (!error || slots.length > 0) && <TenantOverview slots={slots} onSpace={openSpace}/>}
 
-        {loading && <LoadingIndicator label="Đang tải dữ liệu…"/>}
-        {error && !slots.length && <Button variant="secondary" onClick={reload}>Tải lại dữ liệu</Button>}
+        {view !== "slot" && loading && <LoadingIndicator label="Đang tải dữ liệu…"/>}
+        {view !== "slot" && error && !slots.length && <Button variant="secondary" onClick={reload}>Tải lại dữ liệu</Button>}
 
-        {["customers", "requests", "leases", "appointments", "preview"].includes(view) && <B2BWorkspace view={view as B2BView} data={admin} notes={notes} onView={setView} onMessage={setMessage} onFloor={(nextFloor, ids) => notes.navigate(() => { setFloor(nextFloor); setSelected(ids); setView("spaces"); })}/>}
+        {view === "slot" && <SlotDetail key={slotId} id={slotId} data={admin} onBack={() => notes.navigate(() => setView("spaces"))} onSlot={openSlot} onMessage={setMessage} onRecord={entry => notes.navigate(() => setView(entry.view, entry))} onMedia={(id, scope) => notes.navigate(() => { setMediaQuery(""); setMediaFilter(""); setActiveMedia(id ?? null); if (scope) setUploadScope(scope); setView("media"); if (id) details.openDetail("media"); })}/>}
+        {["customers", "requests", "leases", "appointments", "preview"].includes(view) && <B2BWorkspace view={view as B2BView} entry={recordEntry} data={admin} notes={notes} onView={setView} onMessage={setMessage} onFloor={(nextFloor, ids) => notes.navigate(() => { setFloor(nextFloor); setSelected(ids); setView("spaces"); })}/>}
 
         {view === "spaces" && <>
           <div className="floor-nav" role="group" aria-label="Chọn tầng">{FLOORS.map((item) => <Button variant="quiet" className={`floor-tab ${floor === item ? "is-active" : ""}`} aria-pressed={floor === item} key={item} onClick={() => changeFloor(item)}><span>Tầng {item}</span><small>{item <= 2 ? "Thương mại" : item <= 4 ? "Văn phòng" : "Giải trí"}</small></Button>)}</div>
@@ -204,6 +280,7 @@ function AdminWorkspaceContent() {
               <div className="inspector-title"><h3>{activeGroup ? "Mặt bằng đã ghép" : selected.length > 1 ? "Ghép mặt bằng" : "Chi tiết slot"}</h3>{selected.length > 0 && <Button variant="quiet" className="icon-button" aria-label="Bỏ chọn tất cả slot" onClick={() => { setSelected([]); setMessage(""); }}><Icon name="close" size={17}/></Button>}</div>
               {!selected.length ? <div className="selection-empty"><Icon name="plan" size={32}/><h4>Chọn slot trên sơ đồ</h4><p>Chọn một slot để xem chi tiết, hoặc nhiều slot liền kề để ghép mặt bằng.</p><Button variant="secondary" className="button secondary" onClick={() => { setSelected([`T${floor}-B2`, `T${floor}-B3`]); setGroupName("Mặt bằng B.2–B.3"); }}>Thử chọn B.2 + B.3</Button></div> : <>
                 <div className="selection-chips">{selectedSlots.map((slot) => <span key={slot.id}>{slot.code}{!activeGroup && <Button variant="quiet" aria-label={`Bỏ chọn ${slot.code}`} onClick={() => choose(slot)}><Icon name="close" size={12}/></Button>}</span>)}</div>
+                <div className="inspector-slot-links">{selectedSlots.map(slot => <Button key={slot.id} variant="quiet" onClick={() => openSlot(slot.id)}>Hồ sơ {slot.id}<Icon name="arrow" size={14}/></Button>)}</div>
                 <div className="selected-area"><span>Tổng diện tích</span><strong>{fmt(area)} <small>m²</small></strong></div>
                 <div className="selection-facts"><span>Tầng <strong>{floor}</strong></span><span>Slot gốc <strong>{selectedSlots.length}</strong></span></div>
                 {activeGroup || selected.length === 1 ? <form key={`${selected.join("-")}-${activeGroup?.id ?? "slot"}`} onSubmit={(event) => { event.preventDefault(); saveSpace(event.currentTarget); }}>
@@ -231,7 +308,7 @@ function AdminWorkspaceContent() {
               { id: "size", header: "Kích thước", cell: slot => `${slot.width} × 20,5 m` },
               { id: "status", header: "Trạng thái", cell: slot => <Status value={floorGroups.find(group => group.slotIds.includes(slot.id))?.status ?? slot.status}/> },
               { id: "tenant", header: "Mặt bằng / đối tác", cell: slot => { const group = floorGroups.find(group => group.slotIds.includes(slot.id)); return group ? <span className="group-reference"><Icon name="merge" size={14}/>{group.name}<small>{group.slotIds.map(id => floorSlots.find(item => item.id === id)?.code).join(" + ")}</small></span> : slot.tenant || <span className="muted">Chưa có đối tác</span>; } },
-              { id: "action", header: "Thao tác", cell: slot => <Button variant="quiet" className="text-button" onClick={() => { const group = floorGroups.find(item => item.slotIds.includes(slot.id)); setSelected(group?.slotIds ?? [slot.id]); }}>Chi tiết<Icon name="arrow" size={14}/></Button> },
+              { id: "action", header: "Thao tác", cell: slot => <Button variant="quiet" className="text-button" aria-label={`Chi tiết slot ${slot.id}`} onClick={() => openSlot(slot.id)}>Chi tiết<Icon name="arrow" size={14}/></Button> },
             ]}/>
             </PaginatedContent><AdminPagination state={slotPages} label="slot"/>
           </AdminPanel>

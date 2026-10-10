@@ -8,9 +8,12 @@ import { readContactValues, validateContact, type ContactErrors, type ContactVal
 export function useContactForm(units: readonly LeasingUnit[]) {
   const [errors, setErrors] = useState<ContactErrors>({});
   const [inquiry, setInquiry] = useState<LeasingUnit | null>(null);
+  const [visit, setVisit] = useState(false);
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get("unit");
-    setInquiry(units.find(unit => unit.id === id) ?? null);
+    const params = new URLSearchParams(window.location.search);
+    const selected = units.find(unit => unit.id === params.get("unit")) ?? null;
+    setInquiry(selected);
+    setVisit(selected !== null && params.get("intent") === "visit");
   }, [units]);
   const submission = useSurveySubmission<ContactValues>({
     mode: "demo",
@@ -35,5 +38,5 @@ export function useContactForm(units: readonly LeasingUnit[]) {
     if (await submission.submit(values) === "success") form.reset();
   }
 
-  return { errors, submission, submit, inquiry };
+  return { errors, submission, submit, inquiry, visit };
 }
