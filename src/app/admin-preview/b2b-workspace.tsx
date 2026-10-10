@@ -1,13 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AdminPanel, PaginatedContent, WorkspaceLayout, ButtonGroup, Tabs, Button, Input, Select, Textarea, Table, Badge as SystemBadge, EmptyState, ConfirmDialog } from "@mall/ui";
 import { AdminPagination, useAdminPagination } from "@/features/admin/admin-pagination";
 import type { ToastTone } from "@mall/ui";
 import type { FormEvent } from "react";
 import type { B2BCommand, Company, Lease } from "@/features/admin/b2b-model";
 import { appointmentLabels, dateLabel, publicSpaceFixtures, remainingLabel, requestLabels, slotCodes, timeLabel } from "@/features/admin/b2b-model";
-import type { useAdminData } from "@/features/admin/use-admin-data";
+import type { AdminData } from "@/features/admin/use-admin-data";
+import type { SlotRecordEntry } from "@/features/admin/slot-detail";
 import type { Floor } from "./space-model";
 import { slotLeft } from "./space-model";
 
@@ -20,7 +21,7 @@ const SHOW_CUSTOMER_PORTAL = false;
 export type B2BView = "customers" | "requests" | "leases" | "appointments" | "preview";
 type Props = {
   notes: ReturnType<typeof useCompanyNotes>;
-  view: B2BView; data: ReturnType<typeof useAdminData>; onView: (view: B2BView) => void;
+  view: B2BView; data: AdminData; entry?: SlotRecordEntry; onView: (view: B2BView) => void;
   onFloor: (floor: Floor, ids: string[]) => void; onMessage: (message: string, tone?: ToastTone) => void;
 };
 const area = (value: number) => `${new Intl.NumberFormat("vi-VN").format(value)} m²`;
@@ -41,7 +42,7 @@ function DocumentSample({ lease, company, onClose }: { lease: Lease; company: Co
   </section>;
 }
 
-export default function B2BWorkspace({ view, data, notes, onView, onFloor, onMessage }: Props) {
+export default function B2BWorkspace({ view, data, entry, notes, onView, onFloor, onMessage }: Props) {
   const details = useRecordDetail(view, view === "leases" ? 1200 : 1000);
   const dialogContainer = useRef<HTMLDivElement>(null);
   const [cancelAppointmentId, setCancelAppointmentId] = useState<string | null>(null);
@@ -58,6 +59,16 @@ export default function B2BWorkspace({ view, data, notes, onView, onFloor, onMes
   const [previewMode, setPreviewMode] = useState<"public" | "portal">("public");
   const [spaceId, setSpaceId] = useState(publicSpaceFixtures[0].id);
   const [documentOpen, setDocumentOpen] = useState(false);
+  const consumedEntry = useRef<SlotRecordEntry | undefined>(undefined);
+  useEffect(() => {
+    if (!entry || entry.view !== view || consumedEntry.current === entry) return;
+    consumedEntry.current = entry;
+    if (entry.view === "customers") { setCompanyId(entry.id); setCompanyTab("overview"); setQuery(""); }
+    if (entry.view === "requests") { setRequestId(entry.id); setRequestFilter(""); }
+    if (entry.view === "leases") { setLeaseId(entry.id); setLeaseQuery(""); setLeaseCompany(""); }
+    setDocumentOpen(false);
+    details.openDetail(entry.view);
+  }, [entry, view]);
   const company = data.companies.find((item) => item.id === companyId);
   const request = data.requests.find((item) => item.id === requestId);
   const reservation = data.reservations.find((item) => item.requestId === requestId);

@@ -35,7 +35,7 @@
 .consent label { min-height: 44px; align-items: flex-start; }
 .consent input { flex-shrink: 0; margin-top: 4px; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 24px; }
-.actions .submit, .visit { min-height: 48px; padding: 14px 18px; font: inherit; font-size: 10px; font-weight: 600; letter-spacing: .065em; text-transform: uppercase; border-radius: 0; }
+.actions .submit, .visit { min-height: 48px; padding: 14px 18px; font: inherit; font-size: 10px; font-weight: 600; letter-spacing: .065em; text-transform: uppercase; border-radius: 8px; }
 .actions .submit { border: 1px solid #193b31; background: #193b31; color: #fffaf0; }
 .actions .submit:hover:not(:disabled) { background: #2e5445; }
 .actions .submit:disabled { cursor: not-allowed; opacity: .6; }

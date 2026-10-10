@@ -1,9 +1,9 @@
 export const PUBLIC_NAVIGATION = [
   { href: "/", label: "Trang chủ" },
-  { href: "/mat-bang/", label: "Mặt bằng/Cho thuê" },
-  { href: "/tong-quan-tang/", label: "Tổng quan từng tầng" },
-  { href: "/tong-quan/", label: "Tổng quan Le Grande" },
-  { href: "/lien-he/", label: "Liên hệ" },
+  { href: "/mat-bang/", label: "Mặt bằng" },
+  { href: "/tong-quan-tang/", label: "Không gian kinh doanh" },
+  { href: "/tong-quan/", label: "Le Grande Centre" },
+  { href: "/lien-he/", label: "Đặt lịch tham quan" },
 ];
 
 // Descriptive programme from the existing project presentation, not live inventory.

@@ -6,7 +6,15 @@ import { createDemoRepository } from "./demo-repository";
 import { createHttpRepository } from "./http-repository";
 import { storageUploadIssue } from "./storage-policy";
 
-export function useAdminData() {
+export type AdminData = Pick<AdminSnapshot, "slots" | "groups" | "leads" | "media" | "companies" | "requests" | "reservations" | "leases" | "appointments" | "storage"> & {
+  pending: boolean; loading: boolean; error: string;
+  execute: (command: AdminCommand) => Promise<boolean>;
+  uploadFiles: (files: File[], scope: string) => Promise<boolean>;
+  previewStorage: ((bytes: number) => Promise<boolean>) | undefined;
+  reload: () => Promise<boolean>;
+};
+
+export function useAdminData(): AdminData {
   const [repository] = useState(() => process.env.NEXT_PUBLIC_ADMIN_API_URL
     ? createHttpRepository(process.env.NEXT_PUBLIC_ADMIN_API_URL) : createDemoRepository());
   const [data, setData] = useState<AdminSnapshot | null>(repository.initialSnapshot);

@@ -1,33 +1,41 @@
-.header { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 24px; padding: 24px 5%; background: var(--mall-ink); color: var(--mall-paper); }
-.overlay { position: fixed; inset: 0 0 auto; background: rgb(10 19 27 / 90%); }
-.brand { flex-shrink: 0; display: flex; align-items: center; gap: 10px; color: var(--mall-gold); line-height: 1.1; }
-.brandMark { flex-shrink: 0; width: 48px; height: 48px; object-fit: contain; }
-.brandText strong { display: block; font-family: var(--font-playfair-display), Georgia, serif; font-size: 23px; font-weight: 400; letter-spacing: .06em; text-transform: uppercase; }
-.brandText span { display: block; margin-top: 7px; font-family: var(--ui-font-body); font-size: 10px; letter-spacing: .35em; text-transform: uppercase; }
-.desktopNavigation { margin-left: auto; display: flex; align-items: center; gap: 24px; font-size: 12px; font-weight: 600; letter-spacing: .075em; text-transform: uppercase; }
-.desktopNavigation a, .adminLink { position: relative; display: inline-flex; align-items: center; min-height: 44px; transition: color .3s ease-out; }
-.desktopNavigation a::after { content: ""; position: absolute; inset: auto 0 5px; height: 1px; background: var(--mall-gold); transform: scaleX(0); transform-origin: left; transition: transform .3s ease-out; }
-.header a[aria-current="page"], .desktopNavigation a:hover, .mobileMenu nav a:hover { color: var(--mall-gold); }
-.desktopNavigation a[aria-current="page"]::after, .desktopNavigation a:hover::after { transform: scaleX(1); }
-.header a:focus-visible, .header summary:focus-visible { outline: 2px solid var(--mall-gold-light); outline-offset: 4px; }
-.adminLink { font-size: 11px; color: var(--mall-gold-light); }
-.mobileMenu { display: none; }
+.header { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 28px; min-height: 88px; padding: 12px 3.5%; background: #fffcf5; color: #123e2e; border-bottom: 1px solid #dcdccd; font-family: var(--font-be-vietnam-pro), sans-serif; line-height: 1.6; color-scheme: light; }
+.overlay { position: fixed; inset: 0 0 auto; }
+.brand { flex-shrink: 0; display: flex; align-items: center; gap: 10px; color: #123e2e; line-height: 1.2; }
+.brandMark { flex-shrink: 0; width: 40px; height: 40px; object-fit: contain; }
+.brandText strong { display: block; font-family: var(--font-charis-sil), Georgia, serif; font-size: 20px; font-weight: 400; }
+.brandText span { display: block; margin-top: 4px; font-size: 9px; letter-spacing: .24em; text-transform: uppercase; }
+.desktopNavigation { margin-left: auto; display: flex; align-items: center; gap: 26px; font-size: 10px; font-weight: 500; text-transform: uppercase; }
+.desktopNavigation a, .adminLink { position: relative; display: inline-flex; align-items: center; min-height: 44px; white-space: nowrap; transition: color .3s ease-out; }
+.desktopNavigation a::after { content: ""; position: absolute; inset: auto 0 5px; height: 1px; background: #a4853c; transform: scaleX(0); transform-origin: left; transition: transform .3s ease-out; }
+.desktopNavigation a[aria-current="page"], .desktopNavigation a:hover, .desktopNavigation a:focus-visible, .mobileMenu nav a:not(.visitLink):is([aria-current="page"], :hover, :focus-visible) { color: #816322; }
+.desktopNavigation a:is([aria-current="page"], :hover, :focus-visible)::after { transform: scaleX(1); }
+.header a:focus-visible, .header summary:focus-visible { outline: 2px solid #a4853c; outline-offset: 4px; }
+.adminLink { font-size: 11px; color: #816322; }
+.mobileMenu { display: none; margin-left: auto; }
 .mobileMenu summary { min-height: 44px; display: flex; align-items: center; gap: 12px; cursor: pointer; list-style: none; font-size: 13px; }
 .mobileMenu summary::-webkit-details-marker { display: none; }
-.mobileMenu nav { position: absolute; top: 100%; left: 0; right: 0; padding: 12px 6% 24px; background: var(--mall-ink); border-top: 1px solid #52606a; }
-.mobileMenu nav a { display: flex; align-items: center; min-height: 48px; font-size: 13px; font-weight: 600; text-transform: uppercase; }
+.mobileMenu nav { position: absolute; top: 100%; left: 0; right: 0; padding: 12px 6% 24px; background: #fffcf5; border-bottom: 1px solid #dcdccd; }
+.mobileMenu nav a { display: flex; align-items: center; min-height: 48px; font-size: 13px; font-weight: 500; text-transform: uppercase; }
 .mobileMenu nav a[aria-current="page"] { text-decoration: underline; text-underline-offset: 8px; }
-.mobileMenu[open] summary { color: var(--mall-gold); }
+.mobileMenu[open] summary { color: #816322; }
+.desktopNavigation .exploreLink, .desktopNavigation .visitLink, .mobileMenu .visitLink { justify-content: space-between; gap: 18px; min-height: 48px; padding: 12px 18px; border-radius: 8px; font-size: 10px; transition: background-color .2s ease-out, color .2s ease-out; }
+.desktopNavigation .exploreLink { border: 1px solid #a4853c; color: #816322; }
+.desktopNavigation .exploreLink:hover { background: #eee6d4; }
+.desktopNavigation .visitLink, .mobileMenu .visitLink { color: #fffcf5; background: #123e2e; }
+.desktopNavigation .visitLink:is(:hover, :focus-visible, [aria-current="page"]), .mobileMenu .visitLink:is(:hover, :focus-visible) { color: #fffcf5; background: #245541; }
+.desktopNavigation :is(.exploreLink, .visitLink)::after { inset-inline: 18px; bottom: 8px; }
+.desktopNavigation .visitLink::after { background: #e5d397; }
+.mobileMenu .visitLink { margin-top: 12px; font-size: 12px; }
 .page { min-height: 100svh; background: #f1e9dc; color: #201f1d; color-scheme: light; }
 .content { max-width: 1360px; margin: auto; padding: 72px 5% 88px; }
-.content h1 { font-family: var(--font-playfair-display), Georgia, serif; font-size: clamp(38px, 5vw, 68px); font-weight: 400; line-height: 1.15; letter-spacing: -.03em; margin: 0 0 28px; text-wrap: balance; }
-.content h2 { font-family: var(--font-playfair-display), Georgia, serif; font-size: clamp(26px, 3vw, 38px); font-weight: 400; line-height: 1.3; margin: 0 0 16px; }
+.content h1 { font-family: var(--font-charis-sil), "Charis SIL", Georgia, serif; font-size: clamp(38px, 5vw, 68px); font-weight: 400; line-height: 1.35; letter-spacing: 0; margin: 0 0 28px; text-wrap: balance; }
+.content h2 { font-family: var(--font-charis-sil), "Charis SIL", Georgia, serif; font-size: clamp(26px, 3vw, 38px); font-weight: 400; line-height: 1.35; letter-spacing: 0; margin: 0 0 16px; }
 .content p { max-width: 65ch; font-size: 14px; line-height: 1.9; color: #635a4d; }
 .content a:focus-visible { outline: 2px solid #876c22; outline-offset: 4px; }
 .intro { max-width: 680px; margin-bottom: 48px; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-block: 24px; align-items: center; }
 .link { display: inline-flex; align-items: center; min-height: 44px; text-decoration: underline; text-underline-offset: 5px; font-size: 14px; }
-.primary { display: inline-flex; align-items: center; min-height: 48px; padding: 12px 22px; background: var(--mall-ink); color: var(--mall-paper); font-size: 14px; }
+.primary { display: inline-flex; align-items: center; min-height: 48px; padding: 12px 22px; border-radius: 8px; background: var(--mall-ink); color: var(--mall-paper); font-size: 14px; }
 .primary:hover { background: var(--mall-gold); color: var(--mall-ink); }
 .floor { display: grid; grid-template-columns: 150px 1fr; gap: 32px; padding: 28px 0; border-top: 1px solid #c9bca9; scroll-margin-top: calc(var(--public-header-height) + 24px); }
 .floor > span { font-size: 18px; font-family: var(--font-playfair-display), Georgia, serif; }
@@ -44,6 +52,8 @@
 .footer a:hover { text-decoration: underline; text-underline-offset: 5px; }
 .footerBrand { font-family: var(--font-playfair-display), Georgia, serif; font-size: 25px; }
 @media (max-width: 700px) { .footer { grid-template-columns: 1fr; gap: 32px; padding: 36px 6%; } }
-@media (max-width: 1100px) { .desktopNavigation { display: none; } .mobileMenu { display: block; margin-left: auto; } }
-@media (max-width: 700px) { .header { padding: 18px 6%; gap: 16px; } .brandMark { width: 44px; height: 44px; } .brandText strong { font-size: 20px; } .content { padding: 42px 6% 56px; } .floor { grid-template-columns: 1fr; gap: 12px; } .adminLink { display: none; } }
-@media (prefers-reduced-motion: reduce) { .desktopNavigation a, .desktopNavigation a::after { transition: none; } }
+@media (max-width: 600px) { .footer { padding-bottom: calc(136px + env(safe-area-inset-bottom)); } }
+@media (max-width: 1200px) { .header { gap: 20px; } .desktopNavigation { gap: 16px; } .desktopNavigation .exploreLink { display: none; } }
+@media (max-width: 1000px) { .desktopNavigation { display: none; } .mobileMenu { display: block; } }
+@media (max-width: 720px) { .header { min-height: 76px; padding: 12px 6%; gap: 16px; } .brandText strong { font-size: 18px; } .content { padding: 42px 6% 56px; } .floor { grid-template-columns: 1fr; gap: 12px; } .adminLink { display: none; } }
+@media (prefers-reduced-motion: reduce) { .header a, .desktopNavigation a::after { transition: none; } }

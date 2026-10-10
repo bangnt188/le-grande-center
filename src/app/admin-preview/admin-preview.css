@@ -67,3 +67,44 @@
   .storage-demo label { width: 100%; flex-wrap: wrap; }
   .storage-demo label > :last-child { width: 100%; }
 }
+
+/* Slot dossiers extend the leasing desk without changing the shared UI system. */
+.legrande-admin h1,.legrande-admin .slot-dossier h2 { scroll-margin-block-start: 80px; }
+.legrande-admin .slot-dossier { display: grid; gap: 20px; min-width: 0; font-size: 13px; line-height: 1.65; }
+.legrande-admin .slot-dossier-return,.legrande-admin .slot-dossier-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.legrande-admin .slot-dossier-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); gap: 24px; align-items: start; }
+.legrande-admin .slot-dossier-main,.legrande-admin .slot-dossier-side { display: grid; gap: 20px; min-width: 0; }
+.legrande-admin .slot-dossier-section { padding: 24px; border-radius: 12px; min-width: 0; overflow-wrap: anywhere; }
+.legrande-admin .slot-dossier-section h2 { margin: 0 0 14px; font-size: 17px; font-weight: 600; line-height: 1.5; }
+.legrande-admin .slot-dossier-section-heading h2 { margin-bottom: 0; }
+.legrande-admin .slot-dossier-section p { margin: 12px 0; }
+.legrande-admin .slot-dossier-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin: 0; }
+.legrande-admin .slot-dossier-facts dt { color: var(--muted); font-size: 12px; }
+.legrande-admin .slot-dossier-facts dd { margin: 4px 0 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.legrande-admin .slot-dossier-members,.legrande-admin .slot-dossier-records,.legrande-admin .slot-dossier-media { margin: 0; padding: 0; list-style: none; }
+.legrande-admin .slot-dossier-members li,.legrande-admin .slot-dossier-records li { display: flex; align-items: start; justify-content: space-between; gap: 14px; padding-block: 14px; border-bottom: 1px solid var(--line); }
+.legrande-admin .slot-dossier-records li > div { min-width: 0; }
+.legrande-admin .slot-dossier-records strong,.legrande-admin .slot-dossier-records span,.legrande-admin .slot-dossier-records small { display: block; }
+.legrande-admin .slot-dossier-records small,.legrande-admin .slot-dossier-media small { color: var(--muted); }
+.legrande-admin .slot-dossier-records button { flex-shrink: 0; max-width: 45%; white-space: normal; }
+.legrande-admin .slot-dossier-form fieldset { border: 0; padding: 0; margin: 0 0 12px; display: grid; gap: 18px; min-width: 0; }
+.legrande-admin .slot-dossier-form label { display: grid; gap: 7px; }
+.legrande-admin .slot-dossier-form small { color: var(--muted); font-weight: 400; }
+.legrande-admin .slot-dossier-media li { display: grid; gap: 8px; padding-block: 16px; border-bottom: 1px solid var(--line); }
+.legrande-admin .slot-dossier-media img { width: 100%; height: auto; max-height: 220px; object-fit: contain; }
+.legrande-admin .slot-dossier a { color: var(--green); text-underline-offset: 3px; }
+.legrande-admin .slot-dossier a:focus-visible,.legrande-admin .slot-dossier h2:focus-visible { outline: 2px solid var(--ui-color-focus); outline-offset: 4px; }
+.legrande-admin .inspector-slot-links { display: flex; flex-wrap: wrap; gap: 6px; margin-block: 10px; }
+@media (max-width: 1050px) {
+  .legrande-admin .slot-dossier-columns { grid-template-columns: minmax(0, 1fr); }
+  .legrande-admin .slot-dossier-side { grid-row: 1; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .legrande-admin .slot-dossier-side { grid-template-columns: minmax(0, 1fr); }
+  .legrande-admin .slot-dossier-section { padding: 18px; }
+  .legrande-admin .slot-dossier-records li,.legrande-admin .slot-dossier-members li { flex-direction: column; gap: 6px; }
+  .legrande-admin .slot-dossier-records button { max-width: 100%; }
+  .legrande-admin .slot-dossier button,.legrande-admin .inspector-slot-links button { min-height: 44px; white-space: normal; }
+  .legrande-admin .slot-dossier-form input { min-height: 44px; font-size: 16px; }
+}
+.legrande-admin .slot-dossier-status { white-space: normal; overflow-wrap: anywhere; max-width: 100%; line-height: 1.5; }

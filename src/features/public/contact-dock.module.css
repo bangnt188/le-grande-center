@@ -1,0 +1,24 @@
+.dock { position: fixed; z-index: 9; right: max(20px, env(safe-area-inset-right)); bottom: calc(24px + env(safe-area-inset-bottom)); display: grid; justify-items: center; gap: 12px; font-family: var(--ui-font-body); line-height: 1.4; }
+.actions { display: grid; gap: 12px; }
+.action, .toggle { position: relative; display: grid; place-items: center; width: 52px; height: 52px; padding: 0; border: 0; border-radius: 50%; box-shadow: var(--ui-shadow-overlay); text-decoration: none; cursor: pointer; }
+.action svg, .toggle svg { width: 24px; height: 24px; }
+.action svg { fill: currentColor; }
+.phone, .toggle { background: var(--ui-color-action); color: var(--ui-color-action-foreground); }
+.phone:hover, .toggle:hover { background: var(--ui-color-action-hover); }
+.zalo { --zalo-brand: #0068ff; background: var(--zalo-brand); color: var(--ui-color-action-foreground); }
+.zaloMark { position: relative; display: grid; place-items: center; width: 38px; height: 26px; border-radius: 8px; background: var(--ui-color-surface-raised); color: var(--zalo-brand); font-size: 12px; font-weight: 800; }
+.zaloMark::after { position: absolute; bottom: -3px; left: 8px; width: 8px; height: 8px; background: var(--ui-color-surface-raised); content: ""; transform: skewY(-35deg); }
+.label { position: absolute; right: calc(100% + 12px); top: 50%; padding: 8px 12px; border-radius: 8px; background: var(--ui-color-action); color: var(--ui-color-action-foreground); font-size: 14px; white-space: nowrap; opacity: 0; pointer-events: none; transform: translateY(-50%); }
+.action:is(:hover, :focus-visible) .label { opacity: 1; }
+.dock :is(a, button):focus-visible { outline: 3px solid var(--ui-color-accent); outline-offset: 4px; }
+.toggle { width: 44px; height: 44px; }
+@media (max-width: 600px) {
+  .dock { right: max(16px, env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom)); }
+  .dock[data-open="false"] .toggle { width: 56px; height: 56px; }
+  .dock[data-open="true"] { left: max(16px, env(safe-area-inset-left)); padding: 8px; border-radius: 16px; background: var(--ui-color-surface-raised); box-shadow: var(--ui-shadow-overlay); }
+  .actions { width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .action { width: 100%; height: 64px; gap: 4px; border-radius: 8px; box-shadow: none; }
+  .label { position: static; padding: 0; background: transparent; color: inherit; font-size: 12px; opacity: 1; transform: none; }
+  .toggle { position: absolute; top: -52px; right: 0; }
+  .dock[data-open="false"] .toggle { position: relative; top: auto; }
+}

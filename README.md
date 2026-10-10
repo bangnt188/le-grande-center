@@ -28,8 +28,8 @@ chạy build/typecheck, rồi commit gitlink mới cùng lockfile nếu dependen
 ## Ứng dụng Next.js
 
 Repo dùng Next.js 16 App Router, React 19 và static export như bản demo Solar.
-Trang chủ là không gian 3D tương tác của Le Grande Centre; không còn trang chờ
-bàn giao nội dung. Repo chưa được xuất bản thay thế domain production.
+Trang chủ dùng homepage v2 theo bản tham chiếu khách hàng. Homepage v1 được giữ
+trong mã nguồn nhưng không import/render từ route `/`. Chưa thay thế domain production.
 
 ```sh
 git clone --branch dev --recurse-submodules https://github.com/bangnt188/le-grande-center.git
@@ -41,38 +41,154 @@ npm run dev
 Mặc định local dùng base path `/le-grande-center/` giống GitHub Pages. Mở
 `http://localhost:3000/le-grande-center/admin-preview/` để thử giao diện quản trị.
 
-## Trang chủ B2B và kiến trúc 3D
+## Homepage v2 và kiến trúc 3D
 
-Mở `http://localhost:3000/le-grande-center/`: ảnh hoàng hôn khách cung cấp lấp viewport,
-bấm **Khám phá** để vào `/le-grande-center/kham-pha/` 3D toàn màn hình; **Thoát** về
-trang chủ. Không tải WebGL/GLB trước khi vào. Viewer tải asset tự host; site/hồ/ánh
-sáng/tương tác dùng Three.js, không cần R3F.
-Building GLB được xuất từ `src/app/model-3d/model.ts`, giữ hình khối và nhịp kiến trúc
-đối chiếu video dự án. Ảnh tham khảo chỉ quyết định màu/cột/vòng xoay/cảnh quan,
-không quyết định building. Sân trước → đường/vòng xoay; hồ sau. Kích thước vẫn minh họa.
+Route `/` chỉ render `src/features/public/homepage-v2.tsx`. Bố cục theo ảnh
+`Trang chủ.png`: header nền kem, hero ảnh dự án, phim giới thiệu, tổng quan, vị trí,
+một tòa nhà tương tác theo cuộn, dải loại hình kinh doanh, mặt bằng tham khảo, gallery ảnh và liên hệ.
+`homepage-v1.tsx` giữ nguyên composition cũ; không có route, import hay chuyển hướng
+đến v1 trong trang chủ mới. Viewer và route `/kham-pha/` hiện có không bị sửa.
 
-Sáu chấm trắng đan xen trái/phải, bám theo xoay/zoom. Bấm/chạm hoặc Tab + Enter
-để chọn riêng một tầng; cũng có nút tầng trong bảng công năng. Bấm lại hoặc
-**Bỏ chọn tầng** để bỏ chọn. Vòng tỏa 2,8 giây lệch nhịp, tắt chuyển động theo
-`prefers-reduced-motion`. Công năng tham chiếu brochure 17 trang: shophouse tầng
-1–2, dịch vụ/văn phòng tầng 3–4, giải trí tầng 5 và dịch vụ ngoài trời tầng 6.
-Rạp chiếu phim/công năng dự kiến không phải xác nhận đơn vị đang hoạt động.
-Không công bố giá, diện tích hay trạng thái khả dụng chưa được xác nhận.
+Mô hình 2D là một cảnh ghép ba layer trong suốt từ ảnh khách cung cấp. Tòa nhà
+xếp gọn lúc đầu, tách lớp theo cuộn và khép lại khi cuộn ngược. Điểm bắt đầu
+được đẩy sâu hơn trong viewport; khoảng cuộn rút còn 1/1,15 so với trước, giữ
+nguyên vị trí mở hoàn toàn. Ba chấm vàng 12px không số (vùng chạm 44px) hiện
+ngay trong lúc tách, đi theo từng lớp và có vòng pulse 2,8 giây như viewer 3D.
+Pulse dừng khi cảnh ngoài màn hình hoặc tab bị ẩn. Ngay khi bắt đầu tách,
+hover/focus/chạm hiện một card và đường nối bám theo chấm đang di chuyển.
+Vùng chạm chồng nhau chọn chấm gần pointer nhất; bàn phím giữ thứ tự DOM.
+Escape đóng card; cuộn ngược về trạng thái khép hoàn toàn đóng card và line.
+Reduced motion hiển thị trạng thái tách sẵn, không pulse.
+Ba nhóm 1–2, 3–4, 5–6 giữ tab tầng, công năng và diện tích từ
+`BROCHURE_FLOORS`/`BROCHURE_UNITS`; CTA mở `/mat-bang/#tang-N` đúng tầng đang chọn.
+Các vùng chọn là minh họa trên phối cảnh, không thay thế bản vẽ kỹ thuật.
+Không tải Three.js/WebGL/GLB trên homepage v2.
 
-Phim dự án được nén xuống 960×540, giữ toàn bộ thời lượng và âm thanh; có poster,
-điều khiển gốc, tự phát im tiếng khi vào vùng nhìn thấy và dừng khi cuộn khỏi vùng.
-Tôn trọng `prefers-reduced-motion`; video chỉ tải khi phát nhờ `preload="none"`.
-Tài nguyên `project-film.mp4`, `project-film-poster.webp`, `le-grande-brochure.pdf` ở
-`public/`; đường dẫn theo pathname của `siteUrl`, hỗ trợ base path và domain root.
-Khi WebGL không mở được, phim, công năng và liên hệ vẫn dùng được; không giả lập cảnh 3D.
+Dải tiện ích dùng `ExpandingGallery` sẵn có từ `@mall/ui`: hover, bàn phím và
+chạm để mở rộng; trên mobile xếp dọc. Giữ đủ sáu loại hình trong ảnh tham chiếu.
+Gallery tổng quan đổi ảnh bằng nút thumbnail; mặt bằng tham khảo dẫn tới các URL
+chi tiết hiện có. Không công bố giá hay tình trạng còn trống. Rạp chiếu phim và
+các loại hình minh họa không phải xác nhận tenant đang hoạt động.
 
-Số điện thoại, email và địa chỉ được đối chiếu trên https://legrandecentre.vn/.
-Liên hệ dùng `tel:` và `mailto:` thật; email điền tầng đang chọn, chỉ mở ứng dụng
-email, không giả báo đã gửi lead. Brochure do khách hàng cung cấp; số liệu đất
-trong các trang không thống nhất nên không đưa lên trang chủ. Mô hình dùng Y
-hướng lên, mặt tiền +Z, tỷ lệ ước lượng, không thay thế hồ sơ thiết kế chính thức.
-Phần quản trị và backend hiện có không thay đổi.
-Motion công khai dùng Lenis/GSAP ScrollTrigger trên năm route; xem [motion notes](docs/public-motion.md).
+Ảnh tại `public/images/home-v2/`: `floor-base.webp`, `floor-middle.webp` và
+`floor-roof.webp` tách nền/phân lớp từ `phan-khu.png` khách cung cấp, dùng chung
+canvas 1440×960. Giữ phần ảnh gốc nhìn thấy, không dựng thêm mặt khuất.
+Sáu ảnh tiện ích cắt vùng ảnh không chữ từ `Trang chủ.png`; ba ảnh chi tiết
+lấy từ `/images/gallery/` của legrandecentre.vn.
+Hero dùng `hero.webp` tối ưu từ `ảnh hero.png` khách gửi; phần “Nhịp Thở Mới”
+dùng `introduction.webp` từ `nhiptho.png`, không gắn caption minh họa. Ảnh khác và
+phim tiếp tục tái sử dụng tài nguyên dự án hiện có. Section “Tại Sao Chọn” dùng
+`reasons-background.webp` từ `taisao.png`: crop bớt 24,5% phần trời, Gaussian blur
+1,15px ở kích thước nguồn và nén WebP. Blur xử lý sẵn, không chạy filter trên chữ.
+Nền phủ xanh tối 42%; sáu khối có nền gradient opacity 98% → 38%, chữ trắng 92%.
+Desktop ba cột/hai hàng; mobile một cột với nền bám viewport, reduced motion dùng
+nền tĩnh. Nội dung sáu lý do giữ nguyên, không thêm cam kết pháp lý/tình trạng thuê.
+Section vị trí dùng ảnh thực tế Le Grande; ảnh template chỉ tham khảo bố cục.
+Trang chủ bỏ các dòng hướng dẫn cuộn/rê chuột/chạm/bàn phím và chú thích nguồn
+lặp dưới section. Giữ nội dung chính, CTA, tên tầng/loại hình và nhãn accessibility.
+Đường dẫn media theo pathname của `siteUrl`, hỗ trợ base path và domain root.
+Section “Vị Trí Chiến Lược” giữ iframe Google Maps Le Grande Centre ở cột trái.
+Cột phải: ảnh thực tế lớn → nội dung chữ → ảnh thực tế nhỏ (85% chiều rộng).
+Hai ảnh hiện có là `le-grande-aerial-context.webp` và `le-grande-aerial-close.webp`,
+giữ tỷ lệ gốc, không crop trong CSS. Mobile chuyển thành một cột, giữ cùng thứ tự.
+Map lazy-load, có title accessibility và link mở vị trí `https://maps.app.goo.gl/psjcjBjqCCa2UzwRA`.
+Không dùng SDK hoặc API key; bản đồ cần kết nối Google để hiển thị.
+
+Phim có poster, điều khiển native và `preload="none"`; homepage v2 không tự phát.
+Số điện thoại, email và địa chỉ tái sử dụng nguồn public dùng chung. CTA tư vấn
+mở trang liên hệ hiện có; hotline dùng `tel:` thật. Form liên hệ vẫn là demo,
+không thay đổi backend hay giả báo đã gửi lead.
+Cụm `ContactDock` nổi bên phải trên các trang dùng `SiteFooter`, lấy hotline chính
+`0973 879 563` từ `LEASING_PHONES`: Zalo mở `https://zalo.me/0973879563`, gọi điện
+mở `tel:0973879563`. Desktop hiện hai nút tròn; mobile mặc định thu gọn, mở thành
+hai ô và có thể đóng bằng nút hoặc Escape (trả focus về nút mở). Nút Zalo giữ
+xanh nhận diện `#0068ff` theo yêu cầu khách hàng; nút gọi điện dùng token xanh
+shopping-mall. Không xác nhận tài khoản Zalo hoặc thực hiện cuộc gọi tự động.
+
+Kiến trúc 3D vẫn ở `/kham-pha/`, dùng `src/app/model-3d/` và asset tự host.
+Sáu tầng giữ công năng brochure, phép xoay/zoom/chọn tầng và reduced motion
+hiện có; hình khối/tỷ lệ là minh họa, không thay thế hồ sơ thiết kế chính thức.
+Khung tách lớp ở section “Sáu tầng. Nhiều cơ hội kinh doanh.” có CTA
+**Khám phá công trình 3D** ở góc dưới phải, dẫn tới `/kham-pha/` với
+`prefetch={false}` để không tải trước viewer nặng. Mobile đặt CTA ngay dưới ảnh,
+trước thẻ thông tin tầng; thẻ được dời xuống để không chồng lên CTA.
+Đã build static và kiểm tra Chromium 1440×1000/390×844: CTA mở viewer có canvas,
+không tràn ngang, đúng đích liên hệ/màu Zalo, mở/đóng và focus bằng bàn phím.
+Axe trong cụm liên hệ mobile: 0 violation, 0 incomplete; không phải kiểm tra
+toàn bộ website hay xác minh tài khoản/liên hệ ngoài hệ thống.
+Homepage v2 tái sử dụng `LayeredScrollStory` và `ScrollMotion` của v1 cho sticky
+hero, lớp nội dung trượt lên, nền mây và entrance theo cuộn; không import v1.
+Reduced motion bỏ sticky, offset và Lenis/reveal, giữ nội dung hiển thị.
+Header nền kem dùng chung `SiteHeader` trên các trang public; footer dùng chung
+`SiteFooter`. Cả hai lấy nhãn và đường dẫn từ `PUBLIC_NAVIGATION`: “Không gian
+kinh doanh” mở `/tong-quan-tang/`, “Le Grande Centre” mở `/tong-quan/`, “Đặt lịch
+tham quan” mở `/lien-he/`. Không thêm trang hay chức năng đặt lịch mới.
+Menu giữ underline hover/focus/active, không xuống dòng trên desktop; chuyển
+sang disclosure mobile ở 1000px, hỗ trợ Escape và đóng khi điều hướng. CTA bo
+góc 8px; các trang khác giữ motion hiện có. CTA desktop **KHÁM PHÁ 3D** mở
+`/kham-pha/`, giữ `prefetch={false}` để không tải trước viewer; mục **Mặt bằng**
+trong menu vẫn mở `/mat-bang/`. Xem [motion notes](docs/public-motion.md).
+
+### Catalogue mặt bằng
+
+`/mat-bang/` dùng ảnh khách cung cấp `hero-matbang.png`, chuyển thành
+`leasing-hero.webp` ở nguyên độ phân giải 785×442; lớp màn xanh tách khỏi chữ
+trắng nghiêng trên ảnh. Header, footer và entrance motion dùng chung giữ nguyên.
+Bộ lọc loại hình/diện tích nằm cùng thanh chọn **Map / List**; chỉ một kiểu xem
+được render, đổi kiểu xem giữ bộ lọc. Không có card chọn sẵn khi mở trang thường.
+
+**Tầng 1–2** là một nhóm chọn tầng. Map giữ hai sơ đồ vật lý, List giữ 22 căn
+A/B và diện tích gốc; không cộng diện tích hoặc tạo căn ghép giả. Liên kết
+`#tang-1`/`#tang-2` vẫn mở nhóm này. Click/chạm ô Map hoặc dòng List mở popup
+thông tin; chỉ **Xem chi tiết** chuyển tới `/mat-bang/[unitId]/`. `?unit=B.1#tang-2`
+mở đúng căn B.1; đóng popup xóa query `unit`, giữ hash. Escape/backdrop/nút đóng
+trả focus về ô đã mở; Tab được giữ trong popup. Brochure mở đúng trang mỗi tầng.
+
+Chromium đã kiểm tra Map/List, lọc loại hình/diện tích và trạng thái rỗng, A.1/B.1,
+điều hướng trang con, bàn phím, touch và deep link tại 1366/390/320px; không tràn
+ngang trang. Popup 320px cuộn dọc khi nội dung dài.
+
+### Chi tiết slot — public và quản trị
+
+Public có 81 URL `/mat-bang/[unitId]/`, ví dụ `/mat-bang/C.23/`. Trang dùng
+diện tích, kích thước có sẵn và bố trí từ brochure; hướng mặt ngoài là tham khảo,
+không công bố giá hoặc tình trạng còn trống. Liên kết brochure mở đúng trang tầng;
+CTA tư vấn truyền `?unit=C.23` cho form demo hiện có. Trở lại sơ đồ giữ tầng và ô
+đang xem; bộ lọc được đặt lại. Sitemap chỉ chứa các URL này khi bật indexability.
+Layout chi tiết public dùng gallery lớn và 5 thumbnail ở trái, thông tin đúng căn ở
+phải. Ảnh là ảnh dự án hiện có dùng thử bố cục, không phải ảnh bàn giao từng slot.
+Click ảnh lớn hoặc **Xem tất cả ảnh** mở `ImagePreview` dùng chung của `@mall/ui`:
+nền sau blur nhẹ 6px, ảnh/chữ giữ sắc nét, zoom +/− 50–300%, **Vừa khung**,
+chuyển trước/sau và chọn thumbnail ngay trong modal, không đóng popup khi đổi ảnh.
+Đổi ảnh đồng bộ với gallery; đóng bằng Escape, nền ngoài hoặc nút × và trả focus
+về đúng nút/ảnh đã mở. Viewer kế thừa theme light cục bộ, cuộn ảnh khi phóng to
+và bố cục vừa màn 390/320px. `FilePreview` dùng lại renderer này ở chế độ inline
+và có nút **Mở xem ảnh**; các chế độ tài liệu khác giữ nguyên.
+Màu của surface, chữ, CTA, trạng thái focus và sơ đồ lấy từ token `shopping-mall`
+light của `@mall/ui`; giữ Charis SIL/Be Vietnam Pro của public.
+Theme light được đặt ở lớp bọc route, không chỉ ở khối nội dung giới hạn chiều rộng:
+nền ngoài/trong cùng `--ui-color-canvas`, panel gallery/thông tin dùng
+`--ui-color-surface-raised`, tránh trộn nền legacy hoặc surface vàng nhạt.
+Nút floating **icon map** (nhãn accessibility **Vị trí trong tầng**) ở góc trên trái
+ngay dưới header mở map trong modal, tô đúng căn
+đang xem; mobile cuộn sơ đồ bên trong modal, không kéo tràn trang.
+Nút dùng variant `primary` để hover vẫn xanh đậm/icon trắng, tránh hover
+`secondary` đổi nền vàng nhạt. Live mark là một vòng mảnh opacity tối đa 22%,
+scale tối đa 1.2, chu kỳ 4.8 giây. Dừng khi hover/focus, đang mở map, tab ẩn
+hoặc `prefers-reduced-motion`; không làm đổi kích thước vùng bấm.
+Ba CTA là **Yêu cầu tư vấn**, **Đặt lịch xem mặt bằng**, **Xem brochure · trang N (PDF)**.
+Đặt lịch dùng `?unit=C.23&intent=visit` để điền căn, diện tích và ghi chú đề nghị xem
+vào form demo hiện có; không tạo hoặc xác nhận lịch hẹn thật. Brochure lấy
+`floor.sourcePage` (tầng 1: trang 5, tầng 6: trang 10), không hard-code trang 5.
+
+Admin mở hồ sơ từ nút **Chi tiết** trong register hoặc liên kết trong inspector;
+deep link `/admin-preview/#slot=T2-B2`. Hồ sơ dùng cùng repository trong workspace,
+giữ mutation và media upload khi chuyển màn hình hoặc Back/Forward. Xem slot gốc,
+nhóm ghép, yêu cầu, giữ chỗ, hợp đồng và media liên quan; cam kết khóa sửa/tách
+trực tiếp. Hủy điều hướng khi có ghi chú chưa lưu không ghi đè entry lịch sử.
+Fixture admin không ánh xạ sang mã brochure public; tải lại trang xóa phiên demo.
+Admin vẫn bị loại khỏi public export bởi script bảo vệ hiện có, không được publish
+lên GitHub Pages. Plan và bằng chứng: [slot detail](docs/slot-detail-plan.md).
 
 ### Asset pipeline và public viewer
 

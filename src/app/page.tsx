@@ -1,13 +1,5 @@
-import ModelViewer from "./model-3d/viewer";
-import { SiteFooter } from "@/features/public/site-footer";
-import { siteUrl } from "@/config/site";
+import HomePageV2 from "@/features/public/homepage-v2";
 
 export default function HomePage() {
-  return <>
-    <ModelViewer
-      assetBase={new URL(siteUrl).pathname.replace(/\/+$/, "")}
-      showAdminLink={false}
-    />
-    <SiteFooter />
-  </>;
+  return <HomePageV2 />;
 }
