@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { siteUrl } from "@/config/site";
 import { SiteFooter } from "./site-footer";
-import { ADDRESS, LEASING_PHONES } from "./site-content";
+import { ADDRESS, LEASING_PHONES, PROJECT_FILM_URL } from "./site-content";
 import { BROCHURE_UNITS } from "./brochure-leasing";
 import { HomeScrollStory, Arrow, SpacesGallery, OverviewGallery } from "./homepage-v2-interactive";
+import HomeVideoSoundToggle from "./home-video-sound-toggle";
 import { FloorShowcase } from "./floor-showcase";
 import { SiteHeader } from "./site-header";
 import { reveal, revealGroup } from "@mall/ui/motion";
@@ -35,7 +36,13 @@ export default function HomePageV2() {
         <a href="#gioi-thieu" className={styles.scrollLink} aria-label="Cuộn tới giới thiệu dự án"><span>Khám phá</span><svg width="18" height="24" viewBox="0 0 18 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M9 2v18m-5-5 5 5 5-5"/></svg></a>
       </section>}>
 
-      <section className={styles.film} aria-label="Phim giới thiệu dự án"><video controls playsInline preload="none" poster={image("/project-film-poster.webp")} width="960" height="540" aria-label="Phim giới thiệu Le Grande Centre"><source src={image("/project-film.mp4")} type="video/mp4"/>Trình duyệt không hỗ trợ video. <a href={image("/project-film.mp4")}>Mở phim dự án</a>.</video><span>Le Grande Centre · Phim giới thiệu dự án</span></section>
+      <section className={styles.film} aria-label="Phim giới thiệu dự án">
+        <div className={styles.filmMedia}>
+          <video autoPlay muted loop playsInline preload="none" width="960" height="540" aria-label="Phim giới thiệu Le Grande Centre"><source src={PROJECT_FILM_URL} type="video/mp4"/>Trình duyệt không hỗ trợ video. <a href={PROJECT_FILM_URL}>Mở phim dự án</a>.</video>
+          <HomeVideoSoundToggle/>
+        </div>
+        <span>Le Grande Centre · Phim giới thiệu dự án</span>
+      </section>
 
       <section id="gioi-thieu" className={`${styles.section} ${styles.introduction}`} aria-labelledby="introduction-title">
         <h2 id="introduction-title" {...reveal({ preset: "fade-up", duration: 1500 })}><em>Nhịp Thở <span>Mới</span> – Tầm Vóc <span>Mới</span></em></h2>

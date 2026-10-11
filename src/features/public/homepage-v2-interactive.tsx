@@ -12,6 +12,30 @@ export function Arrow() {
 }
 
 export function HomeScrollStory({ hero, children }: { hero: ReactNode; children: ReactNode }) {
+  useEffect(() => {
+    const video = document.querySelector<HTMLVideoElement>(`.${styles.film} video`);
+    if (!video) return;
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let inView = false;
+    const syncPlayback = () => {
+      if (motion.matches || document.hidden || !inView) { video.pause(); return; }
+      void video.play().catch(() => {});
+    };
+    const observer = new IntersectionObserver(entries => {
+      inView = entries.some(entry => entry.isIntersecting);
+      syncPlayback();
+    }, { threshold: .15 });
+    syncPlayback();
+    observer.observe(video);
+    motion.addEventListener("change", syncPlayback);
+    document.addEventListener("visibilitychange", syncPlayback);
+    return () => {
+      observer.disconnect();
+      motion.removeEventListener("change", syncPlayback);
+      document.removeEventListener("visibilitychange", syncPlayback);
+      video.pause();
+    };
+  }, []);
   return <>
     <ScrollMotion refreshKey="homepage-v2" revealSelector={`#main-content [data-ui-layered-surface] > section:not([aria-label]):not(#phan-khu):not(#gioi-thieu):not(.${styles.location})`}/>
     <HomeEditorialMotion/>

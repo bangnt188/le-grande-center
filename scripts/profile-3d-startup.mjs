@@ -103,8 +103,7 @@ try {
       if (ready && state.readyTime === null) state.readyTime = performance.now();
       if (checkLoading) {
         const loader = document.querySelector('#kham-pha [role="progressbar"]');
-        state.loading.push({ time: now, ready, progress: loader ? Number(loader.getAttribute("aria-valuenow")) : null,
-          poster: !!document.querySelector('#kham-pha img[src*="project-film-poster"]') });
+        state.loading.push({ time: now, ready, progress: loader ? Number(loader.getAttribute("aria-valuenow")) : null });
       }
       requestAnimationFrame(frame);
     }
@@ -199,7 +198,7 @@ try {
       await sleep(1800);
       const samples = await evaluate(from => window.__startup.loading.slice(from), from);
       assert(samples.some(sample => sample.progress !== null), "No accessible loading progress");
-      assert(samples.every(sample => !sample.ready && !sample.poster && (sample.progress === null || sample.progress <= cap)), `Loading became ready, showed poster, or exceeded ${cap}% while asset pending`);
+      assert(samples.every(sample => !sample.ready && (sample.progress === null || sample.progress <= cap)), `Loading became ready or exceeded ${cap}% while asset pending`);
       assert(await evaluate(() => document.querySelector('select[aria-label="Góc nhìn"]')?.disabled), "Viewer became ready while asset pending");
       return samples.length + from;
     }
@@ -240,13 +239,13 @@ try {
     await waitFor(() => !!document.querySelector('#kham-pha [role="alert"]'));
     const failure = await evaluate(() => ({ ready: !document.querySelector('select[aria-label="Góc nhìn"]')?.disabled,
       samples: window.__startup.loading, alert: document.querySelector('#kham-pha [role="alert"]')?.textContent }));
-    assert(!failure.ready && failure.samples.every(sample => !sample.ready && sample.progress !== 100 && !sample.poster), "Core building failure falsely completed loading");
+    assert(!failure.ready && failure.samples.every(sample => !sample.ready && sample.progress !== 100), "Core building failure falsely completed loading");
     assert(failure.alert?.trim(), "Core building failure has no error message");
     await send("Fetch.disable");
     await send("Page.navigate", { url: "about:blank" });
     report.loadingCheck = { passed: true, delayedAssets: ["building", "tree"], buildingProgressCap: 70, treeProgressCap: 95, pendingFloor: 3, floor: 4, viewpoint: chosenView, coreFailureAlert: failure.alert };
     await writeFile(`${outputPrefix}.json`, JSON.stringify(report, null, 2));
-    console.log("PASS 3D loading: pending caps, no poster/false ready, floor/viewpoint selection, navigation disposal, core building failure.");
+    console.log("PASS 3D loading: pending caps, no false ready, floor/viewpoint selection, navigation disposal, core building failure.");
   }
   await send("Page.navigate", { url: "about:blank" });
 } finally {

@@ -7,7 +7,7 @@ import { loadPublicProjection, type ProjectionResult } from "./projection";
 import type { Quality } from "./rendering";
 import styles from "./viewer.module.css";
 import { SiteHeader } from "@/features/public/site-header";
-import { ADDRESS, PROGRAMS, PUBLIC_FLOORS } from "@/features/public/site-content";
+import { ADDRESS, PROGRAMS, PROJECT_FILM_URL, PUBLIC_FLOORS } from "@/features/public/site-content";
 import { ScrollMotion } from "@mall/ui/motion";
 import { LayeredScrollStory, Loading, ProgressBar } from "@mall/ui";
 const VIEWS: { id: View; label: string }[] = [
@@ -252,7 +252,7 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
 
     {!immersive && <LayeredScrollStory.Surface backgroundImage={`${assetBase}/model-3d/explore-cover.webp`}><section className={styles.filmSection} id="phim-du-an" aria-labelledby="film-heading">
       <div className={styles.filmIntro}><h2 id="film-heading">Nhìn từ<br />công trình thực.</h2><p>Mặt tiền trắng – xám, nhịp kiến trúc và bối cảnh bên hồ qua phim dự án.</p></div>
-      <figure className={styles.film}><video ref={filmVideo} controls muted preload="none" playsInline poster={`${assetBase}/project-film-poster.webp`} aria-label="Phim kiến trúc Le Grande Centre"><source src={`${assetBase}/project-film.mp4`} type="video/mp4" />Trình duyệt không hỗ trợ video. <a href={`${assetBase}/project-film.mp4`}>Mở phim dự án</a>.</video><figcaption>Phim kiến trúc Le Grande Centre.</figcaption></figure>
+      <figure className={styles.film}><video ref={filmVideo} controls muted preload="none" playsInline aria-label="Phim kiến trúc Le Grande Centre"><source src={PROJECT_FILM_URL} type="video/mp4" />Trình duyệt không hỗ trợ video. <a href={PROJECT_FILM_URL}>Mở phim dự án</a>.</video><figcaption>Phim kiến trúc Le Grande Centre.</figcaption></figure>
     </section>
 
     <section className={styles.contact} id="lien-he" aria-labelledby="contact-heading">

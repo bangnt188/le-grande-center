@@ -31,6 +31,19 @@ Repo dùng Next.js 16 App Router, React 19 và static export như bản demo Sol
 Trang chủ dùng homepage v2 theo bản tham chiếu khách hàng. Homepage v1 được giữ
 trong mã nguồn nhưng không import/render từ route `/`. Chưa thay thế domain production.
 
+Phim dự án trên trang chủ và viewer dùng URL R2 công khai tại
+`PROJECT_FILM_URL` trong `src/features/public/site-content.ts`; nguồn video và link
+mở phim dùng cùng URL. File MP4 không còn nằm trong `public/` hay bản export;
+Hero giữ ảnh `public/images/home-v2/hero.webp`; video không dùng thumbnail/poster.
+Video trang chủ tự phát tắt tiếng, lặp lại, chạy inline và không hiện thanh điều
+khiển native. Nút **Bật âm thanh / Tắt âm thanh** trên video đổi trạng thái sau
+thao tác người dùng, giữ lựa chọn khi cuộn ra/vào video. Video tự dừng khi ra
+khỏi viewport, tab bị ẩn hoặc bật reduced motion. Giữ `preload="none"`; trình
+duyệt có thể ưu tiên autoplay hơn preload. Phát video cần kết nối tới R2.
+Nút âm thanh nằm trong client boundary riêng `home-video-sound-toggle.tsx`, được
+import trực tiếp bằng default export; kiểm tra cả Next dev/Fast Refresh khi đổi
+component, không chỉ static export.
+
 ```sh
 git clone --branch dev --recurse-submodules https://github.com/bangnt188/le-grande-center.git
 cd le-grande-center

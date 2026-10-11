@@ -16,6 +16,7 @@ export const PROGRAMS = [
 export const PUBLIC_FLOORS = [1, 2, 3, 4, 5, 6].map(floor => ({ floor, ...PROGRAMS.find(program => program.floors.includes(floor))! }));
 export const ADDRESS = "18 Nguyễn Chí Thanh, Khu vực 3, Phường Sóc Trăng, TP. Cần Thơ";
 export const EMAIL = "ntmcongty@gmail.com";
+export const PROJECT_FILM_URL = "https://pub-d9ed63c9208840ee87c1595f4a1077de.r2.dev/video-homepage.mp4";
 export const PHONE = "0973 879 563";
 export const LEASING_PHONES = [
   { label: PHONE, href: "tel:0973879563" },
