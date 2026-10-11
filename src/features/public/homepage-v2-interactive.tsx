@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ExpandingGallery, LayeredScrollStory } from "@mall/ui";
-import { ScrollMotion } from "@mall/ui/motion";
+import { createRevealEngine, ScrollMotion } from "@mall/ui/motion";
 
 import styles from "./homepage-v2.module.css";
 
@@ -13,12 +13,58 @@ export function Arrow() {
 
 export function HomeScrollStory({ hero, children }: { hero: ReactNode; children: ReactNode }) {
   return <>
-    <ScrollMotion refreshKey="homepage-v2" revealSelector="#main-content [data-ui-layered-surface] > section:not([aria-label]):not(#phan-khu)"/>
+    <ScrollMotion refreshKey="homepage-v2" revealSelector={`#main-content [data-ui-layered-surface] > section:not([aria-label]):not(#phan-khu):not(#gioi-thieu):not(.${styles.location})`}/>
+    <HomeEditorialMotion/>
     <LayeredScrollStory className={styles.story}>
       <LayeredScrollStory.Hero>{hero}</LayeredScrollStory.Hero>
       <LayeredScrollStory.Surface>{children}</LayeredScrollStory.Surface>
     </LayeredScrollStory>
   </>;
+}
+
+function HomeEditorialMotion() {
+  useLayoutEffect(() => {
+    const root = document.querySelector("#main-content") ?? document;
+    const hero = root.querySelector(`.${styles.hero}`);
+    const heroTargets = hero?.querySelectorAll<HTMLElement>("[data-reveal]");
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reducedMotion) {
+      heroTargets?.forEach(target => target.style.setProperty("transition", "none", "important"));
+    }
+    const editorialEngine = createRevealEngine({
+      selector: `#gioi-thieu [data-reveal], .${styles.location} [data-reveal]`,
+      rootMargin: "0px 0px -10% 0px",
+    }).start(root);
+    let heroEngine: ReturnType<typeof createRevealEngine> | null = null;
+    let firstRevealFrame = 0;
+    let secondRevealFrame = 0;
+    heroTargets?.forEach(target => {
+      if (reducedMotion) return;
+      void window.getComputedStyle(target).opacity;
+      target.style.removeProperty("transition");
+    });
+    if (hero && reducedMotion) {
+      heroEngine = createRevealEngine({ selector: `.${styles.hero} [data-reveal]` }).start(root);
+    } else if (hero) {
+      firstRevealFrame = window.requestAnimationFrame(() => {
+        secondRevealFrame = window.requestAnimationFrame(() => {
+          heroEngine = createRevealEngine({
+            selector: `.${styles.hero} [data-reveal]`,
+            rootMargin: "0px 0px -10% 0px",
+          }).start(root);
+          heroEngine.revealVisible(root);
+        });
+      });
+    }
+    return () => {
+      window.cancelAnimationFrame(firstRevealFrame);
+      window.cancelAnimationFrame(secondRevealFrame);
+      heroEngine?.destroy();
+      editorialEngine.destroy();
+    };
+  }, []);
+
+  return null;
 }
 
 

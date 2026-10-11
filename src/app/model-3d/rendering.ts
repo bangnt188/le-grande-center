@@ -75,6 +75,12 @@ class ArchitecturalOcclusionPass extends Pass {
   }
 
   override setSize(width: number, height: number) { this.ao.setSize(width, height); }
+  async prepare(renderer: THREE.WebGLRenderer, quad: THREE.Mesh, camera: THREE.OrthographicCamera) {
+    quad.material = this.ao.normalMaterial;
+    await renderer.compileAsync(quad, this.camera, this.scene);
+    quad.material = [this.ao.gtaoMaterial, this.ao.pdMaterial, this.composite];
+    await renderer.compileAsync(quad, camera);
+  }
 
   override render(renderer: THREE.WebGLRenderer, write: THREE.WebGLRenderTarget, read: THREE.WebGLRenderTarget) {
     // Dynamic GLB meshes are covered; arrays and traversal callback are reused across frames.
@@ -114,11 +120,13 @@ export function createArchitecturalRenderer(renderer: THREE.WebGLRenderer, scene
   const composer = new EffectComposer(renderer, target);
   composer.addPass(new RenderPass(scene, camera));
   // Low tier never allocates GTAO textures, materials or its denoising targets.
-  if (settings.ao) composer.addPass(new ArchitecturalOcclusionPass(scene, camera));
-  composer.addPass(new OutputPass());
-  composer.addPass(new FXAAPass());
+  const ao = settings.ao ? new ArchitecturalOcclusionPass(scene, camera) : null;
+  if (ao) composer.addPass(ao);
+  const output = new OutputPass(), fxaa = new FXAAPass();
+  composer.addPass(output); composer.addPass(fxaa);
   let pixelRatio = 0;
   let disposed = false;
+  let passesPrepared = false;
   return {
     resize(width: number, height: number) {
       const ratio = Math.min(window.devicePixelRatio || 1, settings.dpr);
@@ -129,6 +137,28 @@ export function createArchitecturalRenderer(renderer: THREE.WebGLRenderer, scene
       }
       renderer.setSize(width, height);
       composer.setSize(width, height);
+    },
+    async prepare() {
+      const previous = renderer.getRenderTarget();
+      let geometry: THREE.PlaneGeometry | undefined;
+      try {
+        renderer.setRenderTarget(composer.readBuffer);
+        await renderer.compileAsync(scene, camera);
+        if (disposed || passesPrepared) return;
+        geometry = new THREE.PlaneGeometry(2, 2);
+        const quad: THREE.Mesh = new THREE.Mesh(geometry, fxaa.material);
+        const screenCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        if (ao) await ao.prepare(renderer, quad, screenCamera);
+        if (disposed) return;
+        // Match OutputPass before its first render; the viewer uses ACES and sRGB.
+        output.material.defines = { ACES_FILMIC_TONE_MAPPING: "", SRGB_TRANSFER: "" };
+        output.material.needsUpdate = true; quad.material = output.material;
+        await renderer.compileAsync(quad, screenCamera);
+        if (disposed) return;
+        renderer.setRenderTarget(null); quad.material = fxaa.material;
+        await renderer.compileAsync(quad, screenCamera);
+        passesPrepared = true;
+      } finally { if (!disposed) renderer.setRenderTarget(previous); geometry?.dispose(); }
     },
     render() { if (!disposed) composer.render(0); },
     dispose() {
@@ -141,7 +171,7 @@ export function createArchitecturalRenderer(renderer: THREE.WebGLRenderer, scene
 }
 
 /** Clouded golden-hour sky, warm architecture and a daylight inspection preset. */
-export function createDaylight(renderer: THREE.WebGLRenderer, scene: THREE.Scene, building: THREE.Object3D, assetBase: string, invalidate: () => void, quality: Quality = chooseQuality()) {
+export function createDaylight(renderer: THREE.WebGLRenderer, scene: THREE.Scene, building: THREE.Object3D, assetBase: string, invalidate: () => void, quality: Quality = chooseQuality(), initialPreset: "daylight" | "evening" = "daylight") {
   const settings = qualitySettings[quality];
   const sky = new Sky();
   sky.scale.setScalar(1000);
@@ -191,7 +221,7 @@ export function createDaylight(renderer: THREE.WebGLRenderer, scene: THREE.Scene
   sunsetDome.visible = false; sunsetDome.frustumCulled = false;
   sunsetDome.userData.renderRole = "sky"; scene.add(sunsetDome);
   const pmrem = new THREE.PMREMGenerator(renderer);
-  let environment = pmrem.fromScene(skyScene, .025, .1, 2000);
+  let environment: THREE.WebGLRenderTarget | null = null;
   const fog = new THREE.Fog("#bbc8cf", settings.contextDistance * 1.1, settings.contextDistance * 2.5);
   scene.fog = fog;
   const fill = new THREE.HemisphereLight("#b6cadf", "#a88961", .4);
@@ -258,69 +288,50 @@ export function createDaylight(renderer: THREE.WebGLRenderer, scene: THREE.Scene
     if (disposed) return;
     const photographic = preset === "daylight" && source !== null;
     const next = photographic ? pmrem.fromEquirectangular(source!) : pmrem.fromScene(skyScene, .025, .1, 2000);
-    const previous = environment;
-    environment = next;
+    const previous = environment; environment = next;
     scene.environment = next.texture;
     scene.background = preset === "evening" ? null : photographic ? source : next.texture;
     scene.environmentRotation.y = photographic ? .8 : 0;
     scene.backgroundRotation.y = scene.environmentRotation.y;
-    scene.backgroundIntensity = .8;
-    scene.environmentIntensity = .85;
-    previous.dispose();
-    invalidateShadows();
+    scene.backgroundIntensity = .8; scene.environmentIntensity = .85;
+    previous?.dispose(); invalidateShadows();
   };
-  scene.environment = environment.texture;
-  scene.background = environment.texture;
-  scene.backgroundIntensity = .8;
-  scene.environmentIntensity = .85;
-  new HDRLoader().load(`${assetBase}/model-3d/daylight-995d68b1.hdr`, texture => {
+  const ready = new HDRLoader().loadAsync(`${assetBase}/model-3d/daylight-995d68b1.hdr`).then(texture => {
     if (disposed) { texture.dispose(); return; }
-    source = texture;
-    source.mapping = THREE.EquirectangularReflectionMapping;
+    source = texture; source.mapping = THREE.EquirectangularReflectionMapping;
     if (preset === "daylight") rebuildEnvironment();
-  }, undefined, () => { /* The complete procedural rig remains available if the HDR fails. */ });
+  }, () => { /* The approved procedural rig remains available if the HDR fails. */ });
+  const setPreset = (next: "daylight" | "evening") => {
+    if (disposed || (next === preset && environment !== null)) return;
+    preset = next;
+    const evening = next === "evening";
+    sky.visible = !evening; sunset.visible = evening; sunsetDome.visible = evening;
+    sun.position.copy(center).addScaledVector(evening ? sunset.material.uniforms.sunDirection.value : direction, 190);
+    fitSunShadow();
+    sun.color.set(evening ? "#ffc17b" : "#fff1dd"); sun.intensity = evening ? 3.1 : 2.65;
+    fill.color.set(evening ? "#e1c6a2" : "#b6cadf"); fill.groundColor.set(evening ? "#b9976a" : "#a88961");
+    fill.intensity = evening ? 1.35 : .4; renderer.toneMappingExposure = evening ? 1.06 : .9;
+    fog.color.set(evening ? "#b49a80" : "#bbc8cf"); rebuildEnvironment();
+  };
+  setPreset(initialPreset);
   return {
+    ready,
     resize(width: number) {
       const size = Math.min(settings.shadowSize, width < 700 ? 2048 : settings.shadowSize);
       if (disposed || sun.shadow.mapSize.x === size) return;
-      sun.shadow.mapSize.set(size, size);
-      sun.shadow.map?.dispose();
-      sun.shadow.map = null;
-      sun.shadow.needsUpdate = true;
+      sun.shadow.mapSize.set(size, size); sun.shadow.map?.dispose(); sun.shadow.map = null; sun.shadow.needsUpdate = true;
     },
-    restore: rebuildEnvironment,
-    invalidateShadows,
+    restore: rebuildEnvironment, invalidateShadows,
     updateMovingShadows() { if (!disposed) { sun.shadow.needsUpdate = true; renderer.shadowMap.needsUpdate = true; } },
-    setPreset(next: "daylight" | "evening") {
-      if (disposed || next === preset) return;
-      preset = next;
-      const evening = next === "evening";
-      sky.visible = !evening; sunset.visible = evening; sunsetDome.visible = evening;
-      sun.position.copy(center).addScaledVector(evening ? sunset.material.uniforms.sunDirection.value : direction, 190);
-      fitSunShadow();
-      sun.color.set(evening ? "#ffc17b" : "#fff1dd");
-      sun.intensity = evening ? 3.1 : 2.65;
-      fill.color.set(evening ? "#e1c6a2" : "#b6cadf");
-      fill.groundColor.set(evening ? "#b9976a" : "#a88961");
-      fill.intensity = evening ? 1.35 : .4;
-      renderer.toneMappingExposure = evening ? 1.06 : .9;
-      fog.color.set(evening ? "#b49a80" : "#bbc8cf");
-      rebuildEnvironment();
-    },
+    setPreset,
     dispose() {
       if (disposed) return;
-      disposed = true;
-      scene.environment = null;
-      scene.background = null;
+      disposed = true; scene.environment = null; scene.background = null;
       if (scene.fog === fog) scene.fog = null;
       scene.remove(fill, sun, sun.target, sunsetDome);
-      environment.dispose();
-      source?.dispose();
-      pmrem.dispose();
-      sky.geometry.dispose();
-      sky.material.dispose();
-      sunset.geometry.dispose(); sunset.material.dispose();
-      sun.shadow.dispose();
+      environment?.dispose(); source?.dispose(); pmrem.dispose();
+      sky.geometry.dispose(); sky.material.dispose();
+      sunset.geometry.dispose(); sunset.material.dispose(); sun.shadow.dispose();
     },
   };
 }

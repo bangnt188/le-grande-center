@@ -11,7 +11,7 @@ export type SceneActions = { view: (view: View) => void; selectFloor: (floor: nu
 
 export function mountScene(container: HTMLDivElement, options: {
   base: string; quality: Quality | "auto"; selection: Selection; dots: (HTMLButtonElement | null)[];
-  onActions: (actions: SceneActions | null) => void; onReady: (ready: boolean) => void;
+  onActions: (actions: SceneActions | null) => void; onReady: (ready: boolean) => void; onProgress: (value: number) => void;
   onError: (message: string) => void; onView: (view: View) => void; onNotice: (message: string) => void;
 }) {
   const controller = new AbortController(), disposers: (() => void)[] = [];
@@ -34,6 +34,7 @@ export function mountScene(container: HTMLDivElement, options: {
     const scene = new THREE.Scene(); disposers.push(() => disposeScene(scene));
     const site = createSite(tier); scene.add(site);
     const building = await loadSceneAsset("building", options.base, controller.signal); scene.add(building);
+    options.onProgress(73);
     const stats: { id: string; bytes: number; decodeMs: number }[] = [building.userData.loadStats];
     const camera = new THREE.PerspectiveCamera(38, 1, .12, 2000);
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -57,13 +58,14 @@ export function mountScene(container: HTMLDivElement, options: {
       pick.layers.set(1);
       pick.userData = { renderRole: "interaction", slotId: slot.slotId, floorId: slot.floorId }; scene.add(pick); return pick;
     });
+    let initialized = false;
     const pipeline = createArchitecturalRenderer(renderer, scene, camera, tier); disposers.push(() => pipeline.dispose());
-    const daylight = createDaylight(renderer, scene, building, options.base, () => render(), tier); disposers.push(() => daylight.dispose());
+    const daylight = createDaylight(renderer, scene, building, options.base, () => { if (initialized) render(); }, tier, options.selection.lighting); disposers.push(() => daylight.dispose());
     let width = 1, height = 1, frame: number | null = null, contextAvailable = true, renders = 0;
     let visible = true, dirty = true, elapsedSeconds = 0, lastMotionTime = 0, lastRenderTime = 0, lastShadowTime = 0, lastStatsTime = 0;
     let vehicleProbe: THREE.InstancedMesh | null = null, walkerProbe: THREE.Object3D | null = null;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const canRender = () => !stopped && contextAvailable && visible && !document.hidden;
+    const canRender = () => initialized && !stopped && contextAvailable && visible && !document.hidden;
     const motionActive = () => canRender() && options.selection.motion && !reducedMotion.matches;
     const projected = new THREE.Vector3(), relative = new THREE.Vector3(), direction = new THREE.Vector3(), right = new THREE.Vector3(), up = new THREE.Vector3();
     const worldUp = new THREE.Vector3(0, 1, 0), center = bounds.getCenter(new THREE.Vector3());
@@ -197,25 +199,53 @@ export function mountScene(container: HTMLDivElement, options: {
     };
     const pointerLeave = () => highlightSlot(options.selection.slot);
     const contextLost = (event: Event) => { event.preventDefault(); contextAvailable = false; stopFrame(); options.onReady(false); options.onError("Kết nối đồ họa bị gián đoạn. Bạn vẫn có thể chọn tầng và liên hệ dự án."); };
-    const contextRestored = () => { daylight.restore(); contextAvailable = true; options.onReady(true); options.onError(""); render(); };
+    const contextRestored = () => { daylight.restore(); contextAvailable = true; if (!initialized) return; options.onError(""); options.onReady(true); render(); };
     const listeners: [string, EventListener][] = [["pointerdown", pointerDown as EventListener], ["pointerup", pointerUp as EventListener], ["pointermove", pointerMove as EventListener], ["pointerleave", pointerLeave], ["webglcontextlost", contextLost], ["webglcontextrestored", contextRestored]];
     for (const [name, listener] of listeners) renderer.domElement.addEventListener(name, listener);
     disposers.push(() => { for (const [name, listener] of listeners) renderer.domElement.removeEventListener(name, listener); });
     container.appendChild(renderer.domElement); resize(); observer.observe(container);
-    options.onActions({ view: setView, selectFloor: focusFloor, selectSlot: highlightSlot, lighting: daylight.setPreset, motion: enabled => { options.selection.motion = enabled; refreshMotion(); } });
-    daylight.setPreset(options.selection.lighting); focusFloor(options.selection.floor); highlightSlot(options.selection.slot); options.onReady(true);
+    await daylight.ready;
+    if (stopped) return;
+    options.onProgress(76);
+    // Warm shaders and uploads behind loading, yielding between GPU batches.
+    const warmup = async () => {
+      await new Promise<void>(resolve => setTimeout(resolve, 0));
+      if (stopped) return;
+      await pipeline.prepare();
+      await new Promise<void>(resolve => setTimeout(resolve, 0));
+      if (!stopped) pipeline.render();
+    };
+    daylight.invalidateShadows(); focusFloor(options.selection.floor); highlightSlot(options.selection.slot);
+    let warming = warmup(), assetsReady = 0;
     await Promise.all(["monument", "tree", "vehicle", "person", "lamp", "bench"].map(async id => {
-      try {
-        const root = await loadSceneAsset(id, options.base, controller.signal);
+      let root: THREE.Group;
+      try { root = await loadSceneAsset(id, options.base, controller.signal); }
+      catch {
+        if (!stopped) { options.onNotice("Một phần cảnh quan chưa tải được. Công trình và thông tin tầng vẫn hoạt động."); options.onProgress(76 + ++assetsReady * 3); }
+        return;
+      }
+      warming = warming.then(async () => {
         if (stopped) { disposeScene(root); return; }
-        stats.push(root.userData.loadStats); addSiteAsset(site, root, id, tier); daylight.invalidateShadows(); render();
+        stats.push(root.userData.loadStats); addSiteAsset(site, root, id, tier); daylight.invalidateShadows();
         if (process.env.NODE_ENV === "development") {
           const vehicle = site.getObjectByName("vehicle instances")?.children.find(object => object instanceof THREE.InstancedMesh);
           if (vehicle instanceof THREE.InstancedMesh) vehicleProbe = vehicle;
           walkerProbe = site.getObjectByName("Walking pedestrian 1") ?? null;
         }
-      } catch { if (!stopped) options.onNotice("Một phần cảnh quan chưa tải được. Công trình và thông tin tầng vẫn hoạt động."); }
+        await warmup();
+        if (!stopped) options.onProgress(76 + ++assetsReady * 3);
+      });
+      await warming;
     }));
+    await warming;
+    if (stopped) return;
+    options.onProgress(97);
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    if (stopped) return;
+    activeView = options.selection.view; focusFloor(options.selection.floor); highlightSlot(options.selection.slot);
+    initialized = true; tick(performance.now());
+    options.onActions({ view: setView, selectFloor: focusFloor, selectSlot: highlightSlot, lighting: daylight.setPreset, motion: enabled => { options.selection.motion = enabled; refreshMotion(); } });
+    options.onProgress(100); options.onReady(true);
   })().catch(() => {
     if (stopped) return;
     cleanup(); options.onReady(false); options.onError("Không mở được mô hình 3D. Bạn vẫn có thể xem ảnh/phim, chọn tầng và liên hệ trực tiếp.");

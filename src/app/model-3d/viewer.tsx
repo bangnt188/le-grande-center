@@ -9,7 +9,7 @@ import styles from "./viewer.module.css";
 import { SiteHeader } from "@/features/public/site-header";
 import { ADDRESS, PROGRAMS, PUBLIC_FLOORS } from "@/features/public/site-content";
 import { ScrollMotion } from "@mall/ui/motion";
-import { LayeredScrollStory } from "@mall/ui";
+import { LayeredScrollStory, Loading, ProgressBar } from "@mall/ui";
 const VIEWS: { id: View; label: string }[] = [
   { id: "front", label: "Mặt tiền" },
   { id: "aerial", label: "Tổng thể" },
@@ -28,6 +28,7 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
   const [panelOpen, setPanelOpen] = useState(false);
   const [motion, setMotion] = useState(true);
   const [ready, setReady] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
   const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
@@ -88,14 +89,37 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
   useEffect(() => {
     if (!immersive || !host.current) return;
     let cancelled = false;
+    let failed = false;
     let dispose: (() => void) | undefined;
-    setReady(false); setError(""); setAssetNotice("");
+    let preparationFrame = 0;
+    const stopPreparation = () => cancelAnimationFrame(preparationFrame);
+    const onError = (message: string) => {
+      if (cancelled) return;
+      failed = Boolean(message); if (failed) { stopPreparation(); setReady(false); } setError(message);
+    };
+    setReady(false); setProgress(0); setError(""); setAssetNotice("");
+    const started = performance.now();
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const prepare = (now: number) => {
+      if (cancelled || failed) return;
+      const elapsed = reducedMotion.matches ? 1 : Math.min(1, (now - started) / 300);
+      setProgress(current => Math.max(current, Math.round(70 * (1 - (1 - elapsed) ** 3))));
+      if (elapsed < 1) preparationFrame = requestAnimationFrame(prepare);
+    };
+    preparationFrame = requestAnimationFrame(prepare);
     void import("./runtime").then(({ mountScene }) => {
-      if (cancelled || !host.current) return;
+      if (cancelled || failed || !host.current) return;
       dispose = mountScene(host.current, { base: assetBase, quality, selection: selection.current, dots: dots.current,
-        onActions: value => { actions.current = value; }, onReady: setReady, onError: setError, onView: setView, onNotice: setAssetNotice });
-    }).catch(() => { if (!cancelled) setError("Không tải được trải nghiệm 3D. Bạn có thể thoát để xem phim và liên hệ dự án."); });
-    return () => { cancelled = true; dispose?.(); };
+        onActions: value => { if (!cancelled && !failed) actions.current = value; },
+        onProgress: value => {
+          if (cancelled || failed) return;
+          stopPreparation();
+          setProgress(current => Math.max(current, Math.min(100, Math.max(70, value))));
+        },
+        onReady: value => { if (!cancelled && !failed) { if (value) stopPreparation(); setReady(value); } },
+        onError, onView: setView, onNotice: setAssetNotice });
+    }).catch(() => onError("Không tải được trải nghiệm 3D. Bạn có thể thoát để xem phim và liên hệ dự án."));
+    return () => { cancelled = true; stopPreparation(); dispose?.(); actions.current = null; };
   }, [assetBase, quality, immersive]);
 
   function selectFloor(floor: number | null) {
@@ -176,9 +200,8 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
     </LayeredScrollStory.Surface></LayeredScrollStory>}
     {immersive && <section className={styles.explore} id="kham-pha" aria-label="Khám phá kiến trúc và công năng">
       <div className={styles.viewerHeader}><Link href="/" className={styles.exitLink}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m14 6-6 6 6 6M8 12h13" stroke="currentColor" strokeWidth="1.5" /></svg>Thoát</Link><h1>Le Grande Centre</h1><button className={styles.infoToggle} aria-expanded={panelOpen} aria-controls="viewer-information" onClick={() => setPanelOpen(!panelOpen)}>Tầng & mặt bằng</button></div>
-      <div className={styles.workspace}>
-        <div className={styles.canvas} ref={host} />
-        {!ready && <img className={styles.poster} src={`${assetBase}/project-film-poster.webp`} alt="Le Grande Centre qua phim dự án" />}
+      <div className={styles.workspace} data-scene-ready={ready}>
+        <div className={styles.canvas} ref={host} inert={!ready} />
         <div className={styles.hotspots} aria-label="Chọn tầng trên tòa nhà">{FLOORS.map((floor, index) => <button
           key={floor}
           ref={element => { dots.current[index] = element; }}
@@ -189,10 +212,16 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
           aria-controls="floor-detail"
           onClick={event => selectHotspot(floor, event.clientX, event.clientY, event.detail === 0)}
         ><span className={styles.dot} /><span className={styles.dotLabel}>Tầng {floor}</span></button>)}</div>
-        {!ready && !error && <p className={styles.loading} role="status">Đang mở không gian 3D…</p>}
-        {error && <div className={styles.sceneError} role="alert"><p>{error}</p><Link href="/#phim-du-an" className={styles.textLink}>Thoát và xem phim dự án <Arrow /></Link></div>}
+        {!ready && <div className={styles.loadingSurface} data-scene-loading>
+          {error ? <div className={styles.sceneError} role="alert"><p>{error}</p><Link href="/#phim-du-an" className={styles.textLink}>Thoát và xem phim dự án <Arrow /></Link></div> : <div className={styles.loading}>
+            <Loading size="md" />
+            <h2>Đang mở không gian 3D</h2>
+            <ProgressBar label="Tiến trình tải" value={progress} locale="vi-VN" format={{ style: "unit", unit: "percent", maximumFractionDigits: 0 }} className={styles.loadingProgress} />
+            <p role="status" aria-live="polite">{progress < 70 ? "Đang chuẩn bị trải nghiệm…" : "Đang hoàn thiện không gian 3D…"}</p>
+          </div>}
+        </div>}
       </div>
-      <div className={styles.quickFloors} aria-label="Chọn nhanh tầng">{[...FLOORS].reverse().map(floor => <button key={floor} aria-label={`Tầng ${floor}`} aria-pressed={selectedFloor === floor} onClick={() => selectFloor(floor)}>{floor}</button>)}</div>
+      <div className={styles.quickFloors} hidden={!ready && !error} aria-label="Chọn nhanh tầng">{[...FLOORS].reverse().map(floor => <button key={floor} aria-label={`Tầng ${floor}`} aria-pressed={selectedFloor === floor} onClick={() => selectFloor(floor)}>{floor}</button>)}</div>
       <div className={styles.sceneBar}>
         <label className={styles.viewControl}>Góc nhìn <select aria-label="Góc nhìn" value={view} disabled={!ready} onChange={event => { const next = VIEWS.find(item => item.id === event.target.value)?.id; if (!next) return; selection.current.view = next; actions.current?.view(next); setView(next); }}>{VIEWS.map(item => <option key={item.id} value={item.id} disabled={projection.status === "ready" && !projection.projection?.allowedPresetIds.includes(item.id)}>{item.label}</option>)}</select></label>
         <button className={styles.sceneButton} disabled={!ready} onClick={() => actions.current?.view(view)}>Đặt lại góc nhìn</button>

@@ -1,19 +1,17 @@
 "use client";
 
-import { useRef, useState, type CSSProperties, type MouseEvent } from "react";
+import { useRef, useState, type MouseEvent } from "react";
 import Link from "next/link";
 import { Modal } from "@mall/ui";
 import { siteUrl } from "@/config/site";
-import type { AreaFilter, LeasingFloor, LeasingOrientation, LeasingUnit, PlanShape } from "./leasing-model";
+import type { AreaFilter, LeasingFloor, LeasingOrientation, LeasingUnit } from "./leasing-model";
+import { planStyle, planLabelStyle } from "./leasing-plan-style";
 import { useLeasingExplorer } from "./use-leasing-explorer";
 import { LeasingSuggestion } from "./leasing-suggestion";
 import planStyles from "./canva-pages.module.css";
 import styles from "./leasing-explorer.module.css";
 
 const number = (value: number) => value.toLocaleString("vi-VN");
-function planStyle(shape: PlanShape): CSSProperties {
-  return { left: shape.x / 10 + "%", top: shape.y / 2.5 + "%", width: shape.width / 10 + "%", height: shape.height / 2.5 + "%", clipPath: shape.polygon };
-}
 function Arrow() {
   return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>;
 }
@@ -68,7 +66,7 @@ export function LeasingExplorer({ floors, units: inventory, orientation, sourceD
               <div className={`${planStyles.plan} ${styles.planCanvas}`}>
                 {floor.sharedAreas.map((space, index) => <div key={index} className={planStyles.sharedArea} style={planStyle(space)}>{space.label}</div>)}
                 {units.filter(unit => unit.floorId === floor.id).map(unit => <button id={`leasing-plan-${unit.id}`} className={planStyles.planSlot} style={planStyle(unit.plan)} key={unit.id} type="button" disabled={!visibleIds.has(unit.id)} aria-pressed={selected?.id === unit.id} aria-haspopup="dialog" aria-label={`${unit.id}, tầng ${unit.floorId}, ${number(unit.area)} mét vuông`} onClick={event => openUnit(unit, event)}>
-                  <span className={planStyles.slotLabel} style={unit.plan.labelPosition ? { position: "absolute", left: unit.plan.labelPosition.x + "%", top: unit.plan.labelPosition.y + "%", transform: "translate(-50%, -50%)" } : undefined}><strong>{unit.id}</strong><span>{number(unit.area)} m²</span></span>
+                  <span className={planStyles.slotLabel} style={planLabelStyle(unit.plan)}><strong>{unit.id}</strong><span>{number(unit.area)} m²</span></span>
                 </button>)}
               </div>
             </div>
