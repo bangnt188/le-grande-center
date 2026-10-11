@@ -3,8 +3,8 @@ import styles from "./investor-letter.module.css";
 
 export function InvestorLetter({ paragraphs, backgroundPath }: { paragraphs: readonly string[]; backgroundPath: string }) {
   const assetBase = new URL(siteUrl).pathname.replace(/\/+$/, "");
-  return <section id="letter" className={styles.letter} aria-labelledby="investor-letter-heading">
-    <img className={styles.backdrop} src={`${assetBase}${backgroundPath}`} alt="" aria-hidden="true" loading="lazy"/>
+  const backgroundImage = `linear-gradient(rgba(250, 248, 240, .91), rgba(250, 248, 240, .91)), url("${assetBase}${backgroundPath}")`;
+  return <section id="letter" className={styles.letter} aria-labelledby="investor-letter-heading" style={{ backgroundImage }}>
     <div className={styles.inner}>
       <p className={styles.label}>Thư Ngỏ Từ Chủ Đầu Tư</p>
       <h2 id="investor-letter-heading">Lời Cam Kết Của <em>Chúng Tôi</em><br/>Với <em>Đối Tác</em></h2>

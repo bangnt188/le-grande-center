@@ -1,9 +1,9 @@
-import type { CSSProperties } from "react";
 import Link from "next/link";
 import { Breadcrumbs } from "@mall/ui";
 import { siteUrl } from "@/config/site";
 import { BROCHURE_ORIENTATION, BROCHURE_PATH } from "./brochure-leasing";
-import type { LeasingFloor, LeasingUnit, PlanShape } from "./leasing-model";
+import type { LeasingFloor, LeasingUnit } from "./leasing-model";
+import { planStyle, planLabelStyle } from "./leasing-plan-style";
 import { EMAIL, LEASING_PHONES } from "./site-content";
 import planStyles from "./canva-pages.module.css";
 import { LeasingUnitGallery } from "./leasing-unit-gallery";
@@ -11,9 +11,6 @@ import { LeasingUnitMap } from "./leasing-unit-map";
 import styles from "./leasing-unit-detail.module.css";
 
 const number = (value: number) => value.toLocaleString("vi-VN");
-function planStyle(shape: PlanShape): CSSProperties {
-  return { left: shape.x / 10 + "%", top: shape.y / 2.5 + "%", width: shape.width / 10 + "%", height: shape.height / 2.5 + "%", clipPath: shape.polygon };
-}
 
 export function LeasingUnitDetail({ unit, floor, floorUnits }: { unit: LeasingUnit; floor: LeasingFloor; floorUnits: readonly LeasingUnit[] }) {
   const assetBase = new URL(siteUrl).pathname.replace(/\/+$/, "");
@@ -38,7 +35,7 @@ export function LeasingUnitDetail({ unit, floor, floorUnits }: { unit: LeasingUn
         <div className={`${planStyles.plan} ${styles.planCanvas}`}>
           {floor.sharedAreas.map((space, index) => <div key={index} className={`${planStyles.sharedArea} ${styles.planShared}`} style={planStyle(space)}>{space.label}</div>)}
           {floorUnits.map(item => <Link className={`${planStyles.planSlot} ${styles.planUnit}`} key={item.id} href={`/mat-bang/${encodeURIComponent(item.id)}/`} style={planStyle(item.plan)} aria-current={item.id === unit.id ? "page" : undefined} aria-label={`${item.id}, ${number(item.area)} mét vuông${item.id === unit.id ? ", đang xem" : ""}`}>
-            <span className={planStyles.slotLabel} style={item.plan.labelPosition ? { position: "absolute", left: item.plan.labelPosition.x + "%", top: item.plan.labelPosition.y + "%", transform: "translate(-50%, -50%)" } : undefined}><strong>{item.id}</strong><span>{number(item.area)} m²</span></span>
+            <span className={planStyles.slotLabel} style={planLabelStyle(item.plan)}><strong>{item.id}</strong><span>{number(item.area)} m²</span></span>
           </Link>)}
         </div>
       </div>

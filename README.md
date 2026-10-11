@@ -38,6 +38,37 @@ npm ci
 npm run dev
 ```
 
+### Smoke public UI
+
+Với Next dev đang chạy, dùng Node.js 22+ và Chrome/Chromium có sẵn:
+
+```sh
+npm run smoke:public -- http://localhost:3000/le-grande-center/
+```
+
+Đổi URL nếu server dùng port/base path khác. macOS mặc định dùng Google Chrome;
+máy khác dùng `chromium` hoặc đặt `CHROME_BIN` tới executable đã cài. Không tải
+browser hay thêm dependency. Script mở profile tạm riêng rồi đóng/xóa khi kết thúc.
+Kiểm tra header/3D menu ở 1366, 1201, 1200, 1100, 720, 390 và 320px; Escape/focus
+menu; slot mở popup trước khi điều hướng; Map/List loại trừ nhau và giữ 22 mặt bằng
+tầng 1–2; zoom, đổi ảnh, đồng bộ selection và trả focus khi đóng preview.
+Chạy với Next dev hoặc host export hỗ trợ đúng route/payload Next; SPA fallback
+của static server thông thường không phải bằng chứng cho navigation Next export.
+
+### Profile cold-start 3D
+
+Sau `npm run build`, phục vụ `out/` bằng static host rồi chạy (Node.js 22+):
+
+```sh
+node scripts/profile-3d-startup.mjs http://127.0.0.1:3199/le-grande-center/ /tmp/le-grande-startup --check-loading
+```
+
+Script mở Chrome/profile mới, đo khoảng 6 giây và lưu `.json`/`.cpuprofile`.
+`--check-loading` kiểm cap 70% khi building còn chờ, không ready trước warm-up,
+giữ lựa chọn tầng trong lúc tải, đổi góc nhìn và lỗi tải building. Đóng viewer 3D
+khác khi so số đo; không lấy Next dev/HMR làm baseline. Chi tiết trước/sau và
+cache: [docs/performance-audit.md](docs/performance-audit.md#6-cập-nhật-sau-triển-khai-cold-start-và-loading-3d).
+
 Mặc định local dùng base path `/le-grande-center/` giống GitHub Pages. Mở
 `http://localhost:3000/le-grande-center/admin-preview/` để thử giao diện quản trị.
 
@@ -47,7 +78,8 @@ Route `/` chỉ render `src/features/public/homepage-v2.tsx`. Bố cục theo �
 `Trang chủ.png`: header nền kem, hero ảnh dự án, phim giới thiệu, tổng quan, vị trí,
 một tòa nhà tương tác theo cuộn, dải loại hình kinh doanh, mặt bằng tham khảo, gallery ảnh và liên hệ.
 `homepage-v1.tsx` giữ nguyên composition cũ; không có route, import hay chuyển hướng
-đến v1 trong trang chủ mới. Viewer và route `/kham-pha/` hiện có không bị sửa.
+đến v1 trong trang chủ mới. Viewer `/kham-pha/` giữ chất lượng đã duyệt; dùng
+loading 70/30 thay ảnh phủ, shader precompile và warm-up theo batch trước ready.
 
 Mô hình 2D là một cảnh ghép ba layer trong suốt từ ảnh khách cung cấp. Tòa nhà
 xếp gọn lúc đầu, tách lớp theo cuộn và khép lại khi cuộn ngược. Điểm bắt đầu

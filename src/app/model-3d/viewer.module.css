@@ -46,6 +46,7 @@
 .explore { scroll-margin-top: 20px; }
 .workspace { position: relative; width: 100%; max-width: 1512px; margin: auto; height: clamp(340px, 35vw, 520px); overflow: hidden; background: var(--mall-paper); }
 .canvas { position: absolute; inset: 0; }
+.workspace[data-scene-ready="false"] .canvas { pointer-events: none; }
 .canvas canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .canvas canvas:focus-visible { outline: 2px solid var(--mall-gold); outline-offset: -4px; }
 .hotspots { position: absolute; inset: 0; pointer-events: none; }
@@ -62,8 +63,12 @@
 .dotLabel { position: absolute; bottom: 38px; left: 50%; transform: translateX(-50%); padding: 5px 8px; background: var(--mall-ink); color: var(--mall-paper); white-space: nowrap; font-size: 11px; opacity: 0; pointer-events: none; transition: opacity 160ms ease-out; }
 .hotspot:hover .dotLabel, .hotspot:focus-visible .dotLabel, .hotspot[aria-pressed="true"] .dotLabel { opacity: 1; }
 @keyframes floorPulse { 0% { transform: scale(1); opacity: .66; } 70%, 100% { transform: scale(2.5); opacity: 0; } }
-.loading, .sceneError { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 22px; background: var(--mall-paper); color: var(--page-muted); font-size: 13px; line-height: 1.8; }
-.loading { margin: 0; white-space: nowrap; }
+.loadingSurface { --ui-color-action: var(--mall-gold); --ui-color-border: color-mix(in srgb, var(--mall-paper) 25%, var(--mall-ink)); --ui-color-surface: color-mix(in srgb, var(--mall-paper) 15%, var(--mall-ink)); --ui-color-text-primary: var(--mall-paper); --ui-color-text-secondary: var(--mall-muted); position: absolute; z-index: 2; inset: 0; display: grid; place-items: center; background: var(--mall-ink); color: var(--mall-paper); }
+.loading { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 20px; width: min(340px, calc(100% - 48px)); font-size: 13px; line-height: 1.8; text-align: center; }
+.loading h2 { margin: 0; font-size: clamp(24px, 4vw, 30px); }
+.loading p { margin: 0; color: var(--mall-muted); font-size: 12px; }
+.loadingProgress { width: 100%; text-align: left; font-variant-numeric: tabular-nums; }
+.sceneError { padding: 22px; background: var(--mall-paper); color: var(--page-muted); font-size: 13px; line-height: 1.8; }
 .sceneError { max-width: 470px; width: calc(100% - 48px); }
 .sceneError p { margin: 0 0 8px; }
 .sceneError a { color: var(--mall-ink); }
@@ -180,7 +185,6 @@
   .dotLabel, .leadMediaImage { transition: none; }
   .leadMediaImage { height: 100%; transform: none !important; animation: none !important; }
 }
-.poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .sceneButton { min-height: 44px; padding: 8px 12px; border: 1px solid var(--mall-gold); background: transparent; color: var(--mall-ink); font: inherit; cursor: pointer; }
 .sceneButton:hover { background: color-mix(in srgb, var(--mall-gold) 28%, var(--mall-paper)); color: var(--mall-ink); }
 .sceneButton:disabled { opacity: .5; cursor: not-allowed; }
@@ -242,6 +246,7 @@
 .immersive .siteNote { position: absolute; z-index: 2; bottom: 14px; margin: 0; width: 100%; text-align: center; padding: 0 16px; color: var(--mall-paper); font-size: 11px; text-shadow: 0 2px 5px #101820; pointer-events: none; }
 .motionButton { position: absolute; z-index: 3; bottom: 130px; left: 30px; padding: 10px 16px; }
 .quickFloors { position: absolute; z-index: 3; right: 30px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 4px; }
+.quickFloors[hidden] { display: none; }
 .quickFloors button { width: 44px; font-variant-numeric: tabular-nums; }
 .quickFloors button[aria-pressed="true"] { background: var(--mall-gold-light); color: var(--mall-ink); }
 .infoPanel { position: absolute; z-index: 4; right: 30px; top: 84px; bottom: 128px; width: 375px; max-width: calc(100% - 60px); overflow: auto; overscroll-behavior: contain; background: var(--mall-paper); color: var(--mall-ink); padding: 18px 24px 28px; box-shadow: 0 12px 36px rgb(0 0 0 / 22%); scrollbar-color: var(--mall-gold) var(--mall-paper); }

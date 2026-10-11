@@ -19,6 +19,7 @@
     "typecheck:ui": "npm run typecheck --workspace=@mall/ui",
     "preview:ui": "npm run preview:ui --workspace=@mall/ui",
     "test:ui": "npm run test --workspace=@mall/ui",
+    "smoke:public": "node scripts/smoke-public-ui.mjs",
     "test:admin": "node --import tsx --test tests/admin-repository.test.ts",
     "deploy:dev": "node scripts/publish-dev-pages.mjs",
     "build:backend": "npm run build --workspace=@shared/backend",
