@@ -13,4 +13,4 @@ export const PROGRAMS = [
   { floors: [5], title: "Giải trí" },
   { floors: [6], title: "Dịch vụ ngoài trời – sự kiện" },
 ];
-export const PROJECT_FILM_URL = "https://pub-d9ed63c9208840ee87c1595f4a1077de.r2.dev/video-homepage.mp4";
+export const PROJECT_FILM_URL = "https://pub-d9ed63c9208840ee87c1595f4a1077de.r2.dev/Le_Grande_Centre_logo_thay_CapCut.mp4";
