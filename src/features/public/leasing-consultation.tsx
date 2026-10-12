@@ -57,7 +57,7 @@ export function LeasingConsultation({ unit, pair, className, open: controlledOpe
     if (await submission.submit({ name, phone: value, unit: scope === "pair" ? pairLabel : unit.id, scope }) === "success") { form.reset(); setScope("single"); }
   }
   return <div ref={portal} className={styles.host} data-ui-theme="shopping-mall" data-ui-scheme="light">
-    {triggerLabel && <Button ref={trigger} variant="primary" className={className} aria-haspopup="dialog" aria-expanded={open} onClick={() => changeOpen(true)}><span>{triggerLabel}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg></Button>}
+    {triggerLabel && <Button ref={trigger} variant="primary" className={className} effect="shine" aria-haspopup="dialog" aria-expanded={open} onClick={() => changeOpen(true)}><span>{triggerLabel}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg></Button>}
     <Modal open={open} onOpenChange={changeOpen} title={`Tư vấn mặt bằng ${pairLabel}`} description="Chọn phương thức liên hệ thuận tiện nhất" closeLabel="Đóng tư vấn" portalContainer={portal} returnFocusRef={returnFocusRef ?? (triggerLabel ? trigger : undefined)}>
       <section className={styles.summary} aria-label="Mặt bằng đang quan tâm">
         <div className={styles.summaryHeading}><strong>{pair ? "Shophouse liên thông hai tầng" : `Mặt bằng ${unit.id} · Tầng ${unit.floorId}`}</strong><Badge tone="neutral">Tham khảo</Badge></div>
