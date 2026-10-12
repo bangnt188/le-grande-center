@@ -44,7 +44,7 @@
 .heroStats span { font-size: 10px; color: #d4dbce; margin-top: 4px; }
 .scrollLink { position: absolute; right: 5%; bottom: 42px; display: flex; flex-direction: column; align-items: center; gap: 16px; font-size: 10px; }
 .film { padding: 48px 5% 24px; background: #f2f1e9; }
-.film video { display: block; height: auto; width: min(1200px, 100%); max-height: 600px; aspect-ratio: 16 / 7; object-fit: cover; margin: auto; background: var(--home-deep); }
+.film video { display: block; height: auto; width: min(1200px, 100%); aspect-ratio: 16 / 9; object-fit: contain; margin: auto; background: var(--home-deep); }
 .film > span { display: block; max-width: 1200px; margin: 12px auto 0; font-size: 11px; color: #556152; }
 .filmMedia { position: relative; width: min(1200px, 100%); margin: auto; }
 .filmSound { position: absolute; right: 16px; bottom: 16px; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 14px; border: 1px solid var(--home-gold); border-radius: 8px; background: var(--home-deep); color: var(--home-paper); font-size: 12px; line-height: 1.5; }
@@ -203,7 +203,6 @@
   .heroStats span { font-size: 9px; line-height: 1.8; }
   .scrollLink { display: none; }
   .film { padding: 24px 6%; }
-  .film video { aspect-ratio: 16 / 9; }
   .section { padding-block: 54px; }
   .introGrid, .locationGrid { grid-template-columns: 1fr; gap: 28px; }
   .introduction h2 { margin-bottom: 26px; }
