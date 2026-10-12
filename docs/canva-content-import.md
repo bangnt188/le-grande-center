@@ -35,7 +35,7 @@ Yêu cầu bổ sung: giao diện phải được tổ chức thành component t
 - `src/app/{mat-bang,tong-quan,lien-he}/page.tsx`: metadata và composition; không chứa markup section hoặc logic bộ lọc.
 - `PublicPageLayout`: sở hữu header, main và footer chung, với biến thể giao diện editorial/project. `SitePage` dùng lại layout này cho trang tổng quan tầng.
 - `ProjectHero`, `ProjectOverview`, `InvestorLetter`, `ProjectContact`, `LeasingSuggestion`: component trình bày trong feature public; phần có nội dung thay đổi nhận props.
-- `LeasingExplorer`: client component nhận `floors`, `units`, `sourceDocument`, `contactEmail`, `initialSelectedId`; không import inventory hoặc cấu hình liên hệ. Sở hữu CTA tiếp tục nhu cầu thuê với mã ô hiện đang xem, dùng lại `LeasingSuggestion`. Đường dẫn asset dùng quy ước basePath của site.
+- LeasingExplorer là client component nhận floors, units, sourceDocument và initialSelectedId. Inventory đến từ route; email liên hệ lấy từ WebsiteSettingsProvider để đồng bộ cấu hình đã lưu với các màn public khác. CTA giữ mã ô đang xem, tái sử dụng LeasingSuggestion và quy ước basePath.
 - `useLeasingExplorer`: sở hữu selection, filter và đồng bộ hash với tầng hợp lệ. Loại hình được lấy trong tầng đang xem; đổi tầng reset filter. `leasing-model.ts`: contract readonly và quy tắc lọc diện tích.
 - `canva-content.ts`: nội dung/ảnh editorial; `brochure-leasing.ts`: catalog public theo PDF, mỗi ô có `floorId` và hình sơ đồ. Route cung cấp dữ liệu vào explorer.
 - `SiteFooter` tách riêng, cả hai biến thể layout dùng chung. Xóa wrapper `ReferencePage` trùng trách nhiệm và `ContactDetails` không có consumer.
@@ -65,7 +65,7 @@ Nguồn: `public/le-grande-brochure.pdf`, trang 5–10; đã đọc text và ren
 | 5 | E.1–E.11 | 11 | Hai dãy bên trái, E.5 = 1.000 m² là khu rạp dự kiến |
 | 6 | F.1–F.2 | 2 | F.1 = 46 m²; F.2 = 1.020 m² ngoài trời dạng chữ L |
 
-Tổng cộng 81 ô có mã trên tài liệu, không phải 81 đơn vị cho thuê độc lập/đang khả dụng đã xác nhận. Sảnh, WC, hành lang và khoảng thông tầng không tạo slot. Hai tầng shophouse không được ngầm coi là hai hợp đồng độc lập cho mỗi căn liên thông.
+Tổng cộng 81 ô có mã trên tài liệu, không phải 81 đơn vị đang khả dụng đã xác nhận. Sảnh, WC, hành lang và khoảng thông tầng không tạo slot. Tầng 1–2 gồm 11 cặp A.n/B.n liên thông; khách xác nhận ngày 12/10/2026 có thể thuê riêng từng căn hoặc kết hợp cả cặp, không bắt buộc thuê hai tầng.
 
 Giữ nguyên diện tích in trong PDF, không tính lại từ kích thước đã làm tròn: ví dụ C.1 = 54 m² dù kích thước ghi 5,5 × 9,8 m; F.1 = 46 m² dù ghi 7,8 × 6 m. F.2 chỉ có diện tích/đường bao minh họa; không gán kích thước cạnh tài liệu không cung cấp. Công năng linh hoạt và rạp dự kiến được ghi đúng tính chất đề xuất, không gán thương hiệu hay trạng thái thuê.
 
@@ -97,3 +97,12 @@ Hướng mặt ngoài không đồng nghĩa hướng tiếp cận từ hành lan
 
 Kiểm chứng: smoke catalog 81 ô, đủ số lượng 11/11/23/23/11/2 ở sáu tầng và 16 trường hợp biên/ngoại lệ; `npx tsc --noEmit` đạt. Browser Chromium desktop 1440×960/mobile 390×844 kiểm tra các ô A.1, B.11, C.1/C.12/C.23, D.23, E.5/E.11, F.1/F.2. C.12 giữ Nam/Tây sang contact cùng mã/tầng/83 m² và group dưới 100 m²; Enter và nút chi tiết giữ hash tầng, focus/nhãn không bị header che. Không tràn ngang trang; không có page error/request failure trong mobile smoke. Không xác minh hướng cửa từng ô bằng hồ sơ khảo sát hoặc thiết bị thật.
 
+## Điều hướng căn và liên hệ public — 12/10/2026
+
+- Chi tiết căn có nút Map icon 48×48 như ban đầu, accessible name theo tầng, dùng preset core `call-attention` rung kiểu điện thoại và sóng tròn tỏa 3.2×. Điều hướng căn trước/sau theo mã số trong cùng tầng, không vòng qua đầu/cuối hoặc sang tầng khác. Link trở lại mặt bằng chỉ giữ hash tầng, không giữ `?unit=`, nên không mở lại popup căn.
+- `getShophousePair` liên kết A.n/B.n nhưng giữ nguyên danh tính, diện tích và trạng thái từng căn. Danh sách nhóm tầng 1–2 hiển thị 11 cặp; sơ đồ vẫn chọn từng căn. Bộ lọc diện tích áp dụng từng căn; phần tóm tắt/chi tiết/tư vấn ghi riêng hai diện tích, tổng diện tích và phương án thuê riêng hoặc kết hợp. Đây không phải thao tác ghép slot nghiệp vụ admin xuyên tầng.
+- LeasingConsultation dùng Modal/Badge/field/SurveyForm core cho Zalo, gọi hotline và để lại số điện thoại. Hotline và link Zalo độc lập lấy từ WebsiteSettingsProvider; căn đang xem điền sẵn. Luồng chọn thuê riêng/cả cặp, validation, bàn giao popup và return focus giữ nguyên.
+- CTA “Đăng ký tham quan thực tế” mở form riêng với `intent=visit`, giữ mã căn và lựa chọn thuê riêng/cả cặp. Ngày phải hợp lệ và không trước ngày hiện tại theo múi giờ thiết bị; buổi sáng/chiều là nguyện vọng, không phải lịch đã xác nhận. Ngày tối thiểu cập nhật khi qua nửa đêm hoặc quay lại tab.
+- Form gọi lại và tham quan tiếp tục dùng chế độ demo, không gửi hay lưu PII; chỉ hạn chế tần suất bản xem trước bằng localStorage. Giao diện thông báo rõ kết quả gửi mô phỏng. Chưa tích hợp API tiếp nhận hoặc chứng minh hotline/Zalo có người phản hồi.
+
+Kiểm chứng: `npm run build` đạt (Next static export gồm 81 route căn và trang liên hệ). Browser Chromium desktop 1440×960/mobile 390×844 và 320px: 11 cặp, lọc rỗng/khôi phục, tầng 3 vẫn 23 căn, A.9 → A.10, quay từ B.1 về tầng 2 không mở popup, bàn giao popup và trả focus, Zalo/tel đúng số cấu hình, gửi thử gọi lại/tham quan và validation điện thoại/đồng ý/ngày quá khứ/thiếu ngày hoặc buổi. Màn hình 390×600 cuộn dialog từ 0 lên 260px trong khi scroll trang cha giữ nguyên; audit axe trên dialog tư vấn không có vi phạm. Smoke model kiểm tra ngày không tồn tại, đổi ngày qua nửa đêm, buổi không hợp lệ và 11 liên kết A/B. Không xác minh Safari/thiết bị thật, lịch kinh doanh hoặc API production.

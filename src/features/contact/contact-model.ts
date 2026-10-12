@@ -18,6 +18,15 @@ export const TIMING_OPTIONS = [
   { value: "exploring", label: "Đang tìm hiểu" },
 ] as const;
 
+export const VISIT_TIME_OPTIONS = [
+  { value: "morning", label: "Buổi sáng" },
+  { value: "afternoon", label: "Buổi chiều" },
+] as const;
+
+export function localDateValue(date = new Date()): string {
+  return `${String(date.getFullYear()).padStart(4, "0")}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 export type ContactValues = {
   name: string;
   company: string;
@@ -29,6 +38,9 @@ export type ContactValues = {
   space: string;
   note: string;
   consent: boolean;
+  visitDate?: string;
+  visitTime?: string;
+  scope?: string;
 };
 export type ContactErrors = Partial<Record<keyof ContactValues, string>>;
 
@@ -40,10 +52,12 @@ export function readContactValues(form: HTMLFormElement): ContactValues {
     email: text("email"), business: text("business"), area: text("area"),
     timing: text("timing"), space: text("space"), note: text("note"),
     consent: data.get("consent") === "on",
+    ...(data.has("visitDate") ? { visitDate: text("visitDate"), visitTime: text("visitTime") } : {}),
+    ...(data.has("scope") ? { scope: text("scope") } : {}),
   };
 }
 
-export function validateContact(values: ContactValues): ContactErrors {
+export function validateContact(values: ContactValues, { visit = false, paired = false, now = new Date() } = {}): ContactErrors {
   const errors: ContactErrors = {};
   if (values.name.length < 2 || values.name.length > 100) errors.name = "Nhập họ tên từ 2 đến 100 ký tự.";
   if (values.company.length > 150) errors.company = "Tên doanh nghiệp tối đa 150 ký tự.";
@@ -55,6 +69,14 @@ export function validateContact(values: ContactValues): ContactErrors {
   if (values.timing && !TIMING_OPTIONS.some(option => option.value === values.timing)) errors.timing = "Chọn thời gian trong danh sách.";
   if (values.space.length > 150) errors.space = "Thông tin mặt bằng tối đa 150 ký tự.";
   if (values.note.length > 2000) errors.note = "Ghi chú tối đa 2.000 ký tự.";
+  if (paired && values.scope !== "single" && values.scope !== "pair") errors.scope = "Chọn thuê riêng một mặt bằng hoặc thuê cả cặp.";
+  if (visit) {
+    const date = values.visitDate ?? "";
+    // Local noon avoids UTC shifts and DST transitions at midnight. Compare calendar dates, not instants.
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || localDateValue(new Date(`${date}T12:00:00`)) !== date) errors.visitDate = "Chọn ngày tham quan hợp lệ.";
+    else if (date < localDateValue(now)) errors.visitDate = "Chọn ngày tham quan từ hôm nay trở đi.";
+    if (!VISIT_TIME_OPTIONS.some(option => option.value === values.visitTime)) errors.visitTime = "Chọn buổi sáng hoặc buổi chiều để tham quan.";
+  }
   if (!values.consent) errors.consent = "Vui lòng đồng ý để chúng tôi liên hệ tư vấn.";
   return errors;
 }

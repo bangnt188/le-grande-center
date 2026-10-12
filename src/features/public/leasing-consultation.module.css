@@ -1,0 +1,30 @@
+.host { font-family: var(--ui-font-body); }
+.host > button { width: 100%; min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 14px; }
+.host > button svg { width: 18px; height: 18px; }
+.host [role="dialog"] { inline-size: min(680px, calc(100vw - 32px)); padding: 26px; border-radius: 16px; color-scheme: light; }
+.host [role="dialog"] h2 { font-family: var(--ui-font-body); font-size: 22px; line-height: 1.5; font-weight: 600; letter-spacing: 0; }
+.host [role="dialog"] p { font-size: 14px; line-height: 1.7; }
+.summary { margin-block: 24px; padding: 16px 0; border-block: 1px solid var(--ui-color-border); }
+.summaryHeading { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+.summaryHeading strong { font-size: 16px; line-height: 1.6; }
+.summary p { margin: 6px 0 0; color: var(--ui-color-text-secondary); font-variant-numeric: tabular-nums; }
+.summary .total { font-size: 18px; color: var(--ui-color-text-primary); }
+.question { margin: 0 0 12px; }
+.choices { display: grid; gap: 10px; }
+.choices a, .choices button { display: flex; align-items: center; gap: 16px; width: 100%; padding: 16px; min-height: 76px; border: 1px solid var(--ui-color-border); border-radius: 12px; background: var(--ui-color-surface-raised); color: var(--ui-color-text-primary); text-decoration: none; text-align: left; font: inherit; cursor: pointer; }
+.choices a:hover, .choices button:hover { background: color-mix(in srgb, var(--ui-color-action) 6%, var(--ui-color-surface-raised)); border-color: color-mix(in srgb, var(--ui-color-action) 32%, var(--ui-color-border)); }
+.choices svg { width: 22px; height: 22px; flex: 0 0 22px; color: var(--ui-color-action); }
+.choices svg:last-child { width: 18px; height: 18px; margin-left: auto; flex-basis: 18px; color: var(--ui-color-text-secondary); }
+.choices span { display: grid; gap: 4px; min-width: 0; }
+.choices strong { font-size: 16px; line-height: 1.5; font-weight: 500; }
+.choices small { color: var(--ui-color-text-secondary); font-size: 13px; line-height: 1.6; }
+.host .note { margin: 16px 0 0; font-size: 12px; color: var(--ui-color-text-secondary); }
+.callback { display: grid; gap: 18px; }
+.callback > button:first-child { justify-self: start; padding-left: 0; }
+.callback h3 { margin: 0; font-size: 18px; }
+.scope { display: grid; gap: 10px; border: 0; padding: 0; margin: 0; }
+.scope legend { padding: 0 0 12px; font-size: 14px; }
+.scope label { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; line-height: 1.6; }
+.scope input { accent-color: var(--ui-color-action); width: 18px; height: 18px; flex: 0 0 18px; }
+.host a:focus-visible, .host button:focus-visible, .scope input:focus-visible { outline: 2px solid var(--ui-color-focus); outline-offset: 4px; }
+@media (max-width: 600px) { .host [role="dialog"] { padding: 20px; } .host [role="dialog"] h2 { font-size: 20px; } .summaryHeading { flex-wrap: wrap; } .choices a, .choices button { padding: 14px 12px; gap: 12px; } }

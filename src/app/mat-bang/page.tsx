@@ -3,7 +3,6 @@ import { siteUrl } from "@/config/site";
 import { LeasingExplorer } from "@/features/public/leasing-explorer";
 import styles from "@/features/public/leasing-hero.module.css";
 import { BROCHURE_FLOORS, BROCHURE_ORIENTATION, BROCHURE_PATH, BROCHURE_UNITS } from "@/features/public/brochure-leasing";
-import { EMAIL } from "@/features/public/site-content";
 
 export const metadata = { title: "Mặt bằng / Cho thuê" };
 export default function SpacesPage() {
@@ -17,6 +16,6 @@ export default function SpacesPage() {
         <p className={styles.description}>Chọn một tầng để bắt đầu, hoặc lọc theo loại hình và diện tích bạn cần.</p>
       </div>
     </section>
-    <LeasingExplorer floors={BROCHURE_FLOORS} units={BROCHURE_UNITS} orientation={BROCHURE_ORIENTATION} sourceDocument={BROCHURE_PATH} contactEmail={EMAIL}/>
+    <LeasingExplorer floors={BROCHURE_FLOORS} units={BROCHURE_UNITS} orientation={BROCHURE_ORIENTATION} sourceDocument={BROCHURE_PATH}/>
   </PublicPageLayout>;
 }

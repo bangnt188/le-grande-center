@@ -11,22 +11,27 @@
   --ui-radius-control:8px;--ui-admin-title-size:34px;--ui-admin-title-font:Georgia,"Times New Roman",serif;
   --ui-admin-sidebar-width:248px;--ui-admin-content-padding:36px;--ui-font-size-sm:13px;--ui-font-size-md:14px;
   --ui-shadow-overlay:0 12px 36px rgb(22 62 47 / .16);--ui-control-block-size:42px;
+  --ui-slot-available-surface:color-mix(in srgb,var(--ui-color-success) 12%,var(--ui-color-surface));
+  --ui-slot-available-text:var(--ui-color-success);--ui-slot-available-border:var(--ui-color-success);
+  --ui-slot-leased-surface:color-mix(in srgb,var(--ui-color-accent) 18%,var(--ui-color-surface));
+  --ui-slot-leased-text:var(--ui-color-warning);--ui-slot-leased-border:var(--ui-color-accent);
+  --ui-slot-selected-surface:var(--ui-color-action);--ui-slot-selected-text:var(--ui-color-action-foreground);--ui-slot-selected-border:var(--ui-color-accent);
 }
 body:has(.legrande-admin){background:#f5f3eb}
-.mall-admin-shell>aside,.mall-admin-shell>[role=dialog]{
+.mall-admin-shell>aside,.mall-admin-shell [data-admin-navigation]{
   --ui-color-surface:#082e22;--ui-color-surface-raised:#173e30;
   --ui-color-text-primary:#f3f0e4;--ui-color-text-secondary:#bbcabf;
   --ui-color-border:#2b4d3d;--ui-color-action:#dcc18a;--ui-color-action-foreground:#082e22;
   --ui-color-focus:#dcc18a;--ui-admin-selected-surface:#244938;--ui-admin-selected-border:#87956a;
 }
-.mall-admin-shell>aside{padding:30px 18px;gap:36px}
+.mall-admin-shell>aside{padding:24px 18px;gap:20px}
 .mall-admin-shell>aside strong{letter-spacing:.01em}
 .mall-admin-shell main{padding-block-start:36px}
 .mall-admin-shell main h1{font-family:var(--ui-admin-title-font);font-weight:400;letter-spacing:-.025em;color:#163e2f}
 .mall-admin-shell main h1+p{font-size:14px;line-height:1.7;margin-top:10px}
-.mall-admin-shell>aside nav{gap:8px}
+.mall-admin-shell>aside nav{gap:4px}
 .b2b-dossier-layout{--ui-workspace-columns:320px minmax(0,1fr);gap:28px}
-.legrande-admin .records-panel,.legrande-admin .plan-panel,.legrande-admin .slot-register,.legrande-admin .space-inspector,.legrande-admin .record-inspector{border-color:var(--line);border-radius:12px;background:var(--ui-color-surface)}
+.legrande-admin .records-panel,.legrande-admin .plan-panel,.legrande-admin .slot-register,.legrande-admin .space-inspector{border-color:var(--line);border-radius:12px;background:var(--ui-color-surface)}
 .b2b-panel-heading{padding:24px;gap:18px}
 .b2b-panel-heading h2,.register-heading h2{font-size:17px;letter-spacing:-.01em}
 .b2b-company-row{padding:22px 24px;justify-content:flex-start;align-items:flex-start;font-weight:400;line-height:1.65}
@@ -44,15 +49,14 @@ body:has(.legrande-admin){background:#f5f3eb}
 .legrande-admin .text-button{min-height:36px;padding:7px 9px;font-size:12px;font-weight:500;background:transparent;color:var(--green);white-space:normal}
 .legrande-admin input:not([type=checkbox]),.legrande-admin select,.legrande-admin textarea{border-color:var(--line);background:var(--ui-color-surface-raised);border-radius:8px;min-height:42px;color:var(--ink);font-size:13px}
 .legrande-admin [type=checkbox]{accent-color:var(--green)}
-.legrande-admin .lead-row,.legrande-admin .b2b-request-row{font-weight:400;justify-content:flex-start;line-height:1.6}
-.legrande-admin .media-tile{font-weight:400;justify-content:stretch}
+.legrande-admin .b2b-request-row{font-weight:400;justify-content:flex-start;line-height:1.6}
 .legrande-admin .plan-slot{min-height:0;min-block-size:0;font-weight:400;border-radius:0}
 .legrande-admin .floor-tab{justify-content:flex-start;font-weight:400;line-height:1.45}
 .legrande-admin .floor-tab.is-active{background:#e9eee4;border-color:#a49a72}
 .legrande-admin .selected-area strong{font-family:var(--ui-admin-title-font);font-size:32px;font-weight:400}
 .legrande-admin .register-heading{padding:22px 24px;gap:18px}
 .legrande-admin .space-layout,.legrande-admin .records-layout{gap:24px}
-.legrande-admin .space-inspector,.legrande-admin .record-inspector{padding:24px}
+.legrande-admin .space-inspector{padding:24px}
 .legrande-admin table{font-size:13px;line-height:1.7}
 .legrande-admin table th{background:#f3f4ed;padding:14px 20px;font-size:11px;font-weight:600;color:var(--muted)}
 .legrande-admin table td{padding:18px 20px;border-color:var(--line);font-size:13px;white-space:normal}
@@ -77,11 +81,11 @@ body:has(.legrande-admin){background:#f5f3eb}
 @media(max-width:520px){.b2b-company-list{grid-template-columns:minmax(0,1fr)}.b2b-dossier-layout{gap:22px}.b2b-company-list .admin-pagination nav{flex-basis:100%}.admin-pagination nav{flex-basis:100%;justify-content:center;gap:10px}.b2b-private-label{margin-left:0;white-space:normal}.legrande-admin table td,.legrande-admin table th{padding:14px 16px}.b2b-profile-columns{gap:24px}.legrande-admin .plan-scale{font-size:10px}.legrande-admin .slot-status{font-size:10px}}
 
 .mall-admin-shell>aside{color:var(--ui-color-text-primary);--ui-color-warning:#dcc18a}
-.mall-admin-shell>[role=dialog]{--ui-color-warning:#dcc18a}
+.mall-admin-shell [data-admin-navigation]{--ui-color-warning:#dcc18a}
 .legrande-admin .admin-page-size{display:flex;align-items:center;gap:8px;margin:0}
 .legrande-admin .admin-page-size select{width:64px}
 .table-scroll-hint{display:none}
-@media(max-width:850px){.mall-admin-shell header nav[aria-label="Vị trí quản trị"]{display:none}.shell-mode select{width:156px;max-width:156px}.table-scroll-hint{display:block;margin:0;padding:10px 20px;background:#fbfaf5;color:var(--muted);font-size:12px}}
+@media(max-width:850px){.mall-admin-shell header nav[aria-label="Vị trí quản trị"]{display:none}.table-scroll-hint{display:block;margin:0;padding:10px 20px;background:#fbfaf5;color:var(--muted);font-size:12px}}
 
 /* Records occupy a stable page region; pagination remains outside the measured body. */
 .legrande-admin .b2b-company-list{display:block}
@@ -108,13 +112,11 @@ body:has(.legrande-admin){background:#f5f3eb}
 .legrande-admin .plan-slot strong,.legrande-admin .slot-area { font-size:13px; }
 .legrande-admin .slot-status,.legrande-admin .slot-dimension { font-size:11px; }
 .legrande-admin .slot-area small { font-size:11px; }
-.legrande-admin .media-tile>strong { font-size:13px; }
-.legrande-admin .media-tile>span:not(.media-thumbnail),.legrande-admin .media-tile>small { font-size:12px; }
 @media(min-width:851px) and (max-width:1200px) {
   .legrande-admin .b2b-lease-layout { --ui-workspace-columns:minmax(0,1fr); }
 }
 @media(max-width:1000px) {
-  .legrande-admin .b2b-request-layout,.legrande-admin .b2b-public-layout { --ui-workspace-columns:minmax(0,1fr); }
+  .legrande-admin .b2b-request-layout { --ui-workspace-columns:minmax(0,1fr); }
 }
 @media(max-width:850px) {
   .legrande-admin .records-layout,.legrande-admin .b2b-lease-layout { --ui-workspace-columns:minmax(0,1fr); }
@@ -128,8 +130,32 @@ body:has(.legrande-admin){background:#f5f3eb}
   .legrande-admin .storage-details-toggle { display:inline-flex;min-block-size:44px;margin-block-start:4px;padding-inline:0; }
   .storage-details:not([data-expanded]) { display:none; }
 }
-.legrande-admin .scope-workflow-nav { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-bottom: 24px; }
-.legrande-admin .scope-workflow-nav label, .legrande-admin .scope-upload-target { display: grid; gap: 8px; color: var(--ink); font-size: 14px; }
-.legrande-admin .scope-upload-target { max-width: 32rem; margin-block: 16px; }
-.legrande-admin .scope-workflow-nav select, .legrande-admin .scope-upload-target select { width: 100%; min-height: 44px; }
-@media (max-width: 520px) { .legrande-admin .scope-workflow-nav label { width: 100%; } }
+
+
+
+/* One operational frame: grouped navigation, contextual tabs, explicit demo entry. */
+.legrande-admin .admin-website-link{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 10px;color:var(--ui-color-action);border-radius:var(--ui-radius-control);text-decoration:none;white-space:nowrap;font-size:13px;font-weight:500}
+.legrande-admin .admin-website-link:hover{background:var(--ui-color-surface-raised)}
+.legrande-admin .admin-website-link:focus-visible,.admin-demo-login a:focus-visible{outline:3px solid var(--ui-color-focus);outline-offset:3px}
+.admin-entry-loading{display:grid;place-items:center;min-height:100svh}
+.admin-demo-login{display:grid;grid-template-columns:minmax(280px,.85fr) minmax(0,1.15fr);min-height:100svh;color:var(--ui-color-text-primary);background:var(--ui-color-canvas);font-family:var(--ui-font-body)}
+.admin-login-brand{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:24px;padding:clamp(32px,6vw,96px);background:var(--ui-color-action);color:var(--ui-color-action-foreground)}
+.admin-login-brand h2{margin:0;font:400 30px/1.4 Georgia,serif}.admin-login-brand p{margin:8px 0 0;line-height:1.7}.admin-login-brand .admin-login-intro{max-width:30ch;margin:8px 0 16px;font-size:19px;line-height:1.8}
+.admin-login-brand a{color:inherit;text-underline-offset:4px;min-height:44px;display:inline-flex;align-items:center}
+.admin-login-panel{align-self:center;justify-self:center;width:min(100%,480px);padding:48px 32px}.admin-login-panel h1{margin:24px 0 12px;font:400 clamp(28px,3vw,38px)/1.4 Georgia,serif}.admin-login-panel>p{color:var(--ui-color-text-secondary);line-height:1.8;margin:0 0 32px}
+.admin-login-panel .admin-login-note{margin:24px 0 0;font-size:13px;line-height:1.8}.admin-login-panel .admin-login-error{color:var(--ui-color-error);margin:16px 0 0}
+@media(max-width:850px){.admin-demo-login{grid-template-columns:1fr}.admin-login-brand{padding:28px 24px;gap:16px}.admin-login-brand img{width:48px;height:48px}.admin-login-brand h2{font-size:26px}.admin-login-brand .admin-login-intro{font-size:15px;max-width:none;margin:0}.admin-login-panel{padding:32px 24px}.admin-login-panel h1{margin-top:20px}}
+@media(max-width:600px){.mall-admin-shell header>div:first-child>div:has(img){display:none}.admin-website-link svg{display:none}}
+.admin-login-form{display:grid;gap:20px}.admin-login-form>button{width:100%;justify-content:space-between;min-height:52px;margin-top:8px}
+
+.legrande-admin .slot-state-badge{gap:6px;border:1px solid var(--ui-slot-available-border);background:var(--ui-slot-available-surface);color:var(--ui-slot-available-text);white-space:nowrap}
+.legrande-admin .slot-state-badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.legrande-admin .slot-state-badge[data-slot-status="Đang thuê"]{border-color:var(--ui-slot-leased-border);background:var(--ui-slot-leased-surface);color:var(--ui-slot-leased-text)}
+.legrande-admin .slot-register tr.selected-row{background:color-mix(in srgb,var(--ui-slot-selected-surface) 10%,var(--ui-color-surface))}
+.legrande-admin .space-inspector fieldset{display:grid;gap:14px;min-width:0;border:0;margin:0;padding:0}
+.legrande-admin .admin-editor-form{display:grid;gap:var(--ui-space-4,16px);min-width:0}
+.legrande-admin .admin-editor-form fieldset{display:grid;gap:var(--ui-space-4,16px);border:0;padding:0;margin:0;min-width:0}
+.legrande-admin .admin-editor-form label{display:grid;gap:var(--ui-space-2,8px);min-width:0}
+.legrande-admin .admin-editor-form select,.legrande-admin .admin-editor-form textarea,.legrande-admin .admin-editor-form input{max-width:100%;min-width:0}
+.legrande-admin .admin-editor-form .admin-form-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ui-space-3,12px)}
+@media(max-width:480px){.legrande-admin .admin-editor-form .admin-form-row{grid-template-columns:minmax(0,1fr)}}

@@ -4,11 +4,13 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { View, Selection, SceneActions } from "./runtime";
 import { loadPublicProjection, type ProjectionResult } from "./projection";
-import type { Quality } from "./rendering";
+import type { Quality, LightingPreset } from "@mall/ui/3d";
 import styles from "./viewer.module.css";
 import { SiteHeader } from "@/features/public/site-header";
-import { ADDRESS, PROGRAMS, PROJECT_FILM_URL, PUBLIC_FLOORS } from "@/features/public/site-content";
-import { ScrollMotion } from "@mall/ui/motion";
+import { PROGRAMS, PROJECT_FILM_URL } from "@/features/public/site-content";
+import { useWebsiteSettings } from "@/features/public/website-settings";
+import { telephoneHref } from "@/shared/admin/website-defaults";
+import { createLoadingProgress, createVideoPlaybackController, ScrollMotion } from "@mall/ui/motion";
 import { LayeredScrollStory, Loading, ProgressBar } from "@mall/ui";
 const VIEWS: { id: View; label: string }[] = [
   { id: "front", label: "Mặt tiền" },
@@ -20,6 +22,7 @@ const FLOORS = [1, 2, 3, 4, 5, 6];
 
 
 export default function ModelViewer({ showAdminLink, assetBase, immersive = false }: { showAdminLink: boolean; assetBase: string; immersive?: boolean }) {
+  const { settings, floorContent } = useWebsiteSettings();
   const host = useRef<HTMLDivElement>(null);
   const filmVideo = useRef<HTMLVideoElement>(null);
   const dots = useRef<(HTMLButtonElement | null)[]>([]);
@@ -34,7 +37,7 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [projection, setProjection] = useState<ProjectionResult>({ status: "unavailable", projection: null, message: "Đang tải thông tin công khai…" });
   const [quality, setQuality] = useState<Quality | "auto">("auto");
-  const [lighting, setLighting] = useState<"daylight" | "evening">("evening");
+  const [lighting, setLighting] = useState<LightingPreset>("evening");
   const [assetNotice, setAssetNotice] = useState("");
   const selection = useRef<Selection>({ floor: null, slot: null, view: "aerial", lighting: "evening", motion: true, allowedViews: VIEWS.map(view => view.id) });
   const publicSlots = projection.projection?.slots.filter(slot => slot.floorId === `T${selectedFloor}` && slot.confidence === "verified") ?? [];
@@ -42,26 +45,14 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
   const selectedProgram = PROGRAMS.find(program => selectedFloor !== null && program.floors.includes(selectedFloor));
   const emailSubject = `Tìm hiểu Le Grande Centre${selectedFloor === null ? "" : ` – Tầng ${selectedFloor}`}${selectedSlot ? ` – ${selectedSlot}` : ""}`;
   const emailBody = `Kính gửi Le Grande Centre,\n\nDoanh nghiệp chúng tôi muốn tìm hiểu ${selectedFloor === null ? "không gian tại dự án" : `tầng ${selectedFloor} (${selectedProgram?.title})`}${selectedSlot ? `, mặt bằng ${selectedSlot}` : ""}. Vui lòng xác nhận mặt bằng, công năng và tình trạng khả dụng hiện tại.\n\nXin cảm ơn.`;
-  const emailHref = `mailto:ntmcongty@gmail.com?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+  const emailHref = `mailto:${settings.email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
 
 
   useEffect(() => {
     const video = filmVideo.current;
-    if (!video || !("IntersectionObserver" in window)) return;
-    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    let inView = false;
-    const syncPlayback = () => {
-      if (motion.matches || !inView) { video.pause(); return; }
-      video.muted = true;
-      void video.play().catch(() => {});
-    };
-    const observer = new IntersectionObserver(entries => {
-      inView = entries.some(entry => entry.isIntersecting);
-      syncPlayback();
-    }, { threshold: .35 });
-    observer.observe(video);
-    motion.addEventListener("change", syncPlayback);
-    return () => { observer.disconnect(); motion.removeEventListener("change", syncPlayback); video.pause(); };
+    if (!video) return;
+    const playback = createVideoPlaybackController(video, .35);
+    return () => playback.destroy();
   }, []);
   useEffect(() => {
     if (!immersive) return;
@@ -91,35 +82,24 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
     let cancelled = false;
     let failed = false;
     let dispose: (() => void) | undefined;
-    let preparationFrame = 0;
-    const stopPreparation = () => cancelAnimationFrame(preparationFrame);
     const onError = (message: string) => {
       if (cancelled) return;
-      failed = Boolean(message); if (failed) { stopPreparation(); setReady(false); } setError(message);
+      failed = Boolean(message); if (failed) { loading.cancel(); setReady(false); } setError(message);
     };
-    setReady(false); setProgress(0); setError(""); setAssetNotice("");
-    const started = performance.now();
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const prepare = (now: number) => {
-      if (cancelled || failed) return;
-      const elapsed = reducedMotion.matches ? 1 : Math.min(1, (now - started) / 300);
-      setProgress(current => Math.max(current, Math.round(70 * (1 - (1 - elapsed) ** 3))));
-      if (elapsed < 1) preparationFrame = requestAnimationFrame(prepare);
-    };
-    preparationFrame = requestAnimationFrame(prepare);
+    setReady(false); setError(""); setAssetNotice("");
+    const loading = createLoadingProgress(setProgress);
     void import("./runtime").then(({ mountScene }) => {
       if (cancelled || failed || !host.current) return;
       dispose = mountScene(host.current, { base: assetBase, quality, selection: selection.current, dots: dots.current,
         onActions: value => { if (!cancelled && !failed) actions.current = value; },
         onProgress: value => {
           if (cancelled || failed) return;
-          stopPreparation();
-          setProgress(current => Math.max(current, Math.min(100, Math.max(70, value))));
+          loading.report(value);
         },
-        onReady: value => { if (!cancelled && !failed) { if (value) stopPreparation(); setReady(value); } },
+        onReady: value => { if (!cancelled && !failed) { if (value) loading.complete(); setReady(value); } },
         onError, onView: setView, onNotice: setAssetNotice });
     }).catch(() => onError("Không tải được trải nghiệm 3D. Bạn có thể thoát để xem phim và liên hệ dự án."));
-    return () => { cancelled = true; stopPreparation(); dispose?.(); actions.current = null; };
+    return () => { cancelled = true; loading.cancel(); dispose?.(); actions.current = null; };
   }, [assetBase, quality, immersive]);
 
   function selectFloor(floor: number | null) {
@@ -160,7 +140,7 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
     <LayeredScrollStory.Hero><section className={styles.cover} aria-labelledby="cover-heading">
     <img className={styles.coverImage} src={`${assetBase}/model-3d/explore-cover.webp`} alt="Phối cảnh hoàng hôn: tượng đài, cảnh quan và không gian bên hồ" fetchPriority="high" decoding="async" />
       <div className={styles.coverTitle}><h1 id="cover-heading">Le Grande<br /><em>Centre.</em></h1><p>Thương mại, dịch vụ và giải trí.<br/>Sáu tầng kết nối bên Hồ Nước Ngọt.</p></div>
-      <div className={styles.coverActions}><Link className={styles.exploreLink} href="/mat-bang/" prefetch={false}><span>Xem mặt bằng</span><Arrow /><small>Tìm không gian cho doanh nghiệp</small></Link><Link className={styles.coverExplore} href="/kham-pha/" prefetch={false}>Khám phá công trình 3D <Arrow/></Link></div>
+      <div className={styles.coverActions}><Link className={styles.exploreLink} data-ui-interaction="arrow" href="/mat-bang/" prefetch={false}><span>Xem mặt bằng</span><Arrow /><small>Tìm không gian cho doanh nghiệp</small></Link><Link className={styles.coverExplore} href="/kham-pha/" prefetch={false}>Khám phá công trình 3D <Arrow/></Link></div>
     </section></LayeredScrollStory.Hero>
     <LayeredScrollStory.Surface backgroundImage={`${assetBase}/model-3d/explore-cover.webp`}>
     <section className={styles.lead} aria-labelledby="project-heading">
@@ -173,20 +153,20 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
         </div>
       </div>
       <div className={styles.leadGallery}>
-        <figure className={styles.leadPrimaryFigure}>
-          <div className={styles.leadMediaFrame}><img className={styles.leadMediaImage} src={`${assetBase}/images/le-grande-aerial-close.webp`} alt="Le Grande Centre nhìn cận cảnh từ trên cao" loading="lazy" decoding="async" /></div>
+        <figure className={styles.leadPrimaryFigure} data-ui-media-hover>
+          <div className={styles.leadMediaFrame}><img className={styles.leadMediaImage} data-ui-effect="media-drift" src={`${assetBase}/images/le-grande-aerial-close.webp`} alt="Le Grande Centre nhìn cận cảnh từ trên cao" loading="lazy" decoding="async" /></div>
           <figcaption><span>01</span>Mặt tiền thương mại và toàn khối công trình.</figcaption>
         </figure>
-        <figure className={styles.leadSecondaryFigure}>
-          <div className={styles.leadMediaFrame}><img className={styles.leadMediaImage} src={`${assetBase}/images/le-grande-aerial-context.webp`} alt="Le Grande Centre trong bối cảnh đô thị" loading="lazy" decoding="async" /></div>
+        <figure className={styles.leadSecondaryFigure} data-ui-media-hover>
+          <div className={styles.leadMediaFrame}><img className={styles.leadMediaImage} data-ui-effect="media-drift" data-ui-effect-direction="reverse" src={`${assetBase}/images/le-grande-aerial-context.webp`} alt="Le Grande Centre trong bối cảnh đô thị" loading="lazy" decoding="async" /></div>
           <figcaption><span>02</span>Cảnh quan và liên kết giao thông xung quanh.</figcaption>
         </figure>
-        <figure className={styles.leadThirdFigure}>
-          <div className={styles.leadMediaFrame}><img className={styles.leadMediaImage} src={`${assetBase}/images/le-grande-aerial-third.webp`} alt="Góc nhìn drone bổ sung về khu vực Le Grande Centre" loading="lazy" decoding="async" /></div>
+        <figure className={styles.leadThirdFigure} data-ui-media-hover>
+          <div className={styles.leadMediaFrame}><img className={styles.leadMediaImage} data-ui-effect="media-drift" src={`${assetBase}/images/le-grande-aerial-third.webp`} alt="Góc nhìn drone bổ sung về khu vực Le Grande Centre" loading="lazy" decoding="async" /></div>
           <figcaption><span>03</span>Một góc nhìn khác về công trình và khu vực.</figcaption>
         </figure>
-        <figure className={styles.leadFourthFigure}>
-          <div className={styles.leadMediaFrame}><img className={styles.leadMediaImage} src={`${assetBase}/images/le-grande-hero-drive.webp`} alt="Hình ảnh giới thiệu dự án Le Grande Centre" loading="lazy" decoding="async" /></div>
+        <figure className={styles.leadFourthFigure} data-ui-media-hover>
+          <div className={styles.leadMediaFrame}><img className={styles.leadMediaImage} data-ui-effect="media-drift" data-ui-effect-direction="reverse" src={`${assetBase}/images/le-grande-hero-drive.webp`} alt="Hình ảnh chủ đạo giới thiệu dự án Le Grande Centre" loading="lazy" decoding="async" /></div>
           <figcaption><span>04</span>Hình ảnh chủ đạo giới thiệu Le Grande Centre.</figcaption>
         </figure>
       </div>
@@ -194,7 +174,7 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
 
     <section className={styles.floorPreview} aria-labelledby="home-floors-heading">
       <div className={styles.floorPreviewIntro}><h2 id="home-floors-heading">Sáu tầng.<br/><em>Nhiều khả năng.</em></h2><p>Tìm hiểu công năng từng tầng, từ không gian thương mại đến dịch vụ và giải trí.</p><Link className={styles.textLink} href="/tong-quan-tang/">Tổng quan từng tầng <Arrow/></Link></div>
-      <div className={styles.floorPreviewList}>{PUBLIC_FLOORS.map(item => <Link key={item.floor} href={`/tong-quan-tang/#tang-${item.floor}`} className={styles.floorPreviewRow}><span>Tầng {item.floor}</span><h3>{item.title}{item.floor >= 5 && <small>Công năng dự kiến</small>}</h3><Arrow/></Link>)}</div>
+      <div className={styles.floorPreviewList}>{floorContent.map(item => <Link key={item.number} href={`/tong-quan-tang/#tang-${item.number}`} className={styles.floorPreviewRow}><span>Tầng {item.number}</span><h3>{item.publicTitle}{item.number >= 5 && <small>Công năng dự kiến</small>}</h3><Arrow/></Link>)}</div>
     </section>
 
     </LayeredScrollStory.Surface></LayeredScrollStory>}
@@ -202,7 +182,7 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
       <div className={styles.viewerHeader}><Link href="/" className={styles.exitLink}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m14 6-6 6 6 6M8 12h13" stroke="currentColor" strokeWidth="1.5" /></svg>Thoát</Link><h1>Le Grande Centre</h1><button className={styles.infoToggle} aria-expanded={panelOpen} aria-controls="viewer-information" onClick={() => setPanelOpen(!panelOpen)}>Tầng & mặt bằng</button></div>
       <div className={styles.workspace} data-scene-ready={ready}>
         <div className={styles.canvas} ref={host} inert={!ready} />
-        <div className={styles.hotspots} aria-label="Chọn tầng trên tòa nhà">{FLOORS.map((floor, index) => <button
+        <div className={styles.hotspots} data-ui-effect-group="pulse-rings" aria-label="Chọn tầng trên tòa nhà">{FLOORS.map((floor, index) => <button
           key={floor}
           ref={element => { dots.current[index] = element; }}
           className={styles.hotspot}
@@ -211,7 +191,7 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
           aria-pressed={selectedFloor === floor}
           aria-controls="floor-detail"
           onClick={event => selectHotspot(floor, event.clientX, event.clientY, event.detail === 0)}
-        ><span className={styles.dot} /><span className={styles.dotLabel}>Tầng {floor}</span></button>)}</div>
+        ><span className={styles.dot} data-ui-effect="pulse-ring" /><span className={styles.dotLabel} data-ui-interaction="opacity">Tầng {floor}</span></button>)}</div>
         {!ready && <div className={styles.loadingSurface} data-scene-loading>
           {error ? <div className={styles.sceneError} role="alert"><p>{error}</p><Link href="/#phim-du-an" className={styles.textLink}>Thoát và xem phim dự án <Arrow /></Link></div> : <div className={styles.loading}>
             <Loading size="md" />
@@ -235,12 +215,12 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
       <button className={styles.closePanel} onClick={event => { setPanelOpen(false); event.currentTarget.closest("main")?.querySelector<HTMLButtonElement>("[aria-controls=viewer-information]")?.focus(); }}>Đóng thông tin <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6" stroke="currentColor" strokeWidth="1.5" /></svg></button>
       <div className={styles.programLayout}>
         <div className={styles.floorDetail} id="floor-detail" aria-live="polite" aria-atomic="true">
-          {selectedFloor === null ? <><h2>Sáu tầng,<br />một không gian kết nối.</h2><p>Chọn chấm trắng trên tòa nhà hoặc chọn tầng bên cạnh để tìm hiểu công năng được giới thiệu.</p></> : <><p className={styles.floorNumber}>Tầng {selectedFloor}</p><h2>{projection.projection?.floors.find(floor => floor.floorId === `T${selectedFloor}`)?.label ?? selectedProgram?.title}</h2><p>{selectedProgram?.description}</p><button className={styles.clearFloor} onClick={() => selectFloor(null)}>Bỏ chọn tầng</button></>}
+          {selectedFloor === null ? <><h2>Sáu tầng,<br />một không gian kết nối.</h2><p>Chọn chấm trắng trên tòa nhà hoặc chọn tầng bên cạnh để tìm hiểu công năng được giới thiệu.</p></> : <><p className={styles.floorNumber}>Tầng {selectedFloor}</p><h2>{floorContent.find(floor => floor.number === selectedFloor)?.publicTitle}</h2><p>{floorContent.find(floor => floor.number === selectedFloor)?.publicDescription}</p><button className={styles.clearFloor} onClick={() => selectFloor(null)}>Bỏ chọn tầng</button></>}
           <p className={styles.sourceNote}><a href={`${assetBase}/le-grande-brochure.pdf`} target="_blank" rel="noopener noreferrer">Xem hồ sơ dự án (PDF)</a>.</p>
         </div>
         <div className={styles.programs} aria-label="Công năng theo tầng">{PROGRAMS.map(program => <div className={styles.programRow} key={program.title}>
           <div className={styles.floorChoices}>{program.floors.map(floor => <button key={floor} aria-pressed={selectedFloor === floor} aria-controls="floor-detail" onClick={() => selectFloor(floor)}>Tầng {floor}</button>)}</div>
-          <div><h3>{program.title}</h3><p>{program.floors[0] === 1 ? "Shophouse thông tầng 1–2 (duplex)" : program.floors[0] === 3 ? "Dịch vụ và không gian văn phòng" : program.floors[0] === 5 ? "Rạp chiếu phim dự kiến" : "Công năng dự kiến"}</p></div>
+          <div><h3>{program.title}</h3><p>{program.floors.map(floor => floorContent.find(item => item.number === floor)?.publicDescription).filter(Boolean).join(" ")}</p></div>
         </div>)}</div>
       </div>
       <section className={styles.slotSection} aria-labelledby="slot-heading" data-projection-status={projection.status}>
@@ -258,11 +238,11 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
     <section className={styles.contact} id="lien-he" aria-labelledby="contact-heading">
       <div className={styles.contactLead}><h2 id="contact-heading">Cùng tìm không gian<br />cho doanh nghiệp của bạn.</h2><p>Trao đổi trực tiếp với Le Grande Centre để xác nhận công năng, mặt bằng phù hợp và thông tin khai thác hiện tại.</p></div>
       <div className={styles.contactDetails}>
-        <a className={styles.phone} href="tel:0973879563">0973 879 563 <Arrow /></a>
+        <a className={styles.phone} href={telephoneHref(settings.hotline)}>{settings.hotline} <Arrow /></a>
         <a className={styles.emailLink} href={emailHref}>Liên hệ qua email{selectedFloor === null ? " trao đổi" : ` về tầng ${selectedFloor}`} <Arrow /></a>
-        <p className={styles.emailNote}>ntmcongty@gmail.com</p>
-        <address>{ADDRESS}<a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ADDRESS)}`} className={styles.mapLink} target="_blank" rel="noopener noreferrer">Xem vị trí trên bản đồ <Arrow /></a></address>
-        <p className={styles.additionalPhones}>Liên hệ khác: <a href="tel:0944634243">0944 634 243</a> · <a href="tel:0931060768">0931 060 768</a></p>
+        <p className={styles.emailNote}>{settings.email}</p>
+        <address>{settings.address}<a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address)}`} className={styles.mapLink} target="_blank" rel="noopener noreferrer">Xem vị trí trên bản đồ <Arrow /></a></address>
+        {(settings.secondaryPhone || settings.managementPhone) && <p className={styles.additionalPhones}>Liên hệ khác: {[settings.secondaryPhone, settings.managementPhone].filter(Boolean).map((phone, index) => <span key={index}>{index > 0 && " · "}<a href={telephoneHref(phone)}>{phone}</a></span>)}</p>}
       </div>
     </section>
     </LayeredScrollStory.Surface>}

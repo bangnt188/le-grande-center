@@ -2,19 +2,42 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useSurveySubmission } from "@mall/ui/forms";
-import type { LeasingUnit } from "../public/leasing-model";
-import { readContactValues, validateContact, type ContactErrors, type ContactValues } from "./contact-model";
+import { useSearchParams } from "next/navigation";
+import { getShophousePair, type LeasingUnit } from "../public/leasing-model";
+import { localDateValue, readContactValues, validateContact, type ContactErrors, type ContactValues } from "./contact-model";
 
 export function useContactForm(units: readonly LeasingUnit[]) {
   const [errors, setErrors] = useState<ContactErrors>({});
-  const [inquiry, setInquiry] = useState<LeasingUnit | null>(null);
-  const [visit, setVisit] = useState(false);
+  const params = useSearchParams();
+  const inquiry = units.find(unit => unit.id === params.get("unit")) ?? null;
+  const visit = params.get("intent") === "visit";
+  const pair = inquiry ? getShophousePair(inquiry, units) : null;
+  const initialScope = pair && params.get("scope") === "pair" ? "pair" : "single";
+  const [scope, setScope] = useState(initialScope);
+  const [today, setToday] = useState("");
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const selected = units.find(unit => unit.id === params.get("unit")) ?? null;
-    setInquiry(selected);
-    setVisit(selected !== null && params.get("intent") === "visit");
-  }, [units]);
+    setScope(initialScope);
+    setErrors({});
+  }, [inquiry?.id, visit, initialScope]);
+  useEffect(() => {
+    if (!visit) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const refreshToday = () => {
+      clearTimeout(timer);
+      const now = new Date();
+      setToday(localDateValue(now));
+      const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      timer = setTimeout(refreshToday, midnight.getTime() - now.getTime() + 25);
+    };
+    refreshToday();
+    window.addEventListener("focus", refreshToday);
+    document.addEventListener("visibilitychange", refreshToday);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("focus", refreshToday);
+      document.removeEventListener("visibilitychange", refreshToday);
+    };
+  }, [visit]);
   const submission = useSurveySubmission<ContactValues>({
     mode: "demo",
     storageKey: "legrande:contact-preview-rate-limit:v1",
@@ -26,7 +49,8 @@ export function useContactForm(units: readonly LeasingUnit[]) {
     if (!submission.ready || submission.submitting || submission.coolingDown) return;
     const form = event.currentTarget;
     const values = readContactValues(form);
-    const nextErrors = validateContact(values);
+    if (visit) setToday(localDateValue());
+    const nextErrors = validateContact(values, { visit, paired: pair !== null });
     setErrors(nextErrors);
     submission.dismissNotice();
     const firstError = Object.keys(nextErrors)[0];
@@ -35,8 +59,11 @@ export function useContactForm(units: readonly LeasingUnit[]) {
       if (field instanceof HTMLElement) field.focus();
       return;
     }
-    if (await submission.submit(values) === "success") form.reset();
+    if (await submission.submit(values) === "success") {
+      form.reset();
+      setScope(initialScope);
+    }
   }
 
-  return { errors, submission, submit, inquiry, visit };
+  return { errors, submission, submit, inquiry, visit, pair, scope, setScope, today };
 }

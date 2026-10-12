@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { siteUrl } from "@/config/site";
 import { SiteFooter } from "./site-footer";
-import { ADDRESS, LEASING_PHONES, PROJECT_FILM_URL } from "./site-content";
+import { PROJECT_FILM_URL } from "./site-content";
+import { WebsiteAddress, WebsiteMapLink, WebsiteHotlineLink } from "./website-settings";
 import { BROCHURE_UNITS } from "./brochure-leasing";
 import { HomeScrollStory, Arrow, SpacesGallery, OverviewGallery } from "./homepage-v2-interactive";
 import HomeVideoSoundToggle from "./home-video-sound-toggle";
@@ -22,7 +23,7 @@ const featuredUnits = [1, 2, 3, 4].map(floor => BROCHURE_UNITS.find(unit => unit
 export default function HomePageV2() {
   const assetBase = new URL(siteUrl).pathname.replace(/\/+$/, "");
   const image = (path: string) => `${assetBase}${path}`;
-  return <div className={styles.page} data-homepage-version="2">
+  return <div className={styles.page} data-homepage-version="2" data-ui-interaction-group="colors">
     <SiteHeader/>
     <main id="main-content" tabIndex={-1}>
       <HomeScrollStory hero={<section className={styles.hero} aria-labelledby="home-title">
@@ -64,8 +65,8 @@ export default function HomePageV2() {
           <div>
             <p className={styles.locationLead} {...reveal({ preset: "slide-left", duration: 1500, intensity: "subtle" })}>Sóc Trăng đang bước vào một nhịp phát triển mới. Tại điểm giao của thương mại, dịch vụ và đời sống đô thị, một địa điểm thuận tiện tạo nên khác biệt.</p>
             <iframe className={styles.locationMap} {...reveal({ preset: "slide-left", duration: 1500, intensity: "subtle" })} title="Bản đồ vị trí Le Grande Centre" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3933.8266955678832!2d105.969214276063!3d9.610186390476178!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31a04d86b7d9a867%3A0x58da1a5e9f7000e3!2sLe%20Grande%20Centre!5e0!3m2!1sen!2s!4v1791624863663!5m2!1sen!2s" width="600" height="450" allowFullScreen loading="lazy" referrerPolicy="strict-origin-when-cross-origin"/>
-            <address>{ADDRESS}</address>
-            <a href="https://maps.app.goo.gl/psjcjBjqCCa2UzwRA" target="_blank" rel="noopener noreferrer" className={styles.textLink}>Xem vị trí trên bản đồ <Arrow/></a>
+            <address><WebsiteAddress/></address>
+            <WebsiteMapLink className={styles.textLink}>Xem vị trí trên bản đồ <Arrow/></WebsiteMapLink>
           </div>
           <div className={styles.locationInformation} {...reveal({ preset: "slide-right", duration: 1500, intensity: "subtle" })}>
             <img src={image("/images/le-grande-aerial-context.webp")} alt="Công trình và vòng xoay Tượng đài 3 Cô Gái trong bối cảnh đô thị Sóc Trăng" width="2400" height="1350" loading="lazy" decoding="async"/>
@@ -86,7 +87,7 @@ export default function HomePageV2() {
 
       <section id="ly-do-lua-chon" className={styles.reasons} aria-labelledby="reasons-title"><img className={styles.reasonsImage} src={image("/images/home-v2/reasons-background.webp")} alt="" width="1147" height="488" loading="lazy" decoding="async"/><div className={styles.section}><h2 id="reasons-title"><em>Tại Sao Chọn <span>Le Grande Centre?</span></em></h2><p className={styles.reasonsIntro}>Một nơi để kinh doanh. Một nền tảng để cùng phát triển.</p><div className={styles.reasonGrid}>{reasons.map(reason => <article key={reason.title}><h3><em>{reason.title}</em></h3><p>{reason.description}</p></article>)}</div></div></section>
 
-      <section className={styles.contact} aria-labelledby="contact-title"><div><h2 id="contact-title"><em>Đặt lịch xem mặt bằng<br/>thực tế.</em></h2><p>Mỗi doanh nghiệp có một nhu cầu khác nhau.<br/>Cùng tìm không gian phù hợp với bạn.</p><div className={styles.contactActions}><Link href="/lien-he/" className={styles.paperButton} prefetch={false}>Liên hệ tư vấn <Arrow/></Link><a href={LEASING_PHONES[0].href}>Hotline: {LEASING_PHONES[0].label}</a></div></div></section>
+      <section className={styles.contact} aria-labelledby="contact-title"><div><h2 id="contact-title"><em>Đặt lịch xem mặt bằng<br/>thực tế.</em></h2><p>Mỗi doanh nghiệp có một nhu cầu khác nhau.<br/>Cùng tìm không gian phù hợp với bạn.</p><div className={styles.contactActions}><Link href="/lien-he/" className={styles.paperButton} prefetch={false}>Liên hệ tư vấn <Arrow/></Link><WebsiteHotlineLink prefix="Hotline: "/></div></div></section>
       </HomeScrollStory>
     </main>
     <SiteFooter/>

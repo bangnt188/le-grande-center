@@ -4,6 +4,12 @@
 
 Core library và hai module R2/Cloudinary đã có implementation generic để cấu hình khi được cấp credentials. **Admin production chưa ready end-to-end; không chỉ thiếu email.** Không thay GitHub Pages demo bằng backend giả, không đưa dữ liệu/secret thật vào fixture.
 
+Cập nhật 12/10/2026: đã [sắp xếp shared contracts và demo riêng](backend-structure.md),
+chưa viết binding BE mới. Neon PostgreSQL và Object Storage là hai sản phẩm/quota riêng;
+xem [nghiên cứu Neon](neon-free-tier-research.md) và [Cloudflare](cloudflare-free-tier-research.md).
+Danh sách tài khoản Vercel/Cloudinary phía dưới thuộc phương án chuẩn bị trước đây,
+không phải yêu cầu đăng ký thêm cho đề xuất Neon/R2 hiện tại.
+
 ## Phần đã có code và kiểm tra local
 
 - `@shared/backend`: access/policy, CRUD, SQL adapter, HTTP endpoints/client, validation, safe errors, webhook inbox, field encryption.

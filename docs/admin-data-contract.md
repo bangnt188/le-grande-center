@@ -10,11 +10,13 @@ assets, không thực hiện authorization hay transaction ghi database.
 
 `AdminWorkspace.tsx → useAdminData → AdminRepository`.
 
-- `contracts.ts`: typed snapshot và sáu command nghiệp vụ.
-- `space-model.ts`: loại tầng/slot/group, kiểm tra geometry và membership.
-- `demo-data.ts`: fixture riêng, lặp bản vẽ chưa xác định tầng.
-- `demo-repository.ts`: adapter bộ nhớ, validation, ghép/tách và object URL.
-- `http-repository.ts`: adapter transport cho backend được triển khai riêng.
+- `src/shared/admin/contracts.ts`: typed snapshot, command và repository interface.
+- `src/shared/admin/space-model.ts`: loại tầng/slot/group và hàm thuần hiện có.
+- `src/features/admin/demo/data.ts`: fixture riêng, lặp bản vẽ chưa xác định tầng.
+- `src/features/admin/demo/repository.ts`: adapter browser, validation, mutation, byte accounting và URL tạm; `indexed-db.ts` lưu snapshot/Blob trong cùng transaction. Memory chỉ dùng cho Node checks.
+- `src/features/admin/http-repository.ts`: adapter transport cho backend được triển khai riêng.
+
+Ranh giới BE, DTO và storage: [Cấu trúc backend](backend-structure.md).
 
 TSX giữ selection, tìm/lọc và trình bày. Module dữ liệu sở hữu mutation và trả
 snapshot có revision; hook hiển thị pending/error, chặn submit đồng thời, chỉ cập
@@ -32,14 +34,15 @@ cho localhost). Không chứa secret. Adapter dùng `credentials: include`.
 | POST `/commands` | `{command, expectedRevision}` và `Idempotency-Key` | snapshot mới |
 | POST `/media` | multipart `files`, `scope`, `expectedRevision`; idempotency header | snapshot mới |
 
-Snapshot: `{revision, slots, groups, leads, media}` theo contracts.ts. Các DTO
-phải có ID ổn định; media URL do server cấp, không dùng tên nhóm làm foreign key.
-Media `scope=group:<id>` hoặc tên tầng được backend map thành FK trong DB; `size`
-và `time` là giá trị hiển thị, storage lưu byte_size/received_at chuẩn.
+Snapshot gồm `revision`, `storage`, `floors`, `settings`, `slots`, `groups`, `leads`, `media`, `companies`, `requests`, `reservations`, `leases`, `appointments` theo contracts.ts. Mỗi floor có `purpose` nội bộ và `publicTitle`/`publicDescription` dùng chung trên trang chủ, nội dung 3D, tổng quan tầng và mặt bằng. HTTP consumer từ chối thiếu/sai cấu hình sáu tầng, settings hoặc trạng thái slot. ID ổn định; provider backend cấp URL riêng, không dùng tên nhóm làm khóa.
 
-Command: merge, split, update-slot, update-group, update-lead, link-media. Không
-có create/delete floor. Trạng thái là text giới hạn 60 ký tự; catalog trạng thái
-hoặc quy tắc lease bổ sung sau không thay cấu trúc bảng UI.
+Media dùng `scope` project/tầng, `slot:<id>`, `group:<id>` hoặc `lease:<id>` do lệnh nghiệp vụ gắn; byte size/MIME lấy từ tệp. `hasUploadedFile` phân biệt tệp upload hoàn tất với asset/mục mẫu; picker hợp đồng chỉ nhận PDF có tệp upload thật. Trong browser cờ này suy ra từ Blob store, không coi URL mẫu là bằng chứng upload; API phải trả cờ hợp lệ và vẫn kiểm tra quyền/tệp ở server. Blob URL chỉ phục vụ runtime, không ghi vào snapshot IndexedDB; URL asset tham chiếu tĩnh có thể có trong fixture.
+Media kind thêm Video/Model 3D/Tài nguyên; projectAsset/sourcePath phân biệt catalog từ public/R2 với upload local. Asset dự án chỉ xem: repository từ chối rename/link/delete. Reconcile catalog khi đọc cập nhật asset/loại bỏ mục mẫu thiếu file, không mất upload hoặc liên kết hợp đồng; byte ledger không tính asset. Danh mục được generate trước dev/build.
+
+Command cấu hình: update-floor (công năng nội bộ + nội dung website dùng chung), update-settings (vận hành, giữ settings.website) và update-website-settings. Admin editor tầng dẫn tới đúng trang trong brochure PDF theo `sourcePage`. WebsiteSettings gồm logoMediaId, email, hotline, secondaryPhone, managementPhone, address, zaloUrl; kiểm tra email/phone/https zalo.me và logo phải là ảnh có file. Hồ sơ/mặt bằng/media giữ các command hiện có; không có create/delete floor hoặc luồng ký.
+
+Slot chỉ Trống/Đang thuê, Đang chọn không lưu. Lead chỉ Mới/Đang tư vấn/Đã xử lý. Tên/công năng/liên hệ/thời gian có validation; upload PNG/JPEG/WebP/PDF tối đa 10 MiB, kiểm tra magic header. `record-lease` cần PDF đã upload và giữ chỗ chưa hết hạn; không ghi ngày ký hoặc xác nhận chữ ký.
+Website provider SSR dùng defaults, client đọc snapshot/Blob hiện có và lấy `publicTitle`/`publicDescription` từ cùng snapshot. Sau update-floor hoặc lưu website, hook phát window event/BroadcastChannel legrande-website-settings; tab website refresh khi nhận hoặc focus. URL Blob cũ được revoke khi thay/unmount. UI không tạo upload logo local mới; logo hiện có được giữ nguyên cho tới khi có luồng Neon được bảo vệ bằng auth thật. Browser cũ được migrate thêm defaults một lần, không reset dataset. Đây là preview cục bộ, không DB/API production hoặc publish toàn cầu.
 
 HTTP lỗi: 401 hết phiên, 403 thiếu quyền, 409 conflict revision, 413 tệp quá lớn;
 các lỗi khác báo tải/lưu thất bại. UI không tự retry mutation. Server phải lưu
@@ -107,26 +110,22 @@ Shared UI luôn lấy commit gitlink đã khóa, không tự nâng branch khi bu
 
 ## Demo hành trình B2B (06/10/2026)
 
-Workspace hiện có các view Khách hàng, Yêu cầu & giữ chỗ, Hợp đồng, Lịch hẹn,
-Tầng & mặt bằng, Leads, Media và Góc nhìn khách thuê. Dữ liệu B2B dùng chung
-`AdminSnapshot`, thao tác đi qua `AdminRepository.execute` như các màn hình cũ.
-`b2b-model.ts` là DTO của demo, không phải bản sao đầy đủ schema SQL v2.
+Workspace có Tầng, Căn / Mặt bằng, Doanh nghiệp, Khách đang thuê, Khách tiềm năng, Yêu cầu & giữ chỗ, Hợp đồng, Lịch hẹn, Media và Cấu hình trong một sidebar chia nhóm.
+`/admin-preview/` là form đăng nhập demo username/password; `/admin-preview/workspace/` là workspace, bắt đầu tại Tầng.
+`AdminSnapshot` và `AdminRepository.execute` vẫn là contract dữ liệu; header mở website public thật, không còn mô phỏng public/portal.
+`src/shared/admin/b2b-model.ts` giữ DTO dùng thử, không phải bản sao đầy đủ SQL v2. Fixtures nằm riêng trong `demo/b2b-data.ts`; giữ chỗ/lịch hẹn và validation dùng thời gian hiện tại, giờ Việt Nam.
 
-- Gửi nhu cầu chưa giữ slot; duyệt yêu cầu cần nhập thời hạn, kiểm tra toàn bộ
-  slot liền kề cùng tầng và kỳ thuê. Lỗi không tạo giữ chỗ một phần.
-- Giữ chỗ cập nhật slot/hồ sơ; hủy có lý do; chuyển thuê chỉ là **mô phỏng ký**.
-  Văn bản HTML minh họa không có chữ ký, không phải file hợp đồng thật.
-- Book lịch tạo yêu cầu hẹn 30 phút, độc lập với giữ slot; admin xác nhận/hủy.
-- Trang giới thiệu chỉ có thông tin khả dụng được chọn làm mẫu; không có ngày
-  hết hợp đồng, countdown nội bộ hoặc tài liệu riêng. Portal mẫu lọc An Retail.
-- Mốc tính thời gian cố định 06/10/2026 để demo nhất quán; chưa có expiry worker.
+- Các phân hệ cấu hình/mặt bằng/hồ sơ/yêu cầu/hợp đồng/lịch/media có form và command; khách đang thuê là projection từ hồ sơ thuê. Công năng tầng đồng bộ table/bộ chọn tầng/mặt bằng; settings đặt mặc định giữ chỗ/lịch hẹn, không publish website.
+- Yêu cầu kiểm tra toàn tổ hợp liền kề cùng tầng/cùng phía và đủ nhóm; diện tích lấy từ slot. Chưa quyết định mới được sửa; lỗi không tạo giữ chỗ một phần.
+- Giữ chỗ có hạn theo đồng hồ hiện tại, hủy cần lý do. Upload PDF và lưu hồ sơ từ giữ chỗ là thao tác chuyển thuê rõ ràng, không mô phỏng ký/eSign. Hợp đồng đã có cho upload/thay tệp; không tự coi upload là đã ký.
+- Lịch hẹn tạo/sửa thời gian, thời lượng và địa điểm; xác nhận/hủy có kiểm tra trạng thái và xung đột, độc lập giữ slot.
 
-**Ranh giới bảo mật:** góc nhìn public/portal là chế độ trình diễn bên trong admin
-static, không phải endpoint công khai hay phân quyền thật. Fixture toàn bộ workspace
-vẫn có trong bundle/trình duyệt. Không đưa dữ liệu thật vào bản này. Production phải
-cấp DTO riêng theo audience từ server, xác thực membership/object quyền cho mọi
-request, thực hiện giao dịch và exclusion constraint trong DB, kiểm tra văn bản ký
-trước chuyển thuê, rồi mới nối viewer với Worker/R2 riêng tư. Không dùng lọc React
-để bảo vệ dữ liệu. HTTP adapter từ chối snapshot cũ thiếu các collection B2B.
+### Lưu browser và xử lý lỗi
+
+IndexedDB `le-grande-admin-browser-v1`: store `state` có key `snapshot`, store `files` theo media ID. Snapshot/Blob thêm/xóa commit cùng transaction; chỉ báo thành công sau `oncomplete`. Byte ledger chỉ tính Blob local, không trừ dung lượng asset tĩnh khi xóa metadata. Revision CAS từ chối tab cũ; tải lại ngay trong form giữ nội dung đang nhập, chỉ lưu tiếp khi người dùng chủ động. Storage bị chặn, quota hết hoặc commit lỗi phải báo lỗi và giữ state/draft cũ, không fallback memory hoặc tự reset dataset.
+
+Reload/đăng xuất giữ dữ liệu đã lưu trên cùng origin/browser; đổi máy/origin không chia sẻ. Browser có thể từ chối/evict dữ liệu; hạn mức nghiệp vụ 8,5 GB không bảo đảm quota thiết bị/cloud. URL Blob được tạo lại sau đọc, giải phóng khi dispose. Draft chưa lưu chỉ trong bộ nhớ; hủy có xác nhận, điều hướng/đóng trang có cảnh báo.
+
+**Ranh giới bảo mật:** username/password chỉ trình diễn form, không gửi/lưu; sessionStorage chỉ giữ marker, không phải auth. Chỉ dùng dữ liệu thử nghiệm; bản Pages/IndexedDB không có phân quyền, intake website, private cloud hoặc API production. Production cần DTO theo quyền, verified session/membership, Origin/CSRF/CORS, transactions/revision/idempotency, upload scan/private delivery và chính sách hồ sơ được duyệt. Không dùng UI filter hoặc việc nhận PDF làm authorization/chứng nhận tài liệu.
 
 Chạy tại local: `NEXT_PUBLIC_SITE_URL=http://localhost:3106/ npm run dev -- --port 3106`, mở `/admin-preview/`. URL này đặt base path local thay cho prefix GitHub Pages.

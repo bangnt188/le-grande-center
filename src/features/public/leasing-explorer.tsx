@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type MouseEvent } from "react";
+import { useMemo, useRef, useState, type MouseEvent } from "react";
 import Link from "next/link";
 import { Modal } from "@mall/ui";
 import { siteUrl } from "@/config/site";
@@ -9,35 +9,47 @@ import { planStyle, planLabelStyle } from "./leasing-plan-style";
 import { useLeasingExplorer } from "./use-leasing-explorer";
 import { LeasingSuggestion } from "./leasing-suggestion";
 import planStyles from "./canva-pages.module.css";
+import { getLeasingProjectCover } from "./leasing-unit-gallery";
+import { LeasingAvailabilityBadge } from "./leasing-availability-badge";
 import styles from "./leasing-explorer.module.css";
+import { getShophousePair } from "./leasing-model";
+import { LeasingConsultation } from "./leasing-consultation";
+import { useWebsiteSettings } from "./website-settings";
 
 const number = (value: number) => value.toLocaleString("vi-VN");
 function Arrow() {
   return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>;
 }
 
-export function LeasingExplorer({ floors, units: inventory, orientation, sourceDocument, contactEmail }: {
+export function LeasingExplorer({ floors, units: inventory, orientation, sourceDocument }: {
   floors: readonly LeasingFloor[];
   units: readonly LeasingUnit[];
   orientation: LeasingOrientation;
   sourceDocument: string;
-  contactEmail: string;
 }) {
-  const { group, floorGroups, units, visible, selected, type, area, unitTypes, setType, setArea, setSelectedId, chooseFloor, clearFilters, clearSelection } = useLeasingExplorer(floors, inventory);
+  const { settings: { email: contactEmail }, floorContent } = useWebsiteSettings();
+  const publicFloors = useMemo(() => floors.map(floor => {
+    const content = floorContent.find(item => item.number === floor.id)!;
+    return { ...floor, label: content.publicTitle, description: content.publicDescription };
+  }), [floors, floorContent]);
+  const { group, floorGroups, units, visible, selected, type, area, unitTypes, setType, setArea, setSelectedId, chooseFloor, clearFilters, clearSelection } = useLeasingExplorer(publicFloors, inventory);
   const [view, setView] = useState<"map" | "list">("map");
   const portal = useRef<HTMLDivElement>(null);
+  const [consulting, setConsulting] = useState<LeasingUnit | null>(null);
   const returnFocus = useRef<HTMLButtonElement>(null);
   if (!group) return null;
   const visibleIds = new Set(visible.map(unit => unit.id));
-  const selectedFloor = floors.find(item => item.id === selected?.floorId);
+  const selectedFloor = publicFloors.find(item => item.id === selected?.floorId);
   const assetBase = new URL(siteUrl).pathname.replace(/\/+$/, "");
+  const selectedPair = selected ? getShophousePair(selected, inventory) : null;
+  const listUnits = visible.filter(unit => { const pair = getShophousePair(unit, inventory); return !pair || unit.id === pair[0].id || !visibleIds.has(pair[0].id); });
   function openUnit(unit: LeasingUnit, event: MouseEvent<HTMLButtonElement>) {
     returnFocus.current = event.currentTarget;
     setSelectedId(unit.id);
   }
 
   return <>
-    <section className={styles.explorer} aria-labelledby="leasing-explorer-heading">
+    <section className={styles.explorer} data-ui-interaction-group="colors" aria-labelledby="leasing-explorer-heading">
       <h2 id="leasing-explorer-heading" className={styles.srOnly}>Khám phá mặt bằng cho thuê</h2>
       <nav className={styles.floorNav} aria-label="Chọn tầng">
         {floorGroups.map(item => <div className={styles.floorOption} key={item.id}>
@@ -56,7 +68,8 @@ export function LeasingExplorer({ floors, units: inventory, orientation, sourceD
           <button type="button" aria-label="Xem danh sách (List)" aria-pressed={view === "list"} aria-controls="leasing-floor-content" onClick={() => setView("list")}><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true"><path d="M7 4h11M7 10h11M7 16h11M2 4h2M2 10h2M2 16h2"/></svg>List</button>
         </div>
       </div>
-      <p className={styles.resultCount} role="status">{group.title} <span>· {visible.length} mặt bằng theo brochure</span></p>
+      <p className={styles.resultCount} role="status">{group.title} <span>· {listUnits.length} {group.id === 1 ? "cặp shophouse liên thông theo brochure" : "mặt bằng theo brochure"}</span></p>
+      {group.id === 1 && <p className={styles.floorDescription}>11 cặp A.1–B.1 đến A.11–B.11. Có thể thuê riêng từng căn hoặc kết hợp hai tầng; bộ lọc diện tích áp dụng cho từng căn.</p>}
       <div id="leasing-floor-content" data-view={view} className={styles.content}>
         {!visible.length ? <div className={styles.empty}><h3>Không có mặt bằng phù hợp</h3><p>Thử đổi loại hình hoặc diện tích trong {group.title.toLowerCase()}.</p><button type="button" onClick={clearFilters}>Xóa bộ lọc</button></div> : view === "map" ? <div className={styles.maps}>
           {group.floors.map(floor => <article className={styles.planPanel} key={floor.id} aria-label={`Sơ đồ tầng ${floor.id}`}>
@@ -72,7 +85,7 @@ export function LeasingExplorer({ floors, units: inventory, orientation, sourceD
             </div>
           </article>)}
         </div> : <ul className={styles.unitList} aria-label="Danh sách mặt bằng">
-          {visible.map(unit => <li key={unit.id}><button id={`leasing-list-${unit.id}`} type="button" className={styles.unit} aria-haspopup="dialog" aria-pressed={selected?.id === unit.id} onClick={event => openUnit(unit, event)}><strong>{unit.id}</strong><span className={styles.unitFloor}>Tầng {unit.floorId}</span><span className={styles.unitArea}>{number(unit.area)} m²</span><span className={styles.unitType}>{unit.types.join(" · ") || "Tư vấn công năng"}</span><Arrow/></button></li>)}
+          {listUnits.map(unit => { const pair = getShophousePair(unit, inventory); return <li key={unit.id}><button id={`leasing-list-${unit.id}`} type="button" className={styles.unit} aria-haspopup="dialog" aria-pressed={selected?.id === unit.id} onClick={event => openUnit(unit, event)}><strong>{pair ? `${pair[0].id} – ${pair[1].id}` : unit.id}</strong><span className={styles.unitFloor}>{pair ? `Tầng 1: ${number(pair[0].area)} m² · Tầng 2: ${number(pair[1].area)} m²` : `Tầng ${unit.floorId}`}</span><span className={styles.unitArea}>{number(pair ? pair[0].area + pair[1].area : unit.area)} m²{pair && <small> tổng diện tích</small>}</span><span className={styles.unitType}>{pair ? "Thuê riêng từng căn hoặc kết hợp" : unit.types.join(" · ") || "Tư vấn công năng"}</span><Arrow/></button></li>; })}
         </ul>}
       </div>
       <details className={styles.planNotes}><summary>Hướng và nguồn sơ đồ</summary>
@@ -83,14 +96,21 @@ export function LeasingExplorer({ floors, units: inventory, orientation, sourceD
     <div ref={portal} className={styles.popupHost}>
       <Modal title={selected ? `Mặt bằng ${selected.id}` : "Thông tin mặt bằng"} description={selected ? `Tầng ${selected.floorId} · ${selectedFloor?.label}` : "Thông tin theo brochure Le Grande Centre."} closeLabel="Đóng thông tin" open={!!selected} onOpenChange={open => { if (!open) clearSelection(); }} portalContainer={portal} returnFocusRef={returnFocus}>
         {selected && <div id="leasing-unit-preview">
+          <div className={styles.popupProjectPhoto}>
+            <img src={assetBase + getLeasingProjectCover(selected.floorId).path} alt={getLeasingProjectCover(selected.floorId).label} width="900" height="600"/>
+            <span>Ảnh dự án tham khảo · không phải ảnh riêng của căn</span>
+          </div>
+          <LeasingAvailabilityBadge availability={selected.availability} surface="dark"/>
           <dl className={styles.unitFacts}><div><dt>Diện tích brochure</dt><dd className={styles.areaValue}>{number(selected.area)} <span>m²</span></dd></div><div><dt>Loại hình</dt><dd>{selected.types.join(" · ") || "Tư vấn công năng"}</dd></div><div><dt>Hướng mặt ngoài · tham khảo</dt><dd>{selected.orientation}</dd></div>{selected.dimensions && <div><dt>Kích thước brochure</dt><dd>{number(selected.dimensions.width)} × {number(selected.dimensions.depth)} m</dd></div>}</dl>
+          {selectedPair && <section className={styles.pairSummary} aria-label="Shophouse liên thông"><h3>{selectedPair[0].id} – {selectedPair[1].id} · Liên thông hai tầng</h3><p>Có thể thuê riêng từng căn hoặc kết hợp hai tầng.</p>{selectedPair.map(member => <div className={styles.pairMember} key={member.id}><Link href={`/mat-bang/${encodeURIComponent(member.id)}/`}>Xem {member.id} · Tầng {member.floorId} · {number(member.area)} m²</Link><LeasingAvailabilityBadge availability={member.availability} surface="dark"/></div>)}<p>Tổng diện tích: <strong>{number(selectedPair[0].area + selectedPair[1].area)} m²</strong></p><div className={styles.pairFloors}><Link href="/mat-bang/#tang-1" onClick={clearSelection}>Sơ đồ tầng 1</Link><Link href="/mat-bang/#tang-2" onClick={clearSelection}>Sơ đồ tầng 2</Link></div></section>}
           {selected.note && <p className={styles.unitNote}>{selected.note}</p>}
-          <p className={styles.popupNote}>Thông số tham chiếu brochure, không thể hiện giá hay tình trạng còn trống. Liên hệ để nhận phương án phù hợp.</p>
-          <div className={styles.popupActions}><Link href={`/mat-bang/${encodeURIComponent(selected.id)}/`} prefetch={false} className={styles.detailLink}>Xem chi tiết<Arrow/></Link><Link href={{ pathname: "/lien-he/", query: { unit: selected.id } }} className={styles.inquiryLink}>Yêu cầu tư vấn</Link></div>
+          <p className={styles.popupNote}>Thông số tham chiếu brochure; trạng thái bên trên là mô phỏng và cần xác nhận. Liên hệ để nhận phương án phù hợp.</p>
+          <div className={styles.popupActions}><Link href={`/mat-bang/${encodeURIComponent(selected.id)}/`} prefetch={false} className={styles.detailLink}>Xem chi tiết<Arrow/></Link><button type="button" className={styles.inquiryLink} onClick={() => { setConsulting(selected); clearSelection(); }}>Yêu cầu tư vấn</button></div>
           <a className={styles.emailLink} href={`mailto:${contactEmail}?subject=${encodeURIComponent(`Tư vấn mặt bằng ${selected.id}, tầng ${selected.floorId} — Le Grande Centre`)}`}>Trao đổi qua email</a>
         </div>}
       </Modal>
     </div>
+    {consulting && <LeasingConsultation key={consulting.id} unit={consulting} pair={getShophousePair(consulting, inventory)} open onOpenChange={open => { if (!open) setConsulting(null); }} triggerLabel={null} returnFocusRef={returnFocus}/>}
     <LeasingSuggestion unitId={selected?.id}/>
   </>;
 }

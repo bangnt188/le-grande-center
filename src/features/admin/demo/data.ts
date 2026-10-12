@@ -1,19 +1,19 @@
-import { makeB2BFixtures } from "./b2b-model";
-import type { Lead, MediaItem, AdminSnapshot } from "./contracts";
-import { FLOORS } from "./space-model";
-import type { Floor, Slot, SpaceGroup } from "./space-model";
-import { STORAGE_LIMIT_BYTES } from "./storage-policy";
+import { makeB2BFixtures } from "./b2b-data";
+import type { Lead, AdminSnapshot } from "../../../shared/admin/contracts";
+import { projectMedia } from "./project-media";
+import { DEFAULT_WEBSITE_SETTINGS } from "../../../shared/admin/website-defaults";
+import { DEFAULT_FLOOR_CONTENT, FLOORS } from "../../../shared/admin/space-model";
+import type { Floor, Slot, SpaceGroup } from "../../../shared/admin/space-model";
 
 // The customer's plan does not identify its floor. Repeated geometry is fixture
 // data for demonstrating workflows, not an assertion about actual inventory.
 export function makeSlots(): Slot[] {
-  return FLOORS.flatMap((floor) => Array.from({ length: 11 }, (_, i) => ({
+  return FLOORS.flatMap((floor) => Array.from({ length: 11 }, (_, i): Slot => ({
     id: `T${floor}-B${i + 1}`, floor, code: `B.${i + 1}`, order: i + 1,
     side: i < 5 ? "west" as const : "east" as const,
     area: i === 0 || i === 10 ? 205 : 164,
     width: i === 0 || i === 10 ? 10 : 8,
-    status: i === 0 ? "Đang thuê" : i === 3 ? "Đang đàm phán" : i === 5 ? "Đã đặt cọc" : "Trống",
-    tenant: i === 0 ? "Đối tác mẫu A" : i === 3 ? "Đối tác mẫu B" : i === 5 ? "Đối tác mẫu C" : "",
+    status: "Trống", tenant: "",
   })));
 }
 export const initialGroups: SpaceGroup[] = [{
@@ -31,17 +31,11 @@ const leadFixtures: Lead[] = [
 const basePath = new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://bangnt188.github.io/le-grande-center/").pathname.replace(/\/$/, "");
 export const referencePlanUrl = `${basePath}/admin-demo/floor-plan.png`;
 export const adminLogoUrl = `${basePath}/admin-demo/logo-without-text.webp`;
-const mediaFixtures: MediaItem[] = [
-  { id: "plan-reference", name: "Sơ đồ slot B · Khách hàng", kind: "Ảnh", scope: "Chưa xác nhận tầng", size: "Bản vẽ tham chiếu", url: referencePlanUrl, reference: true },
-  { id: "sample-plan", name: "Sơ đồ mặt bằng · Tầng 2", kind: "Tài liệu", scope: "Tầng 2", size: "Fixture minh họa" },
-  { id: "sample-brochure", name: "Brochure dự án", kind: "Tài liệu", scope: "Toàn dự án", size: "Chưa có tệp bàn giao" },
-];
+const mediaFixtures = projectMedia();
 
 export function makeDemoSnapshot(): AdminSnapshot {
-  const data = structuredClone({ ...makeB2BFixtures(), revision: 0, storage: { usedBytes: Math.round(STORAGE_LIMIT_BYTES * .72), reservedBytes: 0 }, slots: makeSlots(), groups: initialGroups, leads: leadFixtures, media: mediaFixtures });
-  const hold = data.reservations[0];
-  data.slots = data.slots.map((slot) => hold.slotIds.includes(slot.id) ? { ...slot, status: "Đang giữ chỗ", tenant: "An Retail" } : slot);
-  data.groups = data.groups.map((group) => group.slotIds.some((id) => hold.slotIds.includes(id)) ? { ...group, status: "Đang giữ chỗ" } : group);
+  const purposes = ["Thương mại dịch vụ", "Thương mại dịch vụ", "Dịch vụ & văn phòng", "Dịch vụ & văn phòng", "Dịch vụ & văn phòng", "Sự kiện & trải nghiệm"];
+  const data: AdminSnapshot = structuredClone({ ...makeB2BFixtures(), revision: 0, storage: { usedBytes: 0, reservedBytes: 0 }, floors: DEFAULT_FLOOR_CONTENT.map((content, index) => ({ ...content, purpose: purposes[index] })), settings: { website: DEFAULT_WEBSITE_SETTINGS, propertyName: "Le Grande Centre", contactEmail: "leasing@legrande.example", contactPhone: "0973879563", defaultHoldHours: 48, appointmentMinutes: 30, appointmentLocation: "Phòng tư vấn · tầng 1" }, slots: makeSlots(), groups: initialGroups, leads: leadFixtures, media: mediaFixtures });
   for (const lease of data.leases) {
     const company = data.companies.find((item) => item.id === lease.companyId)!;
     data.slots = data.slots.map((slot) => lease.slotIds.includes(slot.id) ? { ...slot, status: "Đang thuê", tenant: company.name } : slot);

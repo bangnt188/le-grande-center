@@ -3,6 +3,7 @@ import { Be_Vietnam_Pro, Charis_SIL, Cormorant_Garamond, Playfair_Display } from
 import "@mall/ui/styles";
 import "./globals.css";
 import { isIndexable, siteUrl } from "@/config/site";
+import { WebsiteSettingsProvider } from "@/features/public/website-settings";
 
 const interfaceFont = Be_Vietnam_Pro({
   subsets: ["latin", "vietnamese"],
@@ -53,7 +54,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="vi">
+    <html lang="vi" data-ui-scroll="smooth" data-ui-motion-policy="respect">
       <body
         className={[interfaceFont.variable, displayFont.variable, publicDisplayFont.variable, editorialFont.variable].join(" ")}
         data-ui-root
@@ -61,7 +62,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         data-ui-scheme="dark"
       >
         <a className="skip-link" href="#main-content">Bỏ qua điều hướng</a>
-        {children}
+        <WebsiteSettingsProvider>{children}</WebsiteSettingsProvider>
       </body>
     </html>
   );

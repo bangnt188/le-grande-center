@@ -83,7 +83,7 @@ khác khi so số đo; không lấy Next dev/HMR làm baseline. Chi tiết trư�
 cache: [docs/performance-audit.md](docs/performance-audit.md#6-cập-nhật-sau-triển-khai-cold-start-và-loading-3d).
 
 Mặc định local dùng base path `/le-grande-center/` giống GitHub Pages. Mở
-`http://localhost:3000/le-grande-center/admin-preview/` để thử giao diện quản trị.
+`http://localhost:3000/le-grande-center/admin-preview/` để mở trang đăng nhập demo (tên đăng nhập/mật khẩu bất kỳ, không dùng thông tin thật).
 
 ## Homepage v2 và kiến trúc 3D
 
@@ -143,10 +143,8 @@ Phim có poster, điều khiển native và `preload="none"`; homepage v2 không
 Số điện thoại, email và địa chỉ tái sử dụng nguồn public dùng chung. CTA tư vấn
 mở trang liên hệ hiện có; hotline dùng `tel:` thật. Form liên hệ vẫn là demo,
 không thay đổi backend hay giả báo đã gửi lead.
-Cụm `ContactDock` nổi bên phải trên các trang dùng `SiteFooter`, lấy hotline chính
-`0973 879 563` từ `LEASING_PHONES`: Zalo mở `https://zalo.me/0973879563`, gọi điện
-mở `tel:0973879563`. Desktop hiện hai nút tròn; mobile mặc định thu gọn, mở thành
-hai ô và có thể đóng bằng nút hoặc Escape (trả focus về nút mở). Nút Zalo giữ
+Cụm ContactDock nổi trên các trang SiteFooter dùng hotline và Zalo từ WebsiteSettingsProvider. Defaults là hotline 0973 879 563, tel:0973879563 và https://zalo.me/0973879563; sau lưu cấu hình website cùng browser/origin, hai link nhận giá trị mới. Desktop hiện hai nút; mobile thu gọn mặc định, có disclosure và Escape/focus return.
+Link Zalo và số hotline được cấu hình độc lập, không tự đồng nhất. Nút Zalo giữ
 xanh nhận diện `#0068ff` theo yêu cầu khách hàng; nút gọi điện dùng token xanh
 shopping-mall. Không xác nhận tài khoản Zalo hoặc thực hiện cuộc gọi tự động.
 
@@ -196,12 +194,14 @@ ngang trang. Popup 320px cuộn dọc khi nội dung dài.
 ### Chi tiết slot — public và quản trị
 
 Public có 81 URL `/mat-bang/[unitId]/`, ví dụ `/mat-bang/C.23/`. Trang dùng
-diện tích, kích thước có sẵn và bố trí từ brochure; hướng mặt ngoài là tham khảo,
-không công bố giá hoặc tình trạng còn trống. Liên kết brochure mở đúng trang tầng;
-CTA tư vấn truyền `?unit=C.23` cho form demo hiện có. Trở lại sơ đồ giữ tầng và ô
-đang xem; bộ lọc được đặt lại. Sitemap chỉ chứa các URL này khi bật indexability.
-Layout chi tiết public dùng gallery lớn và 5 thumbnail ở trái, thông tin đúng căn ở
-phải. Ảnh là ảnh dự án hiện có dùng thử bố cục, không phải ảnh bàn giao từng slot.
+diện tích, kích thước có sẵn và bố trí từ brochure; hướng mặt ngoài là tham khảo.
+Badge **Đã thuê / Còn trống** dùng phân bố trạng thái mô phỏng, có ghi chú chờ kết
+nối dữ liệu; không phải availability đã được xác nhận. Popup tổng quan có ảnh dự án
+tham khảo dùng chung theo tầng, không phải ảnh riêng từng căn. Liên kết brochure mở
+đúng trang tầng; CTA tư vấn truyền `?unit=C.23` cho form demo hiện có. Trở lại sơ đồ
+giữ tầng nhưng không mở lại popup căn; bộ lọc được đặt lại. Sitemap chỉ chứa các URL
+này khi bật indexability. Trang chi tiết giữ gallery 5 ảnh dự án, không phải ảnh bàn giao
+riêng của từng slot.
 Click ảnh lớn hoặc **Xem tất cả ảnh** mở `ImagePreview` dùng chung của `@mall/ui`:
 nền sau blur nhẹ 6px, ảnh/chữ giữ sắc nét, zoom +/− 50–300%, **Vừa khung**,
 chuyển trước/sau và chọn thumbnail ngay trong modal, không đóng popup khi đổi ảnh.
@@ -227,11 +227,11 @@ vào form demo hiện có; không tạo hoặc xác nhận lịch hẹn thật. 
 `floor.sourcePage` (tầng 1: trang 5, tầng 6: trang 10), không hard-code trang 5.
 
 Admin mở hồ sơ từ nút **Chi tiết** trong register hoặc liên kết trong inspector;
-deep link `/admin-preview/#slot=T2-B2`. Hồ sơ dùng cùng repository trong workspace,
+deep link `/admin-preview/workspace/#slot=T2-B2` sau khi vào demo. Hồ sơ dùng cùng repository trong workspace,
 giữ mutation và media upload khi chuyển màn hình hoặc Back/Forward. Xem slot gốc,
 nhóm ghép, yêu cầu, giữ chỗ, hợp đồng và media liên quan; cam kết khóa sửa/tách
 trực tiếp. Hủy điều hướng khi có ghi chú chưa lưu không ghi đè entry lịch sử.
-Fixture admin không ánh xạ sang mã brochure public; tải lại trang xóa phiên demo.
+Fixture admin không ánh xạ sang mã brochure public. Dữ liệu và tệp đã lưu nằm trong IndexedDB của origin/trình duyệt, được giữ sau reload hoặc đăng xuất demo; xóa dữ liệu trình duyệt sẽ mất chúng. sessionStorage chỉ giữ marker vào demo.
 Admin vẫn bị loại khỏi public export bởi script bảo vệ hiện có, không được publish
 lên GitHub Pages. Plan và bằng chứng: [slot detail](docs/slot-detail-plan.md).
 
@@ -291,15 +291,23 @@ cho phép gắn backend API. Không dùng demo Pages làm admin production.
 
 ## Kết nối dữ liệu sau này
 
+Cấu trúc chuẩn bị BE: [shared contracts, demo, server và storage](docs/backend-structure.md).
+DTO/hàm thuần ở `src/shared/admin/`; dữ liệu mô phỏng ở `src/features/admin/demo/`;
+composition API ở `src/server/`, SQL ở `database/`, primitives ở `packages/backend/`.
+Phương án free tier đã đối chiếu: [Neon PostgreSQL/Object Storage](docs/neon-free-tier-research.md)
+và [Cloudflare R2/Workers](docs/cloudflare-free-tier-research.md). Đã link Neon và deploy function smoke test;
+[xem trạng thái và giới hạn hiện tại](docs/neon-setup.md). Cloud chưa được tích hợp vào Admin.
+
 TSX gọi `useAdminData`, không ghi trực tiếp vào dữ liệu nguồn. Interface
 `AdminRepository` có adapter demo và adapter HTTP cùng trả `AdminSnapshot`.
+Adapter browser lưu snapshot và Blob trong một transaction IndexedDB, kiểm tra revision giữa các tab; không dùng memory fallback nếu browser từ chối lưu. Chế độ memory chỉ dành cho Node checks.
 Transport dùng revision, request idempotency, cookie session và trạng thái lỗi.
 Cấu hình `NEXT_PUBLIC_ADMIN_API_URL` chỉ là URL công khai của backend; không đặt
 DB URL, secret hoặc credential trong biến `NEXT_PUBLIC_*`.
 
 [Hợp đồng API và migration](docs/admin-data-contract.md),
 [SQL baseline duy nhất](database/schema.sql) và
-[thiết kế giao diện](DESIGN.md). Backend/auth/database chưa được triển khai.
+[thiết kế giao diện](DESIGN.md). Backend/auth/database của Admin chưa được triển khai; Neon `api` hiện chỉ trả lời smoke test `Hello from Neon Functions`.
 
 ## Thiết kế hệ thống B2B đã chốt
 
@@ -310,6 +318,21 @@ DB URL, secret hoặc credential trong biến `NEXT_PUBLIC_*`.
 
 Luồng: gửi yêu cầu → chủ đầu tư duyệt → giữ chỗ có hạn. Lịch hẹn độc lập.
 SQL là thiết kế chưa apply; auth/backend/database vẫn chưa kết nối.
+
+### Admin dùng thử đầy đủ nghiệp vụ, chưa nối DB
+
+- Tầng: sửa công năng nội bộ và tên/mô tả website dùng chung cho trang chủ, nội dung 3D, tổng quan tầng, mặt bằng; editor mở đúng trang PDF brochure của tầng.
+- Căn/mặt bằng: sửa trạng thái/đối tác, diện tích slot chưa có cam kết; ghép/tách giữ mã và diện tích thành viên.
+- Doanh nghiệp và khách tiềm năng: thêm/sửa hồ sơ, liên hệ, ghi chú, liên kết doanh nghiệp; khách đang thuê suy ra từ hồ sơ thuê, không tạo master trùng.
+- Yêu cầu: tạo/sửa, tiếp nhận, duyệt/từ chối; giữ chỗ có hạn theo giờ hiện tại, chặn tổ hợp xung đột và không giữ một phần nhóm.
+- Hợp đồng chỉ upload/liên kết/thay PDF có sẵn; không soạn thảo, không eSign, không tự xác nhận đã ký. Lưu hồ sơ từ giữ chỗ chuyển toàn bộ tổ hợp sang thuê bằng thao tác rõ ràng.
+- Lịch hẹn: tạo/sửa, thời lượng/địa điểm, xác nhận/hủy; kiểm tra xung đột và hiển thị giờ Việt Nam.
+- Media hiển thị asset thật của dự án và file upload riêng: ảnh, PDF, video R2, model GLB và HDR. Asset có nguồn/đường dẫn, chỉ xem và không tính vào byte upload local. Tìm theo tên/đường dẫn, lọc loại/nguồn; ảnh dùng FilePreview, video dùng Video, PDF mở bản gốc. GLB có link viewer công trình; HDR tải tệp gốc, không giả preview native. Upload vẫn PNG/JPEG/WebP/PDF tối đa 10 MiB.
+- Cấu hình website: chỉnh Zalo, email, hotline, điện thoại bổ sung/ban quản lý và địa chỉ trong bản xem thử cùng browser/origin; không công bố toàn cầu. Logo đang giữ fallback/ảnh hiện tại; tải/chọn logo mới bị khóa cho đến khi có upload Neon được bảo vệ bằng xác thực thật.
+
+Form dùng component `@mall/ui`, lưu/hủy, lỗi và cảnh báo chưa lưu. Tab cũ phải tải lại snapshot trước khi lưu; nút tải lại trong form giữ nội dung đang nhập. Hạn mức nghiệp vụ 8,5 GB không bảo đảm quota thiết bị hoặc quota cloud. Bản dùng thử không có auth/phân quyền thật, API admin production hoặc kết nối Neon/R2; chỉ dùng dữ liệu thử nghiệm.
+
+Danh mục asset sinh từ public bằng npm run media:catalog (tự chạy trước dev/build), không chép file vào IndexedDB hoặc tự liệt kê toàn bộ bucket cloud. Website chỉ đọc cấu hình đã tồn tại; khách public chưa mở admin không bị tạo database demo. Defaults public vẫn giữ đúng thông tin hiện tại khi chưa cấu hình.
 
 ## Architecture Decision: admin
 
@@ -379,17 +402,18 @@ vi mặc định của Git submodule.
 
 ## Demo hành trình thuê B2B
 
-Mở `/admin-preview/`: giao diện bắt đầu ở **Khách hàng**. Có thể duyệt luồng:
+Mở `/admin-preview/` để đăng nhập demo bằng username/password bất kỳ. Thông tin nhập không được lưu/gửi đi; marker vào demo không phải xác thực. Sau đăng nhập vào `/admin-preview/workspace/`, bắt đầu tại **Tầng**.
+Thông tin dùng thử hiển thị ngay dưới form: tên đăng nhập **admin**, mật khẩu **demo123**. Đây chỉ là ví dụ cho khách hàng test, không phải credentials production.
 
-1. Chọn An Retail → **Yêu cầu & giữ chỗ** → mở phương án B.2 + B.3 (328 m²).
-2. Nhập số giờ rồi duyệt giữ chỗ; xem cập nhật ở **Tầng & mặt bằng**.
+Sidebar duy nhất chia **Mặt bằng**, **Kinh doanh**, **Tài nguyên**; không còn selector Nghiệp vụ thuê hoặc selector sidebar/topnav. Doanh nghiệp khác Khách đang thuê: một mục quản lý hồ sơ, một mục tổng hợp quan hệ với mặt bằng.
+Slot/nhóm chỉ có **Trống / Đang thuê**; **Đang chọn** là hiệu ứng UI riêng. Select, filter, badge và sơ đồ dùng cùng trạng thái và palette --ui-slot-* từ semantic --ui-color-* tokens. Dữ liệu mẫu suy ra slot đang thuê/đối tác từ hợp đồng mẫu, không gán thuê/đàm phán/đặt cọc giả trên mọi tầng. Giữ chỗ vẫn nằm trong hồ sơ riêng và khóa thao tác xung đột.
+
+1. Mở **Doanh nghiệp** → chọn An Retail → **Yêu cầu & giữ chỗ** → phương án B.2 + B.3 (328 m²).
+2. Nhập số giờ rồi duyệt giữ chỗ; xem cập nhật ở **Căn / Mặt bằng**.
 3. Mở yêu cầu đã duyệt → **Mô phỏng ký & chuyển thuê** → xem **Hợp đồng**.
-4. Mở **Góc nhìn khách thuê**: trang giới thiệu không hiện thời hạn riêng;
-   Portal An Retail có giữ chỗ, tài liệu mẫu và book lịch của doanh nghiệp.
+4. **Mở website** ở header mở trang public thật trong tab mới. Đã bỏ toàn bộ mô phỏng public/portal khách thuê khỏi admin.
 
-Demo dùng dữ liệu giả lập trong phiên, tài liệu HTML không có chữ ký. Portal là
-chế độ xem thử, chưa có xác thực; không nhập hồ sơ/hợp đồng thật. Backend,
-authorization và Worker/R2 cần được triển khai theo docs trước khi dùng thật.
+Demo dùng dữ liệu giả lập trong phiên, tài liệu HTML không có chữ ký. Đăng xuất có xác nhận khi còn ghi chú chưa lưu; không nhập hồ sơ/hợp đồng thật. Backend, authorization và Worker/R2 cần được triển khai trước khi dùng thật.
 
 ## Backend readiness và storage generic
 

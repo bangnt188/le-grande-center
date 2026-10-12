@@ -1,57 +1,69 @@
 "use client";
 
 import { useState } from "react";
-import { AdminPanel, Badge, Button, Input, Table } from "@mall/ui";
-import { FLOORS, floorPurpose, type Floor, type Slot, type SpaceGroup } from "@/features/admin/space-model";
-import type { MediaItem } from "@/features/admin/contracts";
+import { AdminPanel, Badge, Button, Input, Table, Textarea, type ToastTone } from "@mall/ui";
+import { FLOORS, FLOOR_PUBLIC_DESCRIPTION_MAX_LENGTH, FLOOR_PUBLIC_TITLE_MAX_LENGTH, FLOOR_PURPOSE_MAX_LENGTH, type Floor } from "@/shared/admin/space-model";
+import { siteUrl } from "@/config/site";
+import { BROCHURE_FLOORS, BROCHURE_PATH } from "@/features/public/brochure-leasing";
+import type { AdminData } from "@/features/admin/use-admin-data";
+import { AdminEditor } from "@/features/admin/admin-editor";
+import { AdminPagination, useAdminPagination } from "@/features/admin/admin-pagination";
+import styles from "@/features/admin/admin-records.module.css";
+import { tenantRecords } from "@/features/admin/tenant-records";
 
-type Props = {
-  slots: Slot[];
-  groups: SpaceGroup[];
-  media: MediaItem[];
-  onSpace: (floor: Floor, slotId?: string) => void;
-};
+type Props = { data: AdminData; onSpace: (floor: Floor, slotId?: string) => void; onMessage: (message: string, tone?: ToastTone) => void };
 const number = (value: number) => new Intl.NumberFormat("vi-VN").format(value);
 
-export function FloorOverview({ slots, groups, media, onSpace }: Props) {
+export function FloorOverview({ data, onSpace, onMessage }: Props) {
+  const [editing, setEditing] = useState<Floor | null>(null);
+  const assetBase = new URL(siteUrl).pathname.replace(/\/+$/, "");
   const rows = FLOORS.map(floor => {
-    const members = slots.filter(slot => slot.floor === floor);
-    const floorGroups = groups.filter(group => group.floor === floor);
-    const memberIds = new Set(members.map(slot => `slot:${slot.id}`));
-    const groupIds = new Set(floorGroups.map(group => `group:${group.id}`));
-    return {
-      floor, count: members.length,
-      area: members.reduce((sum, slot) => sum + slot.area, 0),
-      media: media.filter(item => item.scope === `Tầng ${floor}` || memberIds.has(item.scope) || groupIds.has(item.scope)).length,
-    };
+    const members = data.slots.filter(slot => slot.floor === floor);
+    const floorGroups = data.groups.filter(group => group.floor === floor);
+    const scopes = new Set([`Tầng ${floor}`, ...members.map(slot => `slot:${slot.id}`), ...floorGroups.map(group => `group:${group.id}`)]);
+    const content = data.floors.find(item => item.number === floor)!;
+    return { floor, purpose: content.purpose, publicTitle: content.publicTitle, publicDescription: content.publicDescription, count: members.length, area: members.reduce((sum, slot) => sum + slot.area, 0), media: data.media.filter(item => scopes.has(item.scope)).length };
   });
-  return <AdminPanel className="records-panel" labelledBy="floor-overview-heading">
-    <div className="register-heading"><h2 id="floor-overview-heading">Danh sách tầng</h2><Badge tone="warning">Dữ liệu mẫu</Badge></div>
+  return <><AdminPanel className="records-panel" labelledBy="floor-overview-heading">
+    <div className="register-heading"><h2 id="floor-overview-heading">Danh sách tầng</h2><Badge tone="warning">Lưu trong trình duyệt</Badge></div>
     <Table viewportLabel="Tổng quan tầng, có thể cuộn ngang" emptyLabel="Chưa có tầng." rows={rows} getRowKey={row => String(row.floor)} columns={[
       { id: "floor", header: "Tầng", cell: row => <strong>Tầng {row.floor}</strong> },
-      { id: "purpose", header: "Công năng minh họa", cell: row => floorPurpose[row.floor] },
-      { id: "count", header: "Căn gốc", cell: row => number(row.count) },
-      { id: "area", header: "Diện tích mẫu", cell: row => `${number(row.area)} m²` },
+      { id: "purpose", header: "Công năng nội bộ", cell: row => row.purpose || "Chưa cập nhật" },
+      { id: "publicCopy", header: "Nội dung website", cell: row => <><strong>{row.publicTitle}</strong><small>{row.publicDescription}</small></> },
+      { id: "count", header: "Slot gốc", cell: row => number(row.count) },
+      { id: "area", header: "Tổng diện tích slot", cell: row => `${number(row.area)} m²` },
       { id: "media", header: "Media liên kết", cell: row => number(row.media) },
-      { id: "action", header: "Thao tác", cell: row => <Button variant="quiet" className="text-button" onClick={() => onSpace(row.floor)}>Xem căn tầng {row.floor}</Button> },
+      { id: "action", header: "Thao tác", cell: row => <div className={styles.actions}><Button variant="quiet" onClick={() => onSpace(row.floor)}>Xem slot tầng {row.floor}</Button><Button variant="secondary" disabled={data.pending} onClick={() => setEditing(row.floor)}>Sửa nội dung</Button></div> },
     ]}/>
-    <p className="panel-note">Sáu tầng cố định. Công năng, diện tích và sơ đồ cần đối soát với hồ sơ Kỹ thuật trước khi công bố.</p>
-  </AdminPanel>;
+    <p className="panel-note">Mô tả website dùng chung cho trang chủ, 3D, tổng quan tầng và mặt bằng. Công năng nội bộ vẫn là trường riêng. Nội dung dùng thử chỉ lưu trong trình duyệt này.</p>
+  </AdminPanel>{editing !== null && (() => {
+    const content = data.floors.find(item => item.number === editing)!;
+    const sourcePage = BROCHURE_FLOORS.find(item => item.id === editing)!.sourcePage;
+    return <AdminEditor data={data} title={`Nội dung tầng ${editing}`} description="Tên và mô tả website này được dùng chung tại trang chủ, 3D, tổng quan tầng và mặt bằng." onClose={() => setEditing(null)} onSave={async form => {
+      const saved = await data.execute({ type: "update-floor", floor: editing, purpose: String(form.get("purpose") ?? "").trim(), publicTitle: String(form.get("publicTitle") ?? "").trim(), publicDescription: String(form.get("publicDescription") ?? "").trim() });
+      if (saved) onMessage("Đã lưu nội dung tầng trong trình duyệt.");
+      return saved;
+    }}>
+      <label>Công năng nội bộ<Input name="purpose" required maxLength={FLOOR_PURPOSE_MAX_LENGTH} defaultValue={content.purpose}/></label>
+      <label>Tên hiển thị trên website<Input name="publicTitle" required maxLength={FLOOR_PUBLIC_TITLE_MAX_LENGTH} defaultValue={content.publicTitle}/></label>
+      <label>Mô tả dùng chung<Textarea name="publicDescription" required maxLength={FLOOR_PUBLIC_DESCRIPTION_MAX_LENGTH} defaultValue={content.publicDescription}/></label>
+      <a href={`${assetBase}${BROCHURE_PATH}#page=${sourcePage}`} target="_blank" rel="noopener noreferrer">Đối chiếu tầng {editing} · trang {sourcePage} trong brochure PDF<span className="sr-only"> (tab mới)</span></a>
+    </AdminEditor>;
+  })()}</>;
 }
 
-export function TenantOverview({ slots, onSpace }: Pick<Props, "slots" | "onSpace">) {
+export function TenantOverview({ data, onSpace }: Props) {
   const [query, setQuery] = useState("");
-  const names = [...new Set(slots.map(slot => slot.tenant.trim()).filter(Boolean))];
-  const rows = names.filter(name => name.toLocaleLowerCase("vi").includes(query.trim().toLocaleLowerCase("vi"))).map(name => ({
-    name, slots: slots.filter(slot => slot.tenant.trim() === name),
-  }));
+  const rows = tenantRecords(data).filter(row => `${row.name} ${row.leases} ${row.slots.map(slot => slot.code).join(" ")}`.toLocaleLowerCase("vi").includes(query.trim().toLocaleLowerCase("vi")));
+  const pages = useAdminPagination(rows, query);
   return <AdminPanel className="records-panel" labelledBy="tenant-overview-heading">
-    <div className="register-heading"><h2 id="tenant-overview-heading">Đối tác gắn với mặt bằng</h2><label className="search-field"><span className="sr-only">Tìm tên đối tác</span><Input value={query} onChange={event => setQuery(event.target.value)} placeholder="Tìm tên đối tác…"/></label></div>
-    <Table viewportLabel="Đối tác và căn liên quan, có thể cuộn ngang" rows={rows} getRowKey={row => row.name} emptyLabel="Không có đối tác phù hợp." columns={[
-      { id: "name", header: "Tên đối tác", cell: row => <strong>{row.name}</strong> },
-      { id: "count", header: "Căn liên quan", cell: row => row.slots.length },
-      { id: "spaces", header: "Mặt bằng / trạng thái", cell: row => <div className="selection-chips">{row.slots.map(slot => <Button key={slot.id} variant="quiet" className="text-button" onClick={() => onSpace(slot.floor, slot.id)}>Tầng {slot.floor} · {slot.code} · {slot.status}</Button>)}</div> },
-    ]}/>
-    <p className="panel-note">Tổng hợp từ tên đối tác đang gắn trên căn trong phiên demo; không xác nhận quyền thuê hay hợp đồng. Hồ sơ Tenant riêng và trường thông tin cần chốt trong scope production.</p>
+    <div className="register-heading"><h2 id="tenant-overview-heading">Đối tác thuê mặt bằng</h2><label className="search-field"><span className="sr-only">Tìm đối tác, hợp đồng hoặc slot</span><Input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Tìm đối tác, hợp đồng, slot…"/></label></div>
+    <Table viewportLabel="Đối tác và mặt bằng thuê, có thể cuộn ngang" rows={pages.rows} getRowKey={row => row.id} emptyLabel="Không có đối tác thuê phù hợp." columns={[
+      { id: "name", header: "Bên thuê", cell: row => <><strong>{row.name}</strong><small className={styles.secondary}>{row.label}</small></> },
+      { id: "lease", header: "Hồ sơ thuê", cell: row => row.leases },
+      { id: "area", header: "Diện tích slot", cell: row => `${number(row.slots.reduce((sum, slot) => sum + slot.area, 0))} m²` },
+      { id: "spaces", header: "Mặt bằng", cell: row => <div className={styles.actions}>{row.slots.map(slot => <Button key={slot.id} variant="quiet" onClick={() => onSpace(slot.floor, slot.id)}>Tầng {slot.floor} · {slot.code} · {slot.status}</Button>)}</div> },
+    ]}/><AdminPagination state={pages} label="đối tác thuê"/>
+    <p className="panel-note">Doanh nghiệp được tổng hợp từ hồ sơ thuê đã ghi nhận. Tên nhập trực tiếp trên slot không tự tạo doanh nghiệp hoặc chứng minh hợp đồng.</p>
   </AdminPanel>;
 }

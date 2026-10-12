@@ -17,6 +17,9 @@
   color-scheme: light;
 }
 .form { min-width: 0; padding: 32px; background: #fcfaf6; border: 1px solid #e4dece; }
+.visitHeading { margin: 0 0 16px; color: var(--ui-color-text-primary); font-family: var(--font-charis-sil), Georgia, serif; font-size: clamp(24px, 3vw, 32px); font-weight: 400; line-height: 1.45; }
+.visitExplanation { margin: 0 0 24px; color: var(--ui-color-text-secondary); font-size: 14px; line-height: 1.8; }
+.inquiry { overflow-wrap: anywhere; }
 .demoIntro, .inquiry { margin: 0 0 24px; color: var(--ui-color-text-secondary); font-size: 14px; line-height: 1.8; }
 .demoIntro strong { display: block; color: var(--ui-color-text-primary); font-size: 16px; margin-bottom: 4px; }
 .demoIntro a { display: inline-flex; align-items: center; min-height: 44px; color: var(--ui-color-text-primary); text-decoration: underline; text-underline-offset: 4px; }

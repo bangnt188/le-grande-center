@@ -26,7 +26,7 @@ export function ProjectReasons({ content, id = "project-reasons" }: {
         <h2 id={`${id}-heading`} className={styles.title}>{content.title}<br/><em>{content.titleEmphasis}</em></h2>
         <p className={styles.subtitle}>{content.description}</p>
       </div>
-      <ol className={styles.grid}>{content.reasons.map((reason, index) => <li key={reason.id} className={styles.card}>
+      <ol className={styles.grid}>{content.reasons.map((reason, index) => <li key={reason.id} className={styles.card} data-ui-interaction="colors">
         <span className={styles.number} aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
         <div className={styles.icon}><ReasonIcon kind={reason.icon}/></div>
         <h3 className={styles.cardTitle}>{reason.title}</h3>

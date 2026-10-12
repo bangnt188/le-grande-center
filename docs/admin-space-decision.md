@@ -1,6 +1,6 @@
 # Architecture Decision — Demo quản trị mặt bằng Le Grande Centre
 
-Ngày: 06/10/2026. Phạm vi: prototype Next.js tại `/admin-preview/`, dữ liệu mẫu trong bộ nhớ trình duyệt.
+Quyết định ban đầu 06/10/2026; cập nhật 12/10/2026: admin dùng thử tại `/admin-preview/`, snapshot và tệp lưu IndexedDB trên trình duyệt, chưa có DB/API production.
 
 ## Hiểu bài toán
 
@@ -10,21 +10,23 @@ Bản vẽ khách hàng chứa B.1–B.11. B.1/B.11: 205 m², 10 × 20,5 m. B.2�
 
 ## Thiết kế và quyết định
 
-- Sáu tầng được khai báo cố định. Không có thao tác thêm/xóa tầng.
+- Sáu tầng cố định, sửa công năng qua command/repository và đồng bộ mọi màn; không thêm/xóa tầng.
 - Slot là đơn vị gốc có ID chứa tầng, mã, diện tích, thứ tự và phía sảnh. Ghép tạo `SpaceGroup` tham chiếu các slot thành viên, không sửa geometry, mã hoặc diện tích gốc.
+- Cho sửa diện tích slot chưa có cam kết và chưa thuộc nhóm. Tổng diện tích yêu cầu chưa quyết định được cập nhật theo slot; không tự thay geometry/brochure public.
 - Bộ kiểm tra ghép xác nhận slot tồn tại, không trùng, cùng tầng, cùng phía sảnh, thứ tự liên tiếp, chưa thuộc nhóm khác. Demo chỉ cho ghép slot có text `Trống` và chưa có đối tác.
 - Sơ đồ và bảng dùng chung selection. Nhóm hiện thành một footprint liên tục; bảng giữ từng slot gốc và chỉ rõ nhóm chứa nó. Diện tích nhóm là tổng diện tích thành viên.
-- Tách nhóm giữ trạng thái text của nhóm trên các slot; media liên kết với nhóm chuyển về tầng, tránh tham chiếu đến nhóm đã tách. Mã và diện tích gốc được bảo toàn.
-- Trạng thái dùng `string`, input text kèm gợi ý, filter được sinh từ giá trị hiện tại. Giá trị mới không yêu cầu thay union/enum. Màu có fallback trung tính; text luôn hiển thị.
-- Leads hỗ trợ tìm/lọc, trạng thái text, ghi chú và chuyển tới tầng quan tâm. Không chứa PII thật.
-- Media hỗ trợ tìm/lọc, chọn tệp xem trước, gắn với tầng/nhóm. Nhóm được tham chiếu bằng ID ổn định, không dùng tên hiển thị làm khóa. Chỉ nhận PNG/JPEG/WebP/PDF tối đa 10 MB. Object URL được giải phóng khi component unmount; không gửi file lên mạng.
-- Demo chạy như Client Component nằm trong page Server Component giữ metadata `noindex`. Website công khai vẫn static export. Script postbuild mặc định loại route `admin-preview` và tài sản `admin-demo` khỏi `out`; workflow dev opt-in để publish demo fixture công khai. Hợp đồng dữ liệu mới nằm trong `src/features/admin/`, TSX gọi hook qua repository.
+- Cập nhật trạng thái nhóm đồng bộ ngay cho các slot thành viên; tách giữ trạng thái đó và chuyển media nhóm về tầng. Mã và diện tích gốc được bảo toàn.
+- Theo yêu cầu 12/10/2026, slot/nhóm chỉ có Trống hoặc Đang thuê; Select và filter dùng chung SLOT_STATUSES, repository/API consumer từ chối trạng thái khác. Đang chọn chỉ là tương tác. Badge dùng UI system với --ui-slot-* token, cùng palette với sơ đồ.
+- Leads/doanh nghiệp có form thêm/sửa, liên hệ và ghi chú; Lead có ba trạng thái hữu hạn, được liên kết doanh nghiệp. Khách đang thuê suy ra từ hồ sơ thuê, tên nhập trên slot không tự tạo doanh nghiệp.
+- Media tìm/lọc, upload PNG/JPEG/WebP/PDF tối đa 10 MiB, kiểm tra header; Blob/snapshot commit nguyên tử. Đổi tên/liên kết, xóa có xác nhận và chặn tệp hợp đồng đang tham chiếu. Blob URL được tạo lại khi đọc sau reload, giải phóng khi dispose; không upload cloud.
+- Hợp đồng chỉ upload/liên kết/thay PDF có sẵn, không ký online hoặc xác nhận tài liệu đã ký. Yêu cầu/giữ chỗ/lịch hẹn dùng giờ hiện tại; settings đặt mặc định nội bộ.
+- Client Component nằm trong page Server Component với metadata noindex; public vẫn static export. Postbuild mặc định loại admin và asset demo; deploy demo opt-in. DTO/hàm thuần ở src/shared/admin/, hook gọi repository.
 
 ## Lý do và trade-off
 
 Tách slot gốc và nhóm cho phép truy vết, tách lại và định danh media ổn định. Luồng ghép gần sơ đồ làm rõ quan hệ không gian trước khi thao tác. Sáu tầng cố định tránh phát sinh quy trình thay đổi cấu trúc công trình ngoài phạm vi.
 
-Bộ nhớ trình duyệt phù hợp với demo duyệt thiết kế, nhưng mất thay đổi khi reload và không hỗ trợ nhiều người dùng hay audit. Đây không phải thiết kế lưu trữ production. Sơ đồ là mô phỏng, không thay thế bản vẽ kỹ thuật. Bộ trạng thái text linh hoạt nhưng chưa có quy tắc chuyển trạng thái và chưa phải hệ phân loại nghiệp vụ chuẩn.
+IndexedDB giữ dữ liệu/tệp sau reload trong cùng origin/browser; không chia sẻ qua máy khác hoặc có auth/audit production. Revision CAS bảo vệ tab cũ, commit/quota lỗi không ghi dở hoặc báo thành công giả. Browser có thể chặn/evict; không dùng dữ liệu thật. Sơ đồ là mô phỏng; active hold chưa hết hạn và lease bảo vệ slot/nhóm khỏi thao tác sai luồng.
 
 ## Validate security / threat model
 
@@ -37,7 +39,7 @@ Bộ nhớ trình duyệt phù hợp với demo duyệt thiết kế, nhưng m�
 ## Đề xuất và migration path production
 
 1. Nhận bản vẽ được duyệt của từng tầng; lập inventory với ID ổn định, geometry và cạnh liền kề rõ ràng. Chưa chốt schema diện tích thật từ một ảnh.
-2. Chốt status catalog dạng dữ liệu (ID, nhãn text, thứ tự). Quyền ghép phải dựa trên lease/reservation/availability thực tế, không dựa trên nhãn text `Trống`; demo dùng rule đơn giản đã ghi ở trên.
+2. Giữ hai trạng thái slot Trống/Đang thuê theo yêu cầu khách. Khả dụng và quyền ghép dựa vào lease/reservation và dữ liệu đã được duyệt, không chỉ nhãn Trống.
 3. Giữ contract `Slot`, `SpaceGroup`, `Lead`, `Media` và thay React state bằng repository/API. Đưa merge/split sang server transaction; ghi actor, revision, before/after và hỗ trợ undo có kiểm tra xung đột.
 4. Triển khai admin trên managed serverless runtime, managed relational database và private object storage. Áp dụng session, RBAC, audit, retention PII và upload policy trước khi nhập dữ liệu thật.
 5. Chạy preview với dữ liệu đã xác nhận, kiểm tra nghiệp vụ và bàn giao; chỉ xuất nội dung được duyệt sang pipeline build của website công khai.

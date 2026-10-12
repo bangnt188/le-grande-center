@@ -9,9 +9,9 @@
   ],
   "scripts": {
     "pull": "node scripts/pull-submodules.mjs",
-    "predev": "npm run build:backend && npm run build:ui",
+    "predev": "npm run media:catalog && npm run build:backend && npm run build:ui",
     "dev": "next dev",
-    "prebuild": "npm run check:scene-assets && npm run build:backend && npm run build:ui",
+    "prebuild": "npm run media:catalog && npm run check:scene-assets && npm run build:backend && npm run build:ui",
     "build": "next build",
     "postbuild": "node scripts/prepare-public-export.mjs",
     "typecheck": "npm run build:backend && npm run typecheck:backend && npm run build:ui && npm run typecheck:ui && tsc --noEmit",
@@ -21,6 +21,7 @@
     "test:ui": "npm run test --workspace=@mall/ui",
     "smoke:public": "node scripts/smoke-public-ui.mjs",
     "test:admin": "node --import tsx --test tests/admin-repository.test.ts",
+    "media:catalog": "node scripts/generate-admin-media.mjs",
     "deploy:dev": "node scripts/publish-dev-pages.mjs",
     "build:backend": "npm run build --workspace=@shared/backend",
     "typecheck:backend": "npm run typecheck --workspace=@shared/backend",
@@ -33,6 +34,8 @@
   },
   "dependencies": {
     "@mall/ui": "0.1.0",
+    "@neon/config": "^1.8.6",
+    "@neon/env": "^1.5.3",
     "@shared/backend": "0.2.1",
     "next": "16.3.6",
     "react": "19.3.0",

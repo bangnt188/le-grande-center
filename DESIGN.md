@@ -34,10 +34,9 @@ colors:
   admin-nav-active: "#244938"
   admin-floor-active: "#e9eee4"
   admin-field-border: "#e3e5db"
-  slot-available: "#e8f1e9"
-  slot-leased: "#f3eceb"
-  slot-other: "#f8f2e2"
-  slot-selected: "#f6efd9"
+  slot-available: "var(--ui-slot-available-surface)"
+  slot-leased: "var(--ui-slot-leased-surface)"
+  slot-selected: "var(--ui-slot-selected-surface)"
 typography:
   public-display:
     fontFamily: '"Charis SIL", Georgia, serif'
@@ -178,7 +177,7 @@ The public theme uses a dark green base, warm gold actions and soft paper text. 
 - **Warm Paper and Soft Sage** (`brand-paper`, `brand-muted`): public text and supporting detail on dark green.
 - **Leasing Canvas and Porcelain** (`admin-canvas`, `admin-surface`, `admin-raised`): workspace, panels and raised controls.
 - **Admin Ink, Muted Text and Fine Line** (`admin-ink`, `admin-muted`, `admin-line`): operational text, supporting labels and dividers.
-- **Inventory Fills** (`slot-available`, `slot-leased`, `slot-other`, `slot-selected`): quiet plan states. Selection is also indicated with an outline, and every state retains a text label.
+- **Inventory Fills**: Trống uses a pale success-green surface; Đang thuê uses a warm brass surface; Đang chọn uses a solid action-green surface, on-action text and accent outline. All are mapped through --ui-slot-* tokens onto --ui-color-* semantic tokens. Badges use the same occupancy palette; selection never overwrites occupancy.
 
 The public theme also defines dark and light semantic surfaces. Admin route overrides remain explicit so theme changes do not leak between the public frame and operations workspace.
 
@@ -201,9 +200,13 @@ The interface keeps small operational labels compact, but important status, inve
 
 ## Layout
 
-The shared admin shell has two modes: a vertical sidebar and horizontal top navigation. The sidebar is 248px in the Le Grande adapter and collapses to a 76px icon rail; collapsed links retain accessible names and use the browser's native `title` tooltip rather than a fixed overlay over workspace text. Top navigation places the brand in the header. Both modes use a sticky header with a 64px minimum height.
+The shared admin shell supports sidebar and top navigation for consumers. Le Grande uses one fixed grouped sidebar (Mặt bằng, Kinh doanh, Tài nguyên, Hệ thống), with no layout selector or separate workflow dropdown. Cấu hình edits internal operational defaults; it does not publish the public website. The 248px sidebar collapses to a 76px icon rail; links keep accessible names and native title tooltips. The sticky header holds breadcrumbs, Mở website and Đăng xuất; dossier tabs remain contextual.
 
-The Le Grande workspace has a 1564px content cap, 36px desktop inline padding and 24px padding below 1250px. The sidebar uses 18px inline padding and a 30px top inset. At 850px and below, desktop navigation is replaced by a modal menu with focus containment, Escape dismissal and focus return. The mobile workspace uses 16px inline padding, 44px minimum touch controls and 16px field text.
+Website configuration additionally selects a real media image as the logo and edits independent Zalo URL, email, leasing phones, management phone and address. Browser-only persistence updates public contact/header/footer components on the same origin; it is not global publishing. Media separates read-only project files from uploaded browser files, with image, PDF and video previews and links to the existing 3D viewer.
+
+The Le Grande workspace has a 1564px content cap, 36px desktop inline padding and 24px padding below 1250px. The sidebar uses 18px inline padding and 24px top inset. At 850px and below, desktop navigation is replaced by a themed modal menu with focus containment, Escape dismissal and focus return. The mobile workspace uses 16px inline padding, 44px minimum touch controls and 16px field text.
+
+Admin entry /admin-preview/ uses shared TextField, PasswordField and Button with visible labels, native required validation and the system password-visibility control. Demo credentials are not sent/stored; the sessionStorage marker is presentation-only. Workspace opens at floors. Saved snapshots/files persist in browser IndexedDB across reload/logout; unsaved drafts remain ephemeral. No customer portal or embedded website preview.
 
 Plan and record views place a primary region beside an inspector, then stack them at the compact breakpoint. The B2B dossier gives its company list a wider stable column before stacking. Feature breakpoints at 1250px, 1100px, 1000px, 800px and 520px handle content density independently of the shared shell breakpoint. Six floor choices stay in a fixed grid; narrow filters wrap and media tiles reduce to two columns.
 
@@ -228,6 +231,8 @@ Shared buttons use the admin action palette, compact horizontal padding and a 42
 ### Panels, chips and registers
 
 Plan, inspector and record panels use warm white surfaces, a thin line and generous 24px padding in the refined admin layout. Toolbars and tables use dividers instead of nested card borders. Slot-membership chips list original slot codes and expose a named removal action. Registers keep a stable pagination footer and stable table columns as visible rows change.
+
+Record edits reuse AdminEditor with shared Modal/ConfirmDialog, save/cancel, pending/error, dirty-discard confirmation and refresh that preserves fields. Form dialogs use the light workspace theme; only the mobile navigation popup carries data-admin-navigation/dark tokens. Contracts are uploaded PDF attachments, not an online signing or drafting surface. Long forms scroll within the viewport; at 320px, dialogs retain 16px outer gutters.
 
 ### Navigation and floor choices
 

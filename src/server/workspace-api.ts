@@ -1,7 +1,7 @@
 import "server-only";
 import { AccessError, BackendError, createEndpoint, integerInput, objectInput, readJson,
   type AccessContext, type AccessResource, type AccessScope, type createAccessBackend } from "@shared/backend";
-import type { AdminCommand, AdminSnapshot } from "../features/admin/contracts";
+import type { AdminCommand, AdminSnapshot } from "../shared/admin/contracts";
 
 export type MallWorkspaceUnit = {
   scope: AccessScope;

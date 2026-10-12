@@ -1,15 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Company } from "./b2b-model";
+import type { Company } from "../../shared/admin/b2b-model";
 import type { useAdminData } from "./use-admin-data";
 
 /** Drafts live above the view switch so a remounted dossier does not lose edits. */
-export function useCompanyNotes(companies: Company[], execute: ReturnType<typeof useAdminData>["execute"]) {
+export function useCompanyNotes(companies: Company[], execute: ReturnType<typeof useAdminData>["execute"], hasOtherDrafts = false) {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
   const dirty = (company: Company) => drafts[company.id] !== undefined && drafts[company.id] !== company.note;
-  const hasUnsaved = companies.some(dirty);
+  const hasUnsaved = companies.some(dirty) || hasOtherDrafts;
 
   useEffect(() => {
     if (!hasUnsaved) return;

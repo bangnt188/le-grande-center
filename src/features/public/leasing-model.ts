@@ -12,14 +12,26 @@ export type LeasingOrientation = Readonly<{
   front: string; rear: string; lakeSide: string; waterworksSide: string;
   sourceUrl: string;
 }>;
+export type LeasingAvailability = "available" | "leased";
 export type LeasingUnit = Readonly<{
   id: string; floorId: number; area: number; types: readonly string[];
+  availability: LeasingAvailability; // Temporary mock until approved availability is connected.
   orientation: string; // Approximate exterior aspect, not a certified entrance direction.
   dimensions?: Readonly<{ width: number; depth: number }>;
   note?: string;
   plan: PlanShape;
 }>;
 export type AreaFilter = "" | "small" | "medium" | "large";
+
+// Brochure pairs keep their individual identities and availability.
+export function getShophousePair(unit: LeasingUnit, inventory: readonly LeasingUnit[]): readonly [LeasingUnit, LeasingUnit] | null {
+  if (unit.floorId !== 1 && unit.floorId !== 2) return null;
+  const match = unit.id.match(/^[AB]\.(\d+)$/);
+  if (!match) return null;
+  const lower = inventory.find(item => item.floorId === 1 && item.id === `A.${match[1]}`);
+  const upper = inventory.find(item => item.floorId === 2 && item.id === `B.${match[1]}`);
+  return lower && upper ? [lower, upper] : null;
+}
 
 export function matchesArea(area: number, filter: AreaFilter) {
   switch (filter) {

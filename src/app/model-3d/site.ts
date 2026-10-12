@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
-import { qualitySettings, type Quality } from "./rendering";
+import { createLightPoolMaterial, qualitySettings, type Quality } from "@mall/ui/3d";
 
 const landmark = { x: -32, z: 65, radius: 17 };
 
@@ -96,7 +96,7 @@ function addBackgroundNeighborhood(group: THREE.Group, quality: Quality) {
   const map = new THREE.CanvasTexture(facade), emission = new THREE.CanvasTexture(lights);
   map.colorSpace = emission.colorSpace = THREE.SRGBColorSpace;
   const masonry = new THREE.MeshStandardMaterial({ name: "Unbranded background apartments", map, emissiveMap: emission, emissive: "#ffcd8d", emissiveIntensity: .2, roughness: .88 });
-  masonry.userData.siteWindow = true;
+  masonry.userData.lightingRole = "window";
   const roof = material("Background charcoal roofs", "#5b6261"), paving = material("Neighborhood courtyards", "#6d7567");
   const bark = material("Background grove trunks", "#4c4b38"), leaf = material("Background grove canopies", "#35492a");
   type Lot = { x: number; z: number; w: number; d: number; h: number; rotation: number };
@@ -384,7 +384,7 @@ export function addSiteAsset(site: THREE.Group, root: THREE.Group, id: string, q
     instances.name = id + ": " + object.name; instances.castShadow = true; instances.receiveShadow = true;
     instances.userData.renderRole = id === "tree" ? "vegetation" : "context";
     const surfaces = Array.isArray(object.material) ? object.material : [object.material];
-    if (id === "lamp") for (const surface of surfaces) if (surface instanceof THREE.MeshStandardMaterial && surface.name === "Lantern") { surface.userData.siteLamp = true; surface.emissiveIntensity = .18; }
+    if (id === "lamp") for (const surface of surfaces) if (surface instanceof THREE.MeshStandardMaterial && surface.name === "Lantern") { surface.userData.lightingRole = "lamp"; surface.emissiveIntensity = .18; }
     const local = new THREE.Matrix4().multiplyMatrices(inverseRoot, object.matrixWorld);
     for (let i = 0; i < values.length; i++) {
       const [x, z, rotation = 0, scale = 1] = values[i];
@@ -401,13 +401,7 @@ export function addSiteAsset(site: THREE.Group, root: THREE.Group, id: string, q
     instanceGroup.add(instances);
   });
   if (id === "lamp") {
-    const canvas = document.createElement("canvas"); canvas.width = canvas.height = 64;
-    const context = canvas.getContext("2d")!;
-    const gradient = context.createRadialGradient(32, 32, 0, 32, 32, 32);
-    gradient.addColorStop(0, "rgba(255,205,126,.65)"); gradient.addColorStop(.3, "rgba(255,178,78,.28)"); gradient.addColorStop(1, "rgba(255,164,62,0)");
-    context.fillStyle = gradient; context.fillRect(0, 0, 64, 64);
-    const pool = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true, depthWrite: false, opacity: 0, blending: THREE.AdditiveBlending });
-    pool.userData.siteLightPool = true;
+    const pool = createLightPoolMaterial();
     const geometry = new THREE.PlaneGeometry(11, 11);
     for (const [x, z] of selected) { const light = new THREE.Mesh(geometry, pool); light.rotation.x = -Math.PI / 2; light.position.set(x, .13, z); light.userData.renderRole = "light"; instanceGroup.add(light); }
   }

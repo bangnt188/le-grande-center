@@ -3,11 +3,11 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { loadSceneAsset, disposeScene } from "./assets";
 import { createSite, addSiteAsset, updateSiteMotion } from "./site";
 import { sceneManifest } from "./scene";
-import { createArchitecturalRenderer, createDaylight, chooseQuality, type Quality } from "./rendering";
+import { createArchitecturalRenderer, createDaylight, chooseQuality, type Quality, type LightingPreset } from "@mall/ui/3d";
 
 export type View = "front" | "aerial" | "rearLake" | "side";
-export type Selection = { floor: number | null; slot: string | null; view: View; lighting: "daylight" | "evening"; motion: boolean; allowedViews: View[] };
-export type SceneActions = { view: (view: View) => void; selectFloor: (floor: number | null) => void; selectSlot: (slot: string | null) => void; lighting: (preset: "daylight" | "evening") => void; motion: (enabled: boolean) => void };
+export type Selection = { floor: number | null; slot: string | null; view: View; lighting: LightingPreset; motion: boolean; allowedViews: View[] };
+export type SceneActions = { view: (view: View) => void; selectFloor: (floor: number | null) => void; selectSlot: (slot: string | null) => void; lighting: (preset: LightingPreset) => void; motion: (enabled: boolean) => void };
 
 export function mountScene(container: HTMLDivElement, options: {
   base: string; quality: Quality | "auto"; selection: Selection; dots: (HTMLButtonElement | null)[];
@@ -26,8 +26,6 @@ export function mountScene(container: HTMLDivElement, options: {
     const tier = options.quality === "auto" ? chooseQuality() : options.quality;
     const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: tier === "low" ? "low-power" : "high-performance" });
     disposers.push(() => { renderer.dispose(); renderer.domElement.remove(); });
-    renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = .9;
-    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.info.autoReset = false;
     renderer.domElement.setAttribute("aria-label", "Mô hình Le Grande Centre. Xoay 360 độ, nhìn từ trên cao và phóng to; chọn góc nhìn, tầng và vị trí bằng các nút điều khiển.");
     renderer.domElement.tabIndex = 0; renderer.domElement.dataset.quality = tier;
@@ -59,8 +57,15 @@ export function mountScene(container: HTMLDivElement, options: {
       pick.userData = { renderRole: "interaction", slotId: slot.slotId, floorId: slot.floorId }; scene.add(pick); return pick;
     });
     let initialized = false;
-    const pipeline = createArchitecturalRenderer(renderer, scene, camera, tier); disposers.push(() => pipeline.dispose());
-    const daylight = createDaylight(renderer, scene, building, options.base, () => { if (initialized) render(); }, tier, options.selection.lighting); disposers.push(() => daylight.dispose());
+    const pipeline = createArchitecturalRenderer(renderer, scene, camera, tier, { occlusionBounds: new THREE.Box3(new THREE.Vector3(-59, -1, -19), new THREE.Vector3(59, 30, 31)) }); disposers.push(() => pipeline.dispose());
+    const daylight = createDaylight(renderer, scene, building, () => { if (initialized) render(); }, {
+      quality: tier, preset: options.selection.lighting, environmentUrl: `${options.base}/model-3d/daylight-995d68b1.hdr`,
+      shadowBounds: new THREE.Box3(new THREE.Vector3(-80, 0, -32), new THREE.Vector3(80, 30, 90)),
+      materialRules: [
+        { name: "Recessed neutral structural", match: "prefix", emissive: "#f8b76e", intensity: { daylight: 0, evening: .22 } },
+        { name: "Cool grey reflective storefront glass", emissive: "#d89747", intensity: { daylight: 0, evening: .12 } },
+      ],
+    }); disposers.push(() => daylight.dispose());
     let width = 1, height = 1, frame: number | null = null, contextAvailable = true, renders = 0;
     let visible = true, dirty = true, elapsedSeconds = 0, lastMotionTime = 0, lastRenderTime = 0, lastShadowTime = 0, lastStatsTime = 0;
     let vehicleProbe: THREE.InstancedMesh | null = null, walkerProbe: THREE.Object3D | null = null;

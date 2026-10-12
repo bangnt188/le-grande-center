@@ -2,7 +2,7 @@
 .page { --reference-green: var(--ui-color-action); --reference-paper: var(--ui-color-canvas); --reference-muted: var(--ui-color-text-secondary); --reference-line: var(--ui-color-border); max-width: 1320px; margin: auto; padding: 32px clamp(20px, 4vw, 56px) 64px; background: var(--ui-color-canvas); color: var(--ui-color-text-primary); font-family: var(--ui-font-body); color-scheme: light; }
 .page ::selection { background: var(--ui-color-accent); color: var(--ui-color-accent-foreground); }
 .page a:focus-visible, .page button:focus-visible { outline: 2px solid var(--ui-color-focus); outline-offset: 4px; }
-.breadcrumb { font-size: var(--ui-font-size-sm); margin-bottom: 28px; padding-left: 56px; }
+.breadcrumb { font-size: var(--ui-font-size-sm); margin-bottom: 28px; padding-top: 56px; }
 .breadcrumb a { min-height: 44px; }
 .intro { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: clamp(28px, 4vw, 48px); align-items: start; padding: 28px; background: var(--ui-color-surface-raised); border-radius: 16px; }
 .gallery, .unitOverview, .consultation > div { min-width: 0; }
@@ -17,14 +17,36 @@
 .facts dt svg { display: block; width: 22px; height: 22px; margin-bottom: 10px; color: var(--ui-color-action); }
 .facts dd { margin: 8px 0 0; font-size: 19px; font-weight: 500; line-height: 1.4; overflow-wrap: anywhere; }
 .unitActions { display: grid; gap: 10px; margin-top: 24px; }
-.unitActions a { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 48px; padding: 12px 16px; font-size: var(--ui-font-size-sm); line-height: 1.6; border-radius: var(--ui-radius-control); }
-.primaryAction { background: var(--ui-color-action); color: var(--ui-color-action-foreground); border: 1px solid var(--ui-color-action); }
-.primaryAction:hover { background: var(--ui-color-action-hover); }
+.unitActions > a { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; min-height: 48px; padding: 12px 16px; font-size: var(--ui-font-size-sm); line-height: 1.6; border-radius: var(--ui-radius-control); }
+.unitActions .primaryAction { position: relative; display: inline-flex; align-items: center; justify-content: center; align-self: start; gap: 10px; width: fit-content; max-width: 100%; min-height: 56px; padding: 16px clamp(18px, 4vw, 36px); overflow: hidden; border: 1px solid #d4af37; border-radius: 0; background: #d4af37; color: #002116; font-size: 12px; font-weight: 700; line-height: 1.5; letter-spacing: 2.5px; text-align: center; text-transform: uppercase; transition: all .3s; }
+.unitActions .primaryAction::before { position: absolute; inset: 0 auto 0 -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, #ffffff4d, transparent); content: ""; pointer-events: none; transition: left .5s; }
+.unitActions .primaryAction > span, .unitActions .primaryAction > svg { position: relative; z-index: 1; }
+.unitActions .primaryAction > svg { flex: 0 0 16px; width: 16px; height: 16px; }
+.unitActions .primaryAction:hover:not(:disabled)::before { left: 100%; }
+.unitActions .primaryAction:focus-visible { outline: 2px solid var(--ui-color-focus); outline-offset: 4px; }
+@media (prefers-reduced-motion: reduce) { .unitActions .primaryAction, .unitActions .primaryAction::before { transition: none; } }
 .secondaryAction { border: 1px solid var(--ui-color-border); color: var(--ui-color-action); }
 .secondaryAction:hover { background: var(--ui-color-surface-raised); }
 .unitOverview > .textLink { margin-top: 12px; }
 .textLink { display: inline-flex; align-items: center; min-height: 44px; color: var(--ui-color-action); text-decoration: underline; text-underline-offset: 5px; font-size: var(--ui-font-size-sm); }
 .textLink:hover { color: var(--ui-color-action-hover); }
+.unitNavigation { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+.unitNavigation > a, .unitNavigation > span { display: flex; align-items: center; gap: 12px; min-width: 0; min-height: 48px; padding: 8px 12px; border: 1px solid var(--ui-color-border); border-radius: var(--ui-radius-control); color: var(--ui-color-action); background: var(--ui-color-surface-raised); font-size: 12px; line-height: 1.6; }
+.unitNavigation > a:hover { background: var(--ui-color-surface); }
+.unitNavigation > [aria-disabled="true"] { color: var(--ui-color-text-secondary); background: var(--ui-color-canvas); }
+.unitNavigation svg { flex: 0 0 24px; width: 24px; height: 24px; }
+.unitNavigation small, .unitNavigation strong { display: block; }
+.unitNavigation small { font-size: 11px; }
+.unitNavigation strong { font-size: 16px; font-weight: 500; }
+.nextUnit { justify-content: flex-end; text-align: right; }
+@media (min-width: 1200px) { .unitNavigation { margin: 0; } .unitNavigation > a, .unitNavigation > span { position: fixed; top: 50%; z-index: 8; flex-direction: column; justify-content: center; gap: 4px; width: 56px; min-height: 80px; padding: 8px 4px; text-align: center; } .previousUnit { left: max(8px, env(safe-area-inset-left)); } .unitNavigation > .nextUnit { right: max(8px, env(safe-area-inset-right)); flex-direction: column-reverse; } .unitNavigation small { font-size: 10px; } }
+.linkedPair { margin-block: 24px; padding-block: 20px; border-block: 1px solid var(--ui-color-border); }
+.page[data-ui-theme] .pairTitle { font-size: 23px; }
+.linkedPair .pairAreas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 20px 0 12px; font-variant-numeric: tabular-nums; }
+.pairAreas dt { font-size: 12px; line-height: 1.6; color: var(--ui-color-text-secondary); }
+.pairAreas dd { margin: 8px 0 0; font-size: 18px; font-weight: 500; line-height: 1.5; }
+.page .pairSource { margin: 8px 0; font-size: 12px; line-height: 1.7; }
+.pairPlans { display: flex; flex-wrap: wrap; gap: 0 20px; }
 .photoStage { position: relative; aspect-ratio: 3 / 2; overflow: hidden; border-radius: 12px; background: var(--ui-color-surface-raised); }
 .photoOpenButton { display: block; width: 100%; height: 100%; padding: 0; border: 0; background: var(--ui-color-surface-raised); cursor: zoom-in; }
 .photoStage .photoOpenButton:focus-visible { outline-offset: -4px; }
@@ -66,14 +88,15 @@
 .otherUnits span { align-self: center; font-size: var(--ui-font-size-sm); }
 .otherUnits small { grid-column: 1 / -1; font-size: 12px; color: var(--ui-color-text-secondary); line-height: 1.7; }
 @media (max-width: 1000px) { .intro { gap: 24px; padding: 24px; } .facts { gap: 12px; } .facts dd { font-size: 17px; } .otherUnits ul { grid-template-columns: repeat(3, minmax(0, 1fr)); } .consultation { gap: 32px; } }
-@media (max-width: 760px) { .page { padding-block: 20px 40px; } .breadcrumb { margin-bottom: 20px; padding-left: 0; padding-top: 44px; } .intro, .consultation { grid-template-columns: 1fr; gap: 28px; } .intro { padding: 16px; } .unitTitle { font-size: 44px; } .facts { margin-block: 24px; padding-block: 20px; } .facts dd { font-size: 18px; } .consultation { padding-block: 36px; } .otherUnits { padding-top: 28px; } .otherUnits ul { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; } }
+@media (max-width: 760px) { .page { padding-block: 20px 40px; } .breadcrumb { margin-bottom: 20px; } .intro, .consultation { grid-template-columns: 1fr; gap: 28px; } .intro { padding: 16px; } .unitTitle { font-size: 44px; } .facts { margin-block: 24px; padding-block: 20px; } .facts dd { font-size: 18px; } .consultation { padding-block: 36px; } .otherUnits { padding-top: 28px; } .otherUnits ul { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; } }
 @media (max-width: 380px) { .facts { gap: 10px; } .facts dd { font-size: 16px; } .otherUnits ul { grid-template-columns: 1fr; } .orientation { grid-template-columns: 1fr; } }
 .mapControl { position: fixed; top: calc(var(--public-header-height, 88px) + 12px); left: max(16px, env(safe-area-inset-left)); z-index: 9; }
 .mapControl[data-open="true"] { z-index: 1000; }
-.mapControl > button { position: relative; display: grid; place-items: center; width: 48px; height: 48px; min-width: 48px; min-height: 48px; padding: 0; border-radius: 50%; box-shadow: var(--ui-shadow-overlay); }
-.mapControl > button svg { width: 24px; height: 24px; }
-.mapControl > button::after { content: ""; position: absolute; inset: -3px; border: 1px solid var(--ui-color-action); border-radius: inherit; opacity: 0; pointer-events: none; }
-@keyframes mapLiveMark { 0% { opacity: 0; transform: scale(1); } 12% { opacity: .22; } 50%, 100% { opacity: 0; transform: scale(1.2); } }
-@media (prefers-reduced-motion: no-preference) { .mapControl[data-live="true"]:not([data-open]) > button:not(:hover):not(:focus-visible)::after { animation: mapLiveMark 4.8s ease-out infinite; } }
+.mapControl > button { --ui-effect-color: var(--ui-color-action); position: relative; display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; min-width: 48px; min-height: 48px; padding: 0; border: 1px solid color-mix(in srgb, var(--ui-color-action) 24%, var(--ui-color-border)); border-radius: 10px; background: color-mix(in srgb, var(--ui-color-action) 12%, var(--ui-color-surface-raised)); color: var(--ui-color-action); box-shadow: 0 4px 14px rgb(0 33 22 / .16); animation: map-wobble 5s ease-in-out infinite; animation-play-state: var(--ui-effect-play-state, paused); transition: background-color 160ms ease-out, border-color 160ms ease-out, box-shadow 160ms ease-out; }
+.mapControl > button svg { flex: 0 0 24px; width: 24px; height: 24px; }
 .mapControl [role="dialog"] { inline-size: min(1100px, calc(100vw - 32px)); }
 @media (max-width: 720px) { .mapControl { top: calc(var(--public-header-height, 76px) + 12px); } }
+@keyframes map-wobble { 0%, 94%, 100% { rotate: 0deg; } 96% { rotate: -1.5deg; } 98% { rotate: 1.5deg; } }
+.mapControl > button:hover:not(:disabled) { background: color-mix(in srgb, var(--ui-color-action) 18%, var(--ui-color-surface-raised)); border-color: color-mix(in srgb, var(--ui-color-action) 38%, var(--ui-color-border)); box-shadow: 0 5px 16px rgb(0 33 22 / .2); }
+@media (prefers-reduced-motion: reduce) { .mapControl > button { animation: none; } }
+.mapControl > button { border-radius: 50%; }

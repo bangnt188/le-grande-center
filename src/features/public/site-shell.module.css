@@ -5,10 +5,9 @@
 .brandText strong { display: block; font-family: var(--font-charis-sil), Georgia, serif; font-size: 20px; font-weight: 400; }
 .brandText span { display: block; margin-top: 4px; font-size: 9px; letter-spacing: .24em; text-transform: uppercase; }
 .desktopNavigation { margin-left: auto; display: flex; align-items: center; gap: 26px; font-size: 10px; font-weight: 500; text-transform: uppercase; }
-.desktopNavigation a, .adminLink { position: relative; display: inline-flex; align-items: center; min-height: 44px; white-space: nowrap; transition: color .3s ease-out; }
-.desktopNavigation a::after { content: ""; position: absolute; inset: auto 0 5px; height: 1px; background: #a4853c; transform: scaleX(0); transform-origin: left; transition: transform .3s ease-out; }
+.desktopNavigation a, .adminLink { position: relative; display: inline-flex; align-items: center; min-height: 44px; white-space: nowrap; }
+.desktopNavigation a::after { content: ""; position: absolute; inset: auto 0 5px; height: 1px; background: #a4853c; }
 .desktopNavigation a[aria-current="page"], .desktopNavigation a:hover, .desktopNavigation a:focus-visible, .mobileMenu nav a:not(.visitLink):is([aria-current="page"], :hover, :focus-visible) { color: #816322; }
-.desktopNavigation a:is([aria-current="page"], :hover, :focus-visible)::after { transform: scaleX(1); }
 .header a:focus-visible, .header summary:focus-visible { outline: 2px solid #a4853c; outline-offset: 4px; }
 .adminLink { font-size: 11px; color: #816322; }
 .mobileMenu { display: none; margin-left: auto; }
@@ -18,7 +17,7 @@
 .mobileMenu nav a { display: flex; align-items: center; min-height: 48px; font-size: 13px; font-weight: 500; text-transform: uppercase; }
 .mobileMenu nav a[aria-current="page"] { text-decoration: underline; text-underline-offset: 8px; }
 .mobileMenu[open] summary { color: #816322; }
-.desktopNavigation .exploreLink, .desktopNavigation .visitLink, .mobileMenu .visitLink { justify-content: space-between; gap: 18px; min-height: 48px; padding: 12px 18px; border-radius: 8px; font-size: 10px; transition: background-color .2s ease-out, color .2s ease-out; }
+.desktopNavigation .exploreLink, .desktopNavigation .visitLink, .mobileMenu .visitLink { justify-content: space-between; gap: 18px; min-height: 48px; padding: 12px 18px; border-radius: 8px; font-size: 10px; }
 .desktopNavigation .exploreLink { border: 1px solid #a4853c; color: #816322; }
 .desktopNavigation .exploreLink:hover { background: #eee6d4; }
 .desktopNavigation .visitLink, .mobileMenu .visitLink { color: #fffcf5; background: #123e2e; }
@@ -55,4 +54,3 @@
 @media (max-width: 600px) { .footer { padding-bottom: calc(136px + env(safe-area-inset-bottom)); } }
 @media (max-width: 1200px) { .header { gap: 20px; } .desktopNavigation { display: none; } .mobileMenu { display: block; } }
 @media (max-width: 720px) { .header { padding: 12px 6%; gap: 16px; } .brandText strong { font-size: 18px; } .content { padding: 42px 6% 56px; } .floor { grid-template-columns: 1fr; gap: 12px; } .adminLink { display: none; } }
-@media (prefers-reduced-motion: reduce) { .header a, .desktopNavigation a::after { transition: none; } }

@@ -13,6 +13,9 @@ const sharedPhotos = [
 const shophousePhotos = [{ path: "/images/home-v2/facade-detail.jpg", label: "Phối cảnh mặt tiền thương mại" }, ...sharedPhotos];
 const upperPhotos = [{ path: "/images/home-v2/upper-detail.jpg", label: "Phối cảnh không gian tầng trên" }, ...sharedPhotos];
 
+export function getLeasingProjectCover(floorId: number) {
+  return (floorId <= 2 ? shophousePhotos : upperPhotos)[0];
+}
 export function LeasingUnitGallery({ assetBase, floorId, unitId }: { assetBase: string; floorId: number; unitId: string }) {
   const photos = floorId <= 2 ? shophousePhotos : upperPhotos;
   const [selected, setSelected] = useState(0);

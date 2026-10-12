@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { CSSProperties, ChangeEvent, ReactNode } from "react";
-import { FLOORS, floorPurpose, mergeIssue, slotLeft } from "./space-model";
-import type { Floor, Slot } from "./space-model";
+import { useRouter } from "next/navigation";
+import { ADMIN_DEMO_ENTRY_KEY } from "@/features/admin/admin-demo-entry";
+import type { CSSProperties, ReactNode } from "react";
+import { FLOORS, SLOT_STATUSES, hasCommitment, isSlotStatus, mergeIssue, slotLeft } from "../../shared/admin/space-model";
+import type { Floor, Slot } from "../../shared/admin/space-model";
 import { useAdminData } from "@/features/admin/use-admin-data";
-import { StorageUsagePanel } from "@/features/admin/storage-usage-panel";
-import { storageState } from "@/features/admin/storage-policy";
-import { referencePlanUrl } from "@/features/admin/demo-data";
+import { AdminSettingsWorkspace, LeadsWorkspace, MediaWorkspace } from "@/features/admin/admin-records";
+import { referencePlanUrl } from "@/features/admin/demo/data";
 import SlotDetail, { type SlotRecordEntry } from "@/features/admin/slot-detail";
 
 import { useRecordDetail } from "@/features/admin/use-record-detail";
@@ -16,13 +17,13 @@ import { useCompanyNotes } from "@/features/admin/use-company-notes";
 import B2BWorkspace from "./b2b-workspace";
 import { FloorOverview, TenantOverview } from "./content-overviews";
 import { LeGrandeAdminShell } from "@/features/admin/le-grande-admin-shell";
-import { AdminPageHeader, AdminPanel, PaginatedContent, WorkspaceLayout, ConfirmDialog, Button, Input, Select, Textarea, Checkbox, Badge, Table, Breadcrumbs, LoadingIndicator, Alert, type ToastTone, type AdminNavigationItem } from "@mall/ui";
+import { AdminPageHeader, AdminPanel, PaginatedContent, ConfirmDialog, Button, Input, Select, Checkbox, Badge, Table, Breadcrumbs, LoadingIndicator, Alert, type ToastTone, type AdminNavigationItem } from "@mall/ui";
 import { AdminNotificationsProvider, useAdminNotifications } from "@/features/admin/admin-notifications";
 import { AdminPagination, useAdminPagination } from "@/features/admin/admin-pagination";
 import type { B2BView } from "./b2b-workspace";
 
-type View = "slot" | "floors" | "tenants" | "spaces" | "leads" | "media" | B2BView;
-type IconName = "plan" | "people" | "media" | "arrow" | "search" | "check" | "merge" | "split" | "upload" | "file" | "close" | "external" | "menu" | "calendar" | "request";
+type View = "slot" | "floors" | "tenants" | "spaces" | "leads" | "media" | "settings" | B2BView;
+type IconName = "plan" | "people" | "media" | "arrow" | "search" | "check" | "merge" | "split" | "file" | "close" | "menu" | "calendar" | "request";
 const iconPaths: Record<IconName, ReactNode> = {
   menu: <><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16m4-10 2 2-2 2"/></>,
   calendar: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18m-14 4h2m4 0h2"/></>,
@@ -35,53 +36,52 @@ const iconPaths: Record<IconName, ReactNode> = {
   check: <path d="m5 12 4 4L19 6"/>,
   merge: <><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M12 5v3m0 8v3m-5-7h10m-3-3 3 3-3 3"/></>,
   split: <><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M12 5v14m-4-9-2 2 2 2m8-4 2 2-2 2"/></>,
-  upload: <><path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6"/></>,
   file: <><path d="M14 3H5v18h14V8zm0 0v5h5M8 12h8m-8 4h6"/></>,
   close: <path d="m6 6 12 12M6 18 18 6"/>,
-  external: <><path d="M14 3h7v7m0-7L10 14M10 3H3v18h18v-7"/></>,
 };
 function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{iconPaths[name]}</svg>;
 }
-function Status({ value }: { value: string }) {
-  const tone = value === "Trống" || value === "Đã xử lý" ? "available" : value === "Đang thuê" ? "leased" : value === "Mới" ? "new" : "neutral";
-  return <Badge tone={tone === "available" ? "success" : tone === "new" ? "warning" : "neutral"}>{value}</Badge>;
+function Status({ value }: { value: Slot["status"] }) {
+  return <Badge className="slot-state-badge" data-slot-status={value} tone={value === "Trống" ? "success" : "action"}>{value}</Badge>;
 }
 const fmt = (value: number) => new Intl.NumberFormat("vi-VN").format(value);
-const labels: Record<View, string> = { slot: "Hồ sơ slot", floors: "Tầng", tenants: "Tenant", customers: "Hồ sơ doanh nghiệp", requests: "Yêu cầu & giữ chỗ", leases: "Hợp đồng", appointments: "Lịch hẹn", preview: "Xem trước website", spaces: "Căn / Mặt bằng", leads: "Lead", media: "Media" };
+const labels: Record<View, string> = { slot: "Hồ sơ slot", floors: "Tầng", tenants: "Khách đang thuê", customers: "Doanh nghiệp", requests: "Yêu cầu & giữ chỗ", leases: "Hợp đồng", appointments: "Lịch hẹn", spaces: "Căn / Mặt bằng", leads: "Khách tiềm năng", media: "Media", settings: "Cấu hình" };
 
 
 export default function AdminWorkspace() {
   return <AdminNotificationsProvider><AdminWorkspaceContent/></AdminNotificationsProvider>;
 }
 function AdminWorkspaceContent() {
+  const router = useRouter();
   const [view, setActiveView] = useState<View>("floors");
+  const [leavingDemo, setLeavingDemo] = useState(false);
   const [slotId, setSlotId] = useState("");
   const [recordEntry, setRecordEntry] = useState<SlotRecordEntry | undefined>();
   const [floor, setFloor] = useState<Floor>(2);
   const admin = useAdminData();
   const details = useRecordDetail(view);
-  const notes = useCompanyNotes(admin.companies, admin.execute);
+  const notes = useCompanyNotes(admin.companies, admin.execute, admin.hasUnsavedDrafts);
   const dialogContainer = useRef<HTMLDivElement>(null);
-  const { slots, groups, leads, media, pending, loading, error, execute, uploadFiles, reload } = admin;
+  const { slots, groups, leads, pending, loading, error, execute, reload } = admin;
   const [selected, setSelected] = useState<string[]>(["T2-B2", "T2-B3"]);
   const [groupName, setGroupName] = useState("Mặt bằng B.2–B.3");
+  const [spaceDirty, setSpaceDirty] = useState(false);
+  const [splitOpen, setSplitOpen] = useState(false);
+  const { markDraft } = admin;
+  useEffect(() => {
+    if (view !== "spaces" && spaceDirty) { setSpaceDirty(false); setGroupName(""); }
+    markDraft("space-inspector", view === "spaces" && spaceDirty);
+    return () => markDraft("space-inspector", false);
+  }, [view, spaceDirty, markDraft]);
   const { notify } = useAdminNotifications();
   function setMessage(message: string, tone: ToastTone = "success") { if (message) notify(message, tone); }
   useEffect(() => { if (error) notify(error, "error"); }, [error, notify]);
   const [planTab, setPlanTab] = useState<"plan" | "reference">("plan");
   const [slotQuery, setSlotQuery] = useState("");
   const [slotFilter, setSlotFilter] = useState("");
-  const [leadQuery, setLeadQuery] = useState("");
-  const [leadFilter, setLeadFilter] = useState("");
-  const [activeLead, setActiveLead] = useState<string | null>("DEMO-1048");
-  const [mediaQuery, setMediaQuery] = useState("");
-  const [mediaFilter, setMediaFilter] = useState("");
-  const [activeMedia, setActiveMedia] = useState<string | null>(null);
+  const [activeMedia, setActiveMedia] = useState<string | undefined>();
   const [uploadScope, setUploadScope] = useState("Toàn dự án");
-  const fileInput = useRef<HTMLInputElement>(null);
-  const storage = storageState(admin.storage);
-  const uploadDisabled = pending || loading || storage.blocked;
   const notesRef = useRef(notes);
   notesRef.current = notes;
   const previousView = useRef<View>("floors");
@@ -154,9 +154,10 @@ function AdminWorkspaceContent() {
   const floorGroups = groups.filter((group) => group.floor === floor);
   const selectedSlots = floorSlots.filter((slot) => selected.includes(slot.id));
   const activeGroup = floorGroups.find((group) => group.slotIds.length === selected.length && group.slotIds.every((id) => selected.includes(id)));
-  const problem = mergeIssue(slots, groups, selected, floor);
+  const protectedSelection = hasCommitment(admin, selected);
+  const problem = protectedSelection ? "Mặt bằng có giữ chỗ hoặc hợp đồng. Xử lý hồ sơ nghiệp vụ trước khi sửa hoặc ghép/tách." : mergeIssue(slots, groups, selected, floor);
   const area = selectedSlots.reduce((sum, slot) => sum + slot.area, 0);
-  const statusOptions = Array.from(new Set([...floorSlots.map((slot) => slot.status), ...floorGroups.map((group) => group.status)]));
+  const statusOptions = SLOT_STATUSES;
   const planSpaces = floorSlots.filter((slot) => !floorGroups.some((group) => group.slotIds.includes(slot.id))).map((slot) => ({
     id: slot.id, name: slot.code, members: [slot], status: slot.status, group: false,
   })).concat(floorGroups.map((group) => ({
@@ -165,101 +166,83 @@ function AdminWorkspaceContent() {
   })));
 
   function changeFloor(next: Floor) {
-    setFloor(next); setSelected([]); setMessage(""); setSlotQuery(""); setSlotFilter(""); setGroupName("");
+    setSpaceDirty(false); setFloor(next); setSelected([]); setSlotQuery(""); setSlotFilter(""); setGroupName("");
   }
   function choose(slot: Slot) {
-    const group = floorGroups.find((item) => item.slotIds.includes(slot.id));
-    setMessage("");
-    if (group) { setSelected(group.slotIds); setGroupName(group.name); return; }
-    const next = selected.some((id) => floorGroups.some((item) => item.slotIds.includes(id)))
-      ? [slot.id] : selected.includes(slot.id) ? selected.filter((id) => id !== slot.id) : [...selected, slot.id];
-    setSelected(next);
-    setGroupName(`Mặt bằng ${floorSlots.filter((item) => next.includes(item.id)).map((item) => item.code).join("–")}`);
+    notes.navigate(() => {
+      setSpaceDirty(false);
+      const group = floorGroups.find(item => item.slotIds.includes(slot.id));
+      if (group) { setSelected(group.slotIds); setGroupName(group.name); return; }
+      const next = selected.some(id => floorGroups.some(item => item.slotIds.includes(id)))
+        ? [slot.id] : selected.includes(slot.id) ? selected.filter(id => id !== slot.id) : [...selected, slot.id];
+      setSelected(next);
+      setGroupName(`Mặt bằng ${floorSlots.filter(item => next.includes(item.id)).map(item => item.code).join("–")}`);
+    });
   }
   async function merge() {
-    const issue = mergeIssue(slots, groups, selected, floor);
+    const issue = protectedSelection ? problem : mergeIssue(slots, groups, selected, floor);
     if (issue || !groupName.trim()) { setMessage(issue ?? "Nhập tên mặt bằng trước khi ghép.", "warning"); return; }
     if (await execute({ type: "merge", floor, slotIds: selected, name: groupName.trim() })) {
+      setSpaceDirty(false);
       setMessage(`Đã ghép ${selectedSlots.map((slot) => slot.code).join(" + ")} thành ${fmt(area)} m². Slot gốc được giữ nguyên.`);
     }
   }
   async function split() {
     if (!activeGroup) return;
     if (await execute({ type: "split", groupId: activeGroup.id })) {
+      setSpaceDirty(false); setSplitOpen(false);
       setMessage(`Đã tách ${activeGroup.name}. Slot giữ trạng thái ${activeGroup.status}; media của nhóm chuyển về tầng ${activeGroup.floor}.`);
     }
   }
   async function saveSpace(form: HTMLFormElement) {
+    if (protectedSelection) return;
     const fields = new FormData(form);
     const status = String(fields.get("status") ?? "").trim();
     const tenant = String(fields.get("tenant") ?? "").trim();
     const name = String(fields.get("name") ?? "").trim();
-    if (!status || (activeGroup && !name)) { setMessage("Nhập đầy đủ trạng thái và tên mặt bằng.", "warning"); return; }
+    if (!isSlotStatus(status) || (activeGroup && !name)) { setMessage("Chọn Trống hoặc Đang thuê và nhập tên mặt bằng.", "warning"); return; }
     const command = activeGroup
       ? { type: "update-group" as const, groupId: activeGroup.id, name, status }
-      : { type: "update-slot" as const, slotId: selected[0], status, tenant };
-    if (await execute(command)) setMessage("Đã cập nhật dữ liệu.");
-  }
-  async function upload(event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? []);
-    event.target.value = "";
-    if (files.length && await uploadFiles(files, uploadScope)) {
-      setMessage(`Đã thêm ${files.length} tệp vào phiên demo. Tệp sẽ mất khi tải lại trang.`);
-    }
+      : { type: "update-slot" as const, slotId: selected[0], status, tenant, area: Number(fields.get("area")) };
+    if (await execute(command)) { setSpaceDirty(false); setMessage("Đã cập nhật dữ liệu."); }
   }
   const visibleSlots = floorSlots.filter((slot) => {
     const group = floorGroups.find((item) => item.slotIds.includes(slot.id));
     return `${slot.code} ${group?.name ?? ""} ${slot.tenant}`.toLowerCase().includes(slotQuery.toLowerCase()) && (!slotFilter || (group?.status ?? slot.status) === slotFilter);
   });
-  const visibleLeads = leads.filter((lead) => `${lead.name} ${lead.id} ${lead.interest}`.toLowerCase().includes(leadQuery.toLowerCase()) && (!leadFilter || lead.status === leadFilter));
-  const visibleMedia = media.filter((item) => item.name.toLowerCase().includes(mediaQuery.toLowerCase()) && (!mediaFilter || item.kind === mediaFilter));
   const slotPages = useAdminPagination(visibleSlots, `${floor}:${slotQuery}:${slotFilter}`);
-  const leadPages = useAdminPagination(visibleLeads, `${leadQuery}:${leadFilter}`, 2);
-  const mediaPages = useAdminPagination(visibleMedia, `${mediaQuery}:${mediaFilter}`);
-  const lead = leads.find((item) => item.id === activeLead);
-  const mediaItem = media.find((item) => item.id === activeMedia);
-  const mediaScopeLabel = (scope: string) => {
-    const group = groups.find((item) => `group:${item.id}` === scope);
-    const slot = slots.find(item => `slot:${item.id}` === scope);
-    return slot ? `Tầng ${slot.floor} · ${slot.code}` : group ? `Tầng ${group.floor} · ${group.name}` : scope;
-  };
 
-  const primaryViews: View[] = ["floors", "spaces", "tenants", "media", "leads"];
-  const workflowViews: B2BView[] = ["customers", "requests", "leases", "appointments", "preview"];
+  const primaryViews: View[] = ["floors", "spaces", "customers", "tenants", "leads", "requests", "leases", "appointments", "media", "settings"];
   function openSpace(nextFloor: Floor, slotId?: string) {
     notes.navigate(() => { changeFloor(nextFloor); if (slotId) setSelected([slotId]); setView("spaces"); });
   }
-  const navigation: AdminNavigationItem[] = primaryViews.map(item => ({ id: item, label: labels[item], icon: <Icon name={item === "floors" || item === "spaces" ? "plan" : item === "media" ? "media" : "people"}/>, badge: item === "leads" ? leads.filter(lead => lead.status === "Mới").length : undefined, destination: { kind: "action", onSelect: () => notes.navigate(() => { setView(item); setMessage(""); }) } }));
-  return <LeGrandeAdminShell navigation={navigation} activeItemId={view === "slot" ? "spaces" : view} location={<Breadcrumbs label="Vị trí quản trị" items={[{ label: "Le Grande Centre", href: "https://legrandecentre.vn/" }, ...(view === "slot" ? [{ label: `Căn / Mặt bằng · Tầng ${floor}`, href: "#admin-workspace", linkProps: { onClick: (event: React.MouseEvent<HTMLAnchorElement>) => { event.preventDefault(); notes.navigate(() => setView("spaces")); } } }, { label: slotId || "Slot không xác định", href: `#slot=${encodeURIComponent(slotId)}`, current: true }] : [{ label: labels[view], href: "#admin-workspace", current: true }])]}/>}>
+  const navigation: AdminNavigationItem[] = primaryViews.map(item => ({ id: item, label: labels[item], group: item === "floors" || item === "spaces" ? "Mặt bằng" : item === "media" ? "Tài nguyên" : item === "settings" ? "Hệ thống" : "Kinh doanh", icon: <Icon name={item === "floors" || item === "spaces" ? "plan" : item === "settings" ? "menu" : item === "media" ? "media" : item === "appointments" ? "calendar" : item === "requests" ? "request" : item === "leases" ? "file" : "people"}/>, badge: item === "leads" ? leads.filter(lead => lead.status === "Mới").length : undefined, destination: { kind: "action", onSelect: () => notes.navigate(() => { setView(item); }) } }));
+  return <LeGrandeAdminShell propertyName={admin.settings?.propertyName} navigation={navigation} activeItemId={view === "slot" ? "spaces" : view} onLogout={() => { setLeavingDemo(true); notes.navigate(() => { sessionStorage.removeItem(ADMIN_DEMO_ENTRY_KEY); router.replace("/admin-preview/"); }); }} location={<Breadcrumbs label="Vị trí quản trị" items={[{ label: "Quản trị", href: "#admin-workspace", linkProps: { onClick: (event: React.MouseEvent<HTMLAnchorElement>) => { event.preventDefault(); notes.navigate(() => setView("floors")); } } }, ...(view === "slot" ? [{ label: `Căn / Mặt bằng · Tầng ${floor}`, href: "#admin-workspace", linkProps: { onClick: (event: React.MouseEvent<HTMLAnchorElement>) => { event.preventDefault(); notes.navigate(() => setView("spaces")); } } }, { label: slotId || "Slot không xác định", href: `#slot=${encodeURIComponent(slotId)}`, current: true }] : [{ label: labels[view], href: "#admin-workspace", current: true }])]}/>}>
         <div ref={dialogContainer} className="admin-dialog-host"/>
-        <ConfirmDialog open={!!notes.pendingNavigation} title="Ghi chú chưa lưu" description="Bạn có ghi chú doanh nghiệp chưa lưu. Nếu tiếp tục, bản nháp vẫn được giữ trong phiên này; tải lại hoặc đóng trang sẽ làm mất bản nháp." confirmLabel="Tiếp tục, giữ bản nháp" cancelLabel="Ở lại" onClose={() => {
+        <ConfirmDialog open={splitOpen && !!activeGroup} title="Tách mặt bằng ghép?" description={activeGroup ? `${activeGroup.name} sẽ trở về ${selectedSlots.length} slot gốc. Media liên kết nhóm chuyển về tầng ${floor}; trạng thái được giữ nguyên.` : ""} confirmLabel="Xác nhận tách" cancelLabel="Giữ nhóm" onClose={() => { if (!pending) setSplitOpen(false); }} onConfirm={() => void split()} portalContainer={dialogContainer}/>
+        <ConfirmDialog open={!!notes.pendingNavigation} title={leavingDemo ? "Đăng xuất khỏi demo?" : "Có thay đổi chưa lưu"} description={leavingDemo ? "Đăng xuất sẽ bỏ những thay đổi chưa lưu. Dữ liệu đã lưu vẫn được giữ trong trình duyệt này." : "Tiếp tục có thể bỏ các thay đổi đang sửa. Chọn Ở lại để lưu trước; ghi chú doanh nghiệp vẫn được giữ khi đổi màn trong phiên này."} confirmLabel={leavingDemo ? "Đăng xuất, bỏ thay đổi" : "Tiếp tục điều hướng"} cancelLabel="Ở lại" onClose={() => {
           const delta = pendingHistoryDelta.current;
           pendingHistoryDelta.current = 0;
           if (delta) { restoringHistory.current = true; window.history.go(-delta); }
           notes.stay();
+          setLeavingDemo(false);
         }} onConfirm={notes.continue} portalContainer={dialogContainer}/>
         <div ref={details.scopeRef}>
-        <AdminPageHeader title={view === "slot" ? `Hồ sơ slot ${slotId || "không xác định"}` : labels[view]} description={view === "slot" ? "Slot gốc, mặt bằng hiện tại và hồ sơ thuê liên quan trong cùng dữ liệu quản trị." : view === "floors" ? "Tổng quan tầng, căn và media liên quan từ cùng dữ liệu quản trị." : view === "tenants" ? "Theo dõi các đối tác đang gắn với mặt bằng trong dữ liệu mẫu." : view === "spaces" ? "Một góc nhìn rõ ràng cho từng mặt bằng, từng cơ hội khai thác." : view === "leads" ? "Theo dõi nhu cầu, kết nối khách hàng với mặt bằng phù hợp." : view === "media" ? "Tập trung bản vẽ, hình ảnh và tài liệu của dự án." : view === "customers" ? "Hồ sơ doanh nghiệp, nhu cầu thuê và mặt bằng trong cùng một nơi." : view === "requests" ? "Từ nhu cầu ban đầu đến giữ chỗ toàn bộ tổ hợp mặt bằng." : view === "leases" ? "Theo dõi hợp đồng và kỳ thuê trong dữ liệu mẫu." : "Nghiệp vụ khai thác · dữ liệu demo."} actions={view === "media" ? <Button variant="primary" disabled={uploadDisabled} onClick={() => fileInput.current?.click()}><Icon name="upload" size={17}/>Thêm tệp</Button> : undefined}/>
+        <AdminPageHeader title={view === "slot" ? `Hồ sơ slot ${slotId || "không xác định"}` : labels[view]} description={view === "settings" ? "Cấu hình vận hành nội bộ. Không tự thay đổi nội dung website công khai." : "Mặt bằng, doanh nghiệp và hồ sơ thuê từ cùng dữ liệu quản trị."} actions={<Button variant="secondary" disabled={pending || loading} onClick={() => notes.navigate(() => { setSpaceDirty(false); void reload(); })}>Tải lại dữ liệu</Button>}/>
 
-        <div className="scope-workflow-nav">
-          <label>Nghiệp vụ thuê · Demo<Select value={workflowViews.includes(view as B2BView) ? view : ""} onChange={event => { const next = event.target.value as B2BView; if (workflowViews.includes(next)) notes.navigate(() => setView(next)); }}>
-            <option value="">Chọn nghiệp vụ để xem</option>{workflowViews.map(item => <option key={item} value={item}>{labels[item]}</option>)}
-          </Select></label>
-          {workflowViews.includes(view as B2BView) && <Button variant="quiet" onClick={() => notes.navigate(() => setView("floors"))}>Về quản lý tầng</Button>}
-        </div>
 
-        {view === "floors" && !loading && (!error || slots.length > 0) && <FloorOverview slots={slots} groups={groups} media={media} onSpace={openSpace}/>}
-        {view === "tenants" && !loading && (!error || slots.length > 0) && <TenantOverview slots={slots} onSpace={openSpace}/>}
+        {view === "floors" && !loading && slots.length > 0 && <FloorOverview data={admin} onSpace={openSpace} onMessage={setMessage}/>}
+        {view === "tenants" && !loading && slots.length > 0 && <TenantOverview data={admin} onSpace={openSpace} onMessage={setMessage}/>}
 
         {view !== "slot" && loading && <LoadingIndicator label="Đang tải dữ liệu…"/>}
         {view !== "slot" && error && !slots.length && <Button variant="secondary" onClick={reload}>Tải lại dữ liệu</Button>}
 
-        {view === "slot" && <SlotDetail key={slotId} id={slotId} data={admin} onBack={() => notes.navigate(() => setView("spaces"))} onSlot={openSlot} onMessage={setMessage} onRecord={entry => notes.navigate(() => setView(entry.view, entry))} onMedia={(id, scope) => notes.navigate(() => { setMediaQuery(""); setMediaFilter(""); setActiveMedia(id ?? null); if (scope) setUploadScope(scope); setView("media"); if (id) details.openDetail("media"); })}/>}
-        {["customers", "requests", "leases", "appointments", "preview"].includes(view) && <B2BWorkspace view={view as B2BView} entry={recordEntry} data={admin} notes={notes} onView={setView} onMessage={setMessage} onFloor={(nextFloor, ids) => notes.navigate(() => { setFloor(nextFloor); setSelected(ids); setView("spaces"); })}/>}
+        {view === "slot" && <SlotDetail key={slotId} id={slotId} data={admin} onBack={() => notes.navigate(() => setView("spaces"))} onSlot={openSlot} onMessage={setMessage} onRecord={entry => notes.navigate(() => setView(entry.view, entry))} onMedia={(id, scope) => notes.navigate(() => { setActiveMedia(id); setUploadScope(scope ?? "Toàn dự án"); setView("media"); })}/>}
+        {["customers", "requests", "leases", "appointments"].includes(view) && <B2BWorkspace view={view as B2BView} entry={recordEntry} data={admin} notes={notes} onView={setView} onMessage={setMessage} onFloor={(nextFloor, ids) => notes.navigate(() => { setFloor(nextFloor); setSelected(ids); setView("spaces"); })}/>}
 
         {view === "spaces" && <>
-          <div className="floor-nav" role="group" aria-label="Chọn tầng">{FLOORS.map((item) => <Button variant="quiet" className={`floor-tab ${floor === item ? "is-active" : ""}`} aria-pressed={floor === item} key={item} onClick={() => changeFloor(item)}><span>Tầng {item}</span><small>{item <= 2 ? "Thương mại" : item <= 4 ? "Văn phòng" : "Giải trí"}</small></Button>)}</div>
-          <div className="floor-summary"><div><h2>Tầng {floor} <span>{floorPurpose[floor]}</span></h2><p>{floorSlots.length} slot gốc <span>·</span> {floorSlots.length - floorGroups.reduce((sum, group) => sum + group.slotIds.length - 1, 0)} mặt bằng <span>·</span> {fmt(floorSlots.reduce((sum, slot) => sum + slot.area, 0))} m² theo fixture</p></div><span className="text-note">6 tầng cố định</span></div>
+          <div className="floor-nav" role="group" aria-label="Chọn tầng">{admin.floors.map(item => <Button variant="quiet" className={`floor-tab ${floor === item.number ? "is-active" : ""}`} aria-pressed={floor === item.number} key={item.number} onClick={() => notes.navigate(() => changeFloor(item.number))}><span>Tầng {item.number}</span><small>{item.purpose}</small></Button>)}</div>
+          <div className="floor-summary"><div><h2>Tầng {floor} <span>{admin.floors.find(item => item.number === floor)?.purpose}</span></h2><p>{floorSlots.length} slot gốc <span>·</span> {floorSlots.length - floorGroups.reduce((sum, group) => sum + group.slotIds.length - 1, 0)} mặt bằng <span>·</span> {fmt(floorSlots.reduce((sum, slot) => sum + slot.area, 0))} m²</p></div><span className="text-note">6 tầng cố định</span></div>
           <div className="space-layout">
             <AdminPanel className="plan-panel" labelledBy="plan-heading">
               <div className="section-toolbar"><div className="segmented"><Button variant="quiet" id="plan-heading" aria-pressed={planTab === "plan"} className={planTab === "plan" ? "is-active" : ""} onClick={() => setPlanTab("plan")}><Icon name="plan" size={16}/>Sơ đồ tương tác</Button><Button variant="quiet" aria-pressed={planTab === "reference"} className={planTab === "reference" ? "is-active" : ""} onClick={() => setPlanTab("reference")}>Bản vẽ tham chiếu</Button></div><span className="plan-scale">Không theo tỷ lệ kỹ thuật</span></div>
@@ -270,28 +253,31 @@ function AdminWorkspaceContent() {
                   const isSelected = space.members.every((item) => selected.includes(item.id));
                   const left = slotLeft(member);
                   const width = space.members.reduce((sum, item) => sum + item.width, 0);
-                  return <Button variant="quiet" key={space.id} type="button" className={`plan-slot ${space.status === "Trống" ? "available" : space.status === "Đang thuê" ? "leased" : "reserved"} ${isSelected ? "is-selected" : ""} ${space.group ? "is-grouped" : ""}`} style={{ "--slot-left": `${left}%`, "--slot-width": `${width}%` } as CSSProperties} aria-pressed={isSelected} aria-label={`${space.name}, ${fmt(space.members.reduce((sum, item) => sum + item.area, 0))} mét vuông, ${space.status}${space.group ? ", đã ghép" : ""}`} onClick={() => choose(member)}><span className="slot-selection">{isSelected && <Icon name="check" size={13}/>}</span><span className="slot-plan-stair" aria-hidden="true"/><strong>{space.name}</strong><span className="slot-area">{fmt(space.members.reduce((sum, item) => sum + item.area, 0))} <small>m²</small></span><span className="slot-status">{space.status}</span>{space.group ? <span className="slot-dimension"><Icon name="merge" size={12}/>Đã ghép {space.members.length} slot</span> : <span className="slot-dimension">{member.width} × 20,5 m</span>}</Button>;
+                  return <Button variant="quiet" key={space.id} type="button" className={`plan-slot ${space.status === "Trống" ? "available" : "leased"} ${isSelected ? "is-selected" : ""} ${space.group ? "is-grouped" : ""}`} style={{ "--slot-left": `${left}%`, "--slot-width": `${width}%` } as CSSProperties} aria-pressed={isSelected} aria-label={`${space.name}, ${fmt(space.members.reduce((sum, item) => sum + item.area, 0))} mét vuông, ${space.status}${space.group ? ", đã ghép" : ""}`} onClick={() => choose(member)}><span className="slot-selection">{isSelected && <Icon name="check" size={13}/>}</span><span className="slot-plan-stair" aria-hidden="true"/><strong>{space.name}</strong><span className="slot-area">{fmt(space.members.reduce((sum, item) => sum + item.area, 0))} <small>m²</small></span><span className="slot-status">{space.status}</span>{space.group ? <span className="slot-dimension"><Icon name="merge" size={12}/>Đã ghép {space.members.length} slot</span> : <span className="slot-dimension">{member.width} × 20,5 m</span>}</Button>;
                 })}<div className="frontage"><span>MẶT TIỀN CHÍNH</span><span className="entry-arrow">Lối vào sảnh <Icon name="arrow" size={15}/></span></div></div></div>
-                <div className="plan-legend"><span><i className="legend-open"/>Trống</span><span><i className="legend-leased"/>Đang thuê</span><span><i className="legend-reserved"/>Trạng thái khác</span><span><i className="legend-selected"/>Đang chọn</span><span><Icon name="merge" size={14}/>Slot đã ghép</span></div>
+                <div className="plan-legend"><span><i className="legend-open"/>Trống</span><span><i className="legend-leased"/>Đang thuê</span><span><i className="legend-selected"/>Đang chọn</span><span><Icon name="merge" size={14}/>Slot đã ghép</span></div>
               </> : <div className="reference-view"><img src={referencePlanUrl} alt="Bản vẽ khách hàng: slot B.1 đến B.11, sảnh giữa B.5 và B.6"/><p>Bản vẽ do khách hàng cung cấp. Chưa xác nhận thuộc tầng nào.</p></div>}
-              <p className="plan-caption">Sơ đồ mô phỏng từ bản vẽ khách hàng, dùng chung cho 6 tầng để demo. Diện tích và bố trí từng tầng cần xác nhận khi bàn giao.</p>
+              <p className="plan-caption">Sơ đồ và số liệu là dữ liệu mẫu, cần xác nhận khi bàn giao. Trống là trạng thái chưa thuê; giữ chỗ được quản lý riêng và vẫn khóa các thao tác xung đột.</p>
             </AdminPanel>
             <aside className="space-inspector" aria-label="Chi tiết lựa chọn">
-              <div className="inspector-title"><h3>{activeGroup ? "Mặt bằng đã ghép" : selected.length > 1 ? "Ghép mặt bằng" : "Chi tiết slot"}</h3>{selected.length > 0 && <Button variant="quiet" className="icon-button" aria-label="Bỏ chọn tất cả slot" onClick={() => { setSelected([]); setMessage(""); }}><Icon name="close" size={17}/></Button>}</div>
+              <div className="inspector-title"><h3>{activeGroup ? "Mặt bằng đã ghép" : selected.length > 1 ? "Ghép mặt bằng" : "Chi tiết slot"}</h3>{selected.length > 0 && <Button variant="quiet" className="icon-button" aria-label="Bỏ chọn tất cả slot" onClick={() => notes.navigate(() => { setSpaceDirty(false); setSelected([]); })}><Icon name="close" size={17}/></Button>}</div>
               {!selected.length ? <div className="selection-empty"><Icon name="plan" size={32}/><h4>Chọn slot trên sơ đồ</h4><p>Chọn một slot để xem chi tiết, hoặc nhiều slot liền kề để ghép mặt bằng.</p><Button variant="secondary" className="button secondary" onClick={() => { setSelected([`T${floor}-B2`, `T${floor}-B3`]); setGroupName("Mặt bằng B.2–B.3"); }}>Thử chọn B.2 + B.3</Button></div> : <>
                 <div className="selection-chips">{selectedSlots.map((slot) => <span key={slot.id}>{slot.code}{!activeGroup && <Button variant="quiet" aria-label={`Bỏ chọn ${slot.code}`} onClick={() => choose(slot)}><Icon name="close" size={12}/></Button>}</span>)}</div>
                 <div className="inspector-slot-links">{selectedSlots.map(slot => <Button key={slot.id} variant="quiet" onClick={() => openSlot(slot.id)}>Hồ sơ {slot.id}<Icon name="arrow" size={14}/></Button>)}</div>
                 <div className="selected-area"><span>Tổng diện tích</span><strong>{fmt(area)} <small>m²</small></strong></div>
                 <div className="selection-facts"><span>Tầng <strong>{floor}</strong></span><span>Slot gốc <strong>{selectedSlots.length}</strong></span></div>
-                {activeGroup || selected.length === 1 ? <form key={`${selected.join("-")}-${activeGroup?.id ?? "slot"}`} onSubmit={(event) => { event.preventDefault(); saveSpace(event.currentTarget); }}>
+                {activeGroup || selected.length === 1 ? <form key={`${selected.join("-")}-${activeGroup?.id ?? "slot"}-${activeGroup?.status ?? selectedSlots[0]?.status}-${activeGroup?.name ?? selectedSlots[0]?.tenant}-${selectedSlots[0]?.area}`} onChange={() => setSpaceDirty(true)} onReset={() => setSpaceDirty(false)} onSubmit={event => { event.preventDefault(); void saveSpace(event.currentTarget); }}><fieldset disabled={pending || loading || protectedSelection}>
+                  {protectedSelection && <Alert tone="warning">{problem}</Alert>}
                   {activeGroup && <label>Tên mặt bằng<Input name="name" maxLength={80} defaultValue={activeGroup.name} required/></label>}
-                  <label>Trạng thái<Input aria-label="Trạng thái mặt bằng" name="status" list="space-statuses" maxLength={60} defaultValue={activeGroup?.status ?? selectedSlots[0]?.status} required/><small>Nhập text hoặc chọn gợi ý có sẵn.</small></label>
+                  <label>Trạng thái<Select aria-label="Trạng thái mặt bằng" name="status" defaultValue={activeGroup?.status ?? selectedSlots[0]?.status} required>{SLOT_STATUSES.map(status => <option key={status} value={status}>{status}</option>)}</Select></label>
                   {!activeGroup && <label>Tenant / Đối tác<Input name="tenant" maxLength={80} defaultValue={selectedSlots[0]?.tenant} placeholder="Chưa có đối tác"/></label>}
-                  <datalist id="space-statuses">{[...new Set(["Trống", "Đang thuê", "Đã đặt cọc", "Đang đàm phán", ...statusOptions])].map((status) => <option key={status} value={status}/>)}</datalist>
+                  {!activeGroup && <label>Diện tích · m²<Input name="area" type="number" min={0.01} max={100000} step="0.01" defaultValue={selectedSlots[0]?.area} required/></label>}
                   <Button variant="primary" loading={pending} loadingLabel="Đang lưu…" className="button primary full" disabled={pending || loading} type="submit">Lưu thay đổi</Button>
-                  {activeGroup && <Button variant="secondary" className="button secondary full split-button" type="button" onClick={split}><Icon name="split" size={17}/>Tách về {selectedSlots.length} slot gốc</Button>}
-                </form> : <>
-                  <label>Tên mặt bằng ghép<Input value={groupName} maxLength={80} onChange={(event) => setGroupName(event.target.value)} placeholder="Ví dụ: Mặt bằng B.2–B.3"/></label>
+                  <Button variant="secondary" type="reset" disabled={pending || loading}>Hủy thay đổi</Button>
+                  {spaceDirty && <p className="draft-status" role="status">Có thay đổi chưa lưu.</p>}
+                  {activeGroup && <Button variant="secondary" className="button secondary full split-button" type="button" onClick={() => setSplitOpen(true)}><Icon name="split" size={17}/>Tách về {selectedSlots.length} slot gốc</Button>}
+                </fieldset></form> : <>
+                  <label>Tên mặt bằng ghép<Input value={groupName} maxLength={80} onChange={event => { setGroupName(event.target.value); setSpaceDirty(true); }} placeholder="Ví dụ: Mặt bằng B.2–B.3"/></label>
                   <Alert tone={problem ? "warning" : "success"}>{problem ?? "Slot liền kề, cùng tầng, không đi qua sảnh. Có thể ghép mặt bằng."}</Alert>
                   <Button variant="primary" className="button primary full" disabled={pending || loading || !!problem || !groupName.trim()} onClick={merge}><Icon name="merge" size={17}/>Ghép {selected.length} slot</Button>
                   <p className="inspector-note">Giữ nguyên mã slot và diện tích gốc. Có thể tách lại sau khi ghép.</p>
@@ -314,34 +300,9 @@ function AdminWorkspaceContent() {
           </AdminPanel>
         </>}
 
-        {view === "leads" && <WorkspaceLayout className="records-layout" mobilePresentation="drilldown" detailOpen={details.open} onDetailOpenChange={details.setOpen} returnFocusRef={details.returnFocusRef} detailLabel="Chi tiết khách tư vấn" backLabel="Quay lại danh sách tư vấn" primary={
-          <AdminPanel className="records-panel"><div className="register-heading"><h2>Hộp thư tư vấn</h2><div className="filters"><label className="search-field"><Icon name="search" size={17}/><span className="sr-only">Tìm lead</span><Input placeholder="Tìm khách hàng, nhu cầu…" value={leadQuery} onChange={(event) => setLeadQuery(event.target.value)}/></label><label><span className="sr-only">Lọc trạng thái lead</span><Select value={leadFilter} onChange={(event) => setLeadFilter(event.target.value)}><option value="">Tất cả trạng thái</option>{[...new Set(leads.map((item) => item.status))].map((status) => <option key={status}>{status}</option>)}</Select></label></div></div>
-            <PaginatedContent layoutKey={leadPages.pageSize}><div className="lead-list">{leadPages.rows.map((item) => <Button variant="quiet" key={item.id} className={`lead-row ${activeLead === item.id ? "is-active" : ""}`} onClick={() => { setActiveLead(item.id); details.openDetail(); }}><span className="lead-avatar">{item.initials}</span><span className="lead-information"><strong>{item.name}</strong><span>{item.interest}</span><small>{item.id} · {item.source} · {item.time}</small></span><span className="lead-row-end"><Status value={item.status}/><small>Tầng {item.floor}</small></span></Button>)}{!visibleLeads.length && <div className="empty-result">Không có lead phù hợp. <Button variant="quiet" className="text-button" onClick={() => { setLeadQuery(""); setLeadFilter(""); }}>Xóa bộ lọc</Button></div>}</div>
-            </PaginatedContent><AdminPagination state={leadPages} label="lead"/><p className="panel-note">Thông tin khách hàng giả lập, không chứa dữ liệu cá nhân thật.</p>
-          </AdminPanel>
-          } detail={<aside className="record-inspector">{lead ? <>
-            <h2>{lead.name}</h2><p className="muted">{lead.id}</p><dl><dt>Nhu cầu</dt><dd>{lead.interest}</dd><dt>Nguồn</dt><dd>{lead.source}</dd><dt>Tầng quan tâm</dt><dd>Tầng {lead.floor}</dd></dl>
-            <form key={lead.id} onSubmit={async (event) => { event.preventDefault(); const fields = new FormData(event.currentTarget); const status = String(fields.get("status") ?? "").trim(); if (!status) return; if (await execute({ type: "update-lead", leadId: lead.id, status, note: String(fields.get("note") ?? "").trim() })) setMessage("Đã cập nhật lead."); }}><label>Trạng thái<Input name="status" defaultValue={lead.status} list="lead-statuses" maxLength={60} required/></label><datalist id="lead-statuses"><option value="Mới"/><option value="Đang tư vấn"/><option value="Đã xử lý"/></datalist><label>Ghi chú tư vấn<Textarea name="note" rows={4} maxLength={600} defaultValue={lead.note}/></label><Button variant="primary" type="submit" className="button primary full">Lưu lead</Button></form>
-            <Button variant="secondary" className="button secondary full split-button" onClick={() => { changeFloor(lead.floor); setView("spaces"); }}>Xem mặt bằng tầng {lead.floor}<Icon name="arrow" size={17}/></Button>
-          </> : <p>Chọn một lead để xem nhu cầu và ghi chú tư vấn.</p>}</aside>}/>}
-
-        {view === "media" && <>
-          <Input ref={fileInput} className="sr-only" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" multiple disabled={uploadDisabled} onChange={upload} tabIndex={-1}/>
-          <StorageUsagePanel usage={admin.storage} pending={pending} previewUsage={admin.previewStorage}/>
-          <label className="scope-upload-target">Liên kết khi thêm tệp<Select value={uploadScope} onChange={event => setUploadScope(event.target.value)} disabled={uploadDisabled}><option>Toàn dự án</option>{FLOORS.map(item => <option key={item}>Tầng {item}</option>)}{slots.map(slot => <option key={slot.id} value={`slot:${slot.id}`}>Tầng {slot.floor} · {slot.code}</option>)}{groups.map(group => <option key={group.id} value={`group:${group.id}`}>Tầng {group.floor} · {group.name}</option>)}</Select></label>
-          <p className="media-instruction">Ảnh PNG, JPG, WebP hoặc PDF · Tối đa 10 MB/tệp · Xem trước trong phiên demo.</p>
-          <WorkspaceLayout className="records-layout" mobilePresentation="drilldown" detailOpen={details.open} onDetailOpenChange={details.setOpen} returnFocusRef={details.returnFocusRef} detailLabel="Chi tiết tệp dự án" backLabel="Quay lại thư viện media" primary={<AdminPanel className="records-panel">
-            <div className="register-heading"><h2>Tệp dự án <span>{media.length}</span></h2><div className="filters"><label className="search-field"><Icon name="search" size={17}/><span className="sr-only">Tìm media</span><Input placeholder="Tìm tên tệp…" value={mediaQuery} onChange={(event) => setMediaQuery(event.target.value)}/></label><label><span className="sr-only">Lọc loại media</span><Select value={mediaFilter} onChange={(event) => setMediaFilter(event.target.value)}><option value="">Tất cả loại tệp</option><option>Ảnh</option><option>Tài liệu</option></Select></label></div></div>
-            <PaginatedContent layoutKey={mediaPages.pageSize}><div className="media-grid">{mediaPages.rows.map((item) => <Button variant="quiet" className={`media-tile ${activeMedia === item.id ? "is-active" : ""}`} key={item.id} onClick={() => { setActiveMedia(item.id); details.openDetail(); }}><span className={`media-thumbnail ${item.kind === "Tài liệu" ? "document" : ""}`}>{item.kind === "Ảnh" && item.url ? <img src={item.url} alt=""/> : <><Icon name="file" size={40}/><span>{item.url ? "PDF" : "Tệp mẫu"}</span></>}</span><strong>{item.name}</strong><span>{mediaScopeLabel(item.scope)}</span><small>{item.size}</small></Button>)}</div>
-            {!visibleMedia.length && <div className="empty-result">Không tìm thấy tệp. <Button variant="quiet" className="text-button" onClick={() => { setMediaQuery(""); setMediaFilter(""); }}>Xóa bộ lọc</Button></div>}
-            </PaginatedContent><AdminPagination state={mediaPages} label="media"/>
-          </AdminPanel>} detail={<aside className="record-inspector">{mediaItem ? <>
-            <h2>Chi tiết media</h2><div className="media-detail-preview">{mediaItem.kind === "Ảnh" && mediaItem.url ? <img src={mediaItem.url} alt={mediaItem.name}/> : <Icon name="file" size={44}/>}</div><h3>{mediaItem.name}</h3><p className="muted">{mediaItem.size}</p>
-            {mediaItem.reference && <p className="panel-note">Bản vẽ khách hàng chưa xác định tầng. Sơ đồ tương tác chỉ mô phỏng bố cục để duyệt luồng.</p>}
-            <form key={mediaItem.id} onSubmit={async (event) => { event.preventDefault(); const data = new FormData(event.currentTarget); const scope = String(data.get("scope")); if (await execute({ type: "link-media", mediaId: mediaItem.id, scope })) setMessage("Đã cập nhật liên kết media."); }}><label>Liên kết với tầng / mặt bằng<Select name="scope" defaultValue={mediaItem.scope}><option>Chưa xác nhận tầng</option><option>Toàn dự án</option>{FLOORS.map((item) => <option key={item}>Tầng {item}</option>)}{slots.map(slot => <option key={slot.id} value={`slot:${slot.id}`}>Tầng {slot.floor} · {slot.code}</option>)}{groups.map((group) => <option key={group.id} value={`group:${group.id}`}>{`Tầng ${group.floor} · ${group.name}`}</option>)}</Select></label><Button variant="primary" type="submit" className="button primary full">Lưu liên kết</Button></form>
-            {mediaItem.url ? <a className="button secondary full split-button" href={mediaItem.url} target="_blank" rel="noreferrer">Mở tệp gốc<Icon name="external" size={16}/></a> : <p className="panel-note">Đây là mục mẫu. Thêm tệp thật vào phiên demo để xem trước.</p>}
-          </> : <div className="selection-empty"><Icon name="media" size={32}/><h3>Chọn một tệp</h3><p>Xem thông tin và liên kết tệp với tầng hoặc mặt bằng ghép.</p></div>}</aside>}/>
-        </>}
+        {view === "leads" && !loading && <LeadsWorkspace data={admin} onMessage={setMessage} onFloor={next => openSpace(next)}/>}
+        {view === "media" && !loading && <MediaWorkspace data={admin} onMessage={setMessage} initialMediaId={activeMedia} initialScope={uploadScope}/>}
+        {view === "settings" && !loading && <AdminSettingsWorkspace data={admin} onMessage={setMessage}/>}
         </div>
     </LeGrandeAdminShell>;
 }

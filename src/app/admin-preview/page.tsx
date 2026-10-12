@@ -1,14 +1,11 @@
 import type { Metadata } from "next";
-import AdminWorkspace from "./admin-workspace";
-import "./admin-preview.css";
-import "./b2b-workspace.css";
-import "./mall-system.css";
+import AdminDemoEntry from "@/features/admin/admin-demo-entry";
 
 export const metadata: Metadata = {
-  title: "Quản lý mặt bằng · Admin demo",
+  title: "Đăng nhập quản trị · Demo",
   robots: { index: false, follow: false },
 };
 
 export default function AdminPreviewPage() {
-  return <AdminWorkspace />;
+  return <AdminDemoEntry />;
 }

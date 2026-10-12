@@ -22,7 +22,7 @@
 .page :is(section[id], main) { scroll-margin-top: 110px; }
 .page :where(img) { display: block; max-width: 100%; height: auto; }
 .story { --ui-layered-hero-top: var(--public-header-height); --ui-layered-scroll-margin: 110px; --ui-layered-background: var(--home-paper); --ui-layered-cloud: #f2f1e9; --ui-layered-mist: var(--home-paper); --ui-layered-foreground: var(--home-green); }
-.paperButton, .heroOutline, .goldButton { display: inline-flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 48px; padding: 12px 18px; border-radius: 8px; font-size: 10px; font-weight: 500; line-height: 1.5; text-transform: uppercase; transition: background-color .2s ease-out, color .2s ease-out; }
+.paperButton, .heroOutline, .goldButton { display: inline-flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 48px; padding: 12px 18px; border-radius: 8px; font-size: 10px; font-weight: 500; line-height: 1.5; text-transform: uppercase; }
 .paperButton { background: var(--home-paper); color: var(--home-deep); }
 .paperButton:hover { background: #e3d8b8; }
 .heroOutline { color: #ead49b; border: 1px solid #bfa56e; }
@@ -81,21 +81,16 @@
 .floorArt { position: absolute; width: 80%; aspect-ratio: 1.5; left: -3%; top: 12%; }
 .floorArt > figure { position: absolute; inset: 0; margin: 0; }
 .floorLayer { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
-.floorLayer[data-floor-layer="middle"] { transform: translateY(9%); }
-.floorLayer[data-floor-layer="roof"] { transform: translateY(20%); }
-.floorHotspots { position: absolute; inset: 0; z-index: 3; opacity: 0; visibility: hidden; }
+.floorHotspots { position: absolute; inset: 0; z-index: 3; }
 .floorHotspot { position: absolute; display: grid; place-items: center; transform: translate(-50%, -50%); width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: transparent; }
-.floorHotspotMark { position: relative; width: 12px; height: 12px; border: 1px solid #fff2c5; border-radius: 50%; background: #e4c962; box-shadow: 0 2px 8px rgb(0 18 10 / 35%); transition: transform .2s ease-out, background-color .2s ease-out; }
-.floorHotspotMark::after { content: ""; position: absolute; inset: -2px; border: 1px solid #e4c962; border-radius: 50%; animation: floorPulse 2.8s ease-out infinite; animation-play-state: paused; }
-.floorScene[data-pulsing="true"] .floorHotspotMark::after { animation-play-state: running; }
-.floorHotspot[data-floor-group="1"] .floorHotspotMark::after { animation-delay: -.5s; }
-.floorHotspot[data-floor-group="2"] .floorHotspotMark::after { animation-delay: -1s; }
-.floorHotspot:is(:focus-visible, [aria-expanded="true"]) .floorHotspotMark { transform: scale(1.25); background: #fff2c5; }
+.floorHotspotMark { position: relative; width: 12px; height: 12px; border: 1px solid #fff2c5; border-radius: 50%; background: #e4c962; box-shadow: 0 2px 8px rgb(0 18 10 / 35%); }
+.floorHotspotMark::after { content: ""; position: absolute; inset: -2px; border: 1px solid #e4c962; border-radius: 50%; }
+.floorHotspot:is(:focus-visible, [aria-expanded="true"]) .floorHotspotMark { background: #fff2c5; }
 .floorScene .floorHotspot:focus-visible { outline-color: #fff2c5; outline-offset: -2px; }
 .floorLine { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; overflow: visible; pointer-events: none; color: #e4c962; }
-.floorLine path { fill: none; stroke: currentColor; stroke-width: 1.3; vector-effect: non-scaling-stroke; stroke-dasharray: 1; animation: floorLeader .35s cubic-bezier(.16, 1, .3, 1) both; }
+.floorLine path { fill: none; stroke: currentColor; stroke-width: 1.3; vector-effect: non-scaling-stroke; stroke-dasharray: 1; }
 .floorConnectorMobile { display: none; }
-.floorCard { position: absolute; z-index: 4; left: 90%; width: 35%; top: 47.5%; transform: translateY(-50%); background: #0e3527; padding: 24px 22px; border-radius: 12px; box-shadow: 0 12px 32px rgb(0 18 10 / 20%); animation: floorCardReveal .25s ease-out both; }
+.floorCard { position: absolute; z-index: 4; left: 90%; width: 35%; top: 47.5%; transform: translateY(-50%); background: #0e3527; padding: 24px 22px; border-radius: 12px; box-shadow: 0 12px 32px rgb(0 18 10 / 20%); }
 .floorTitle { color: #e4d1a1; font-size: 30px; line-height: 1.3; padding-right: 20px; }
 .floorTitle span { display: block; font-size: 19px; line-height: 1.45; margin-top: 6px; }
 .floorDescription { color: #d6ded0; font-size: 12px; line-height: 1.85; margin-top: 16px !important; }
@@ -111,17 +106,14 @@
 .floorArea span { display: block; color: #becbbd; font-size: 10px; }
 .floorCard .goldButton { width: 100%; gap: 10px; }
 .floorCard .goldButton svg { flex: none; }
-@keyframes floorPulse { 0% { transform: scale(1); opacity: .66; } 70%, 100% { transform: scale(2.5); opacity: 0; } }
-@keyframes floorLeader { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
-@keyframes floorCardReveal { from { opacity: 0; } to { opacity: 1; } }
 .spaces { padding-top: 30px; }
 .spaces .sectionHeading > div { max-width: 650px; }
 .spaces .sectionHeading > div p { margin-top: 24px; color: #4f5a4e; max-width: 540px; }
 .spaces small { display: block; font-size: 11px; line-height: 1.9; margin-top: 16px; }
 .spacesGallery { border-radius: 0; gap: 8px; background: var(--home-paper); }
 .spacesGallery .spacePanel { min-block-size: 440px; background: var(--home-deep); }
-.spacePanel::after { background: linear-gradient(180deg, rgb(0 33 22 / 2%) 10%, rgb(0 33 22 / 20%) 45%, rgb(0 33 22 / 95%) 100%); }
-.spaceLabel { position: absolute; bottom: 28px; left: 14px; right: 14px; z-index: 1; color: var(--home-paper); font-family: var(--font-charis-sil), Georgia, serif; font-size: 20px; line-height: 1.5; transition: opacity .15s ease-out; }
+
+.spaceLabel { position: absolute; bottom: 28px; left: 14px; right: 14px; z-index: 1; color: var(--home-paper); font-family: var(--font-charis-sil), Georgia, serif; font-size: 20px; line-height: 1.5; }
 .spaceLabel svg { display: block; margin-top: 14px; }
 .spacePanel[data-active="true"] .spaceLabel { opacity: 0; }
 .spaceContent { min-inline-size: min(260px, 80vw); padding: 28px !important; }
@@ -269,8 +261,4 @@
 @media (prefers-reduced-motion: reduce) {
   .story { --ui-layered-hero-top: 0px; }
   .reasonsImage { position: absolute; top: 0; height: 100%; margin-bottom: 0; }
-  .floorLayer { transform: none !important; }
-  .floorHotspots { opacity: 1; visibility: visible; }
-  .floorLine path, .floorCard, .floorHotspotMark::after { animation: none; }
-  .page *, .page *::after { transition: none !important; }
 }

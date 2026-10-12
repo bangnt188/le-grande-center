@@ -16,22 +16,23 @@ Giúp đội vận hành xem mặt bằng theo tầng, theo dõi trạng thái s
 
 ## Capabilities and Constraints
 
-- Sáu tầng cố định, không có thao tác thêm hoặc xóa tầng.
+- Sáu tầng cố định, cho sửa công năng; không thêm/xóa tầng và không tự đổi nội dung brochure/website.
 - Slot thuộc một tầng. Chỉ ghép các slot liền kề cùng tầng, không ghép qua sảnh/thông tầng. Người dùng xác nhận ngày 06/10/2026.
-- Giữ danh tính và diện tích slot gốc; mặt bằng ghép tham chiếu các slot thành viên.
-- Trạng thái thể hiện bằng text và cho phép bổ sung giá trị về sau.
-- Phạm vi hiện tại là demo Next.js với dữ liệu mẫu; auth, lưu trữ, upload production và phân quyền chưa được triển khai.
+- Public shophouse tầng 1–2 gồm 11 cặp A.n/B.n liên thông. Khách xác nhận ngày 12/10/2026 có thể thuê riêng từng căn hoặc kết hợp hai tầng; không mặc định thuê cả cặp. Liên kết public không phải thao tác ghép slot xuyên tầng trong admin.
+- Ghép/tách giữ danh tính và diện tích thành viên. Diện tích slot chỉ sửa trực tiếp khi chưa có cam kết và chưa thuộc nhóm; tổng diện tích yêu cầu chưa duyệt được cập nhật từ slot.
+- Slot chỉ có hai trạng thái sử dụng: Trống và Đang thuê. Đang chọn là trạng thái tương tác riêng, không lưu trong dữ liệu. Giữ chỗ thuộc hồ sơ thuê và vẫn khóa thao tác xung đột dù slot chưa thuê.
+- Toàn bộ admin hiện có hỗ trợ nghiệp vụ dùng thử và lưu snapshot/tệp bằng IndexedDB trên trình duyệt. Chưa có DB/cloud storage, auth, API production hoặc phân quyền thật.
 - Chưa có bản vẽ chính thức của cả sáu tầng; không suy diễn fixture thành số liệu thực tế.
 
 ## B2B workflow confirmed
 
 - Khách hàng doanh nghiệp có nhu cầu thuê, hợp đồng, lịch hẹn và tài liệu liên kết.
 - Gửi yêu cầu → chủ đầu tư duyệt → giữ chỗ có thời hạn; lịch hẹn độc lập.
-- Hợp đồng/hold deadline chỉ hiển thị trong nội bộ hoặc portal có quyền. Public
-  chỉ hiển thị khả dụng dự kiến được duyệt và đăng ký quan tâm.
-- Tài liệu production dùng R2 private + Worker kiểm tra session/quyền. Demo chỉ
-  mô phỏng hồ sơ và tài liệu mẫu, không có authentication/storage thật.
-- Chính sách TTL/quota/gia hạn chưa chốt; demo yêu cầu người duyệt chọn thời hạn.
+- Hợp đồng/hold deadline chỉ hiển thị trong quản trị nội bộ có quyền. Public chỉ hiển thị khả dụng dự kiến được duyệt và đăng ký quan tâm. Không có portal đăng nhập dành cho khách thuê trong phạm vi hiện tại.
+- Hợp đồng chỉ upload/liên kết/thay PDF, không có ký online/eSign hoặc tự xác nhận nội dung đã ký. Tài liệu production cần storage riêng tư và quyền kiểm tra phía server.
+- Giữ chỗ/lịch hẹn dùng thời gian hiện tại. Cấu hình browser đặt mặc định giờ giữ chỗ, thời lượng và địa điểm hẹn; chưa phải chính sách production của khách hàng.
+- Admin có một sidebar chia nhóm Mặt bằng/Kinh doanh/Tài nguyên/Hệ thống; mục Cấu hình gồm chính sách dùng thử và logo, Zalo, email, hotline, địa chỉ website. Thay đổi website chỉ áp dụng cùng origin/trình duyệt, chưa công bố toàn cầu hoặc nối DB. Không có portal khách thuê hoặc mô phỏng website bên trong; header mở website thật.
+- `/admin-preview/` là form username/password demo, không lưu/gửi thông tin; bấm đăng nhập đi vào Tổng quan tầng tại `/admin-preview/workspace/`. Marker local không cấp quyền production.
 
 ## Brand Commitments
 

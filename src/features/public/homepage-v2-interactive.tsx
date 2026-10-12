@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ExpandingGallery, LayeredScrollStory } from "@mall/ui";
-import { createRevealEngine, ScrollMotion } from "@mall/ui/motion";
+import { RevealLifecycle, ScrollMotion, VideoPlaybackMotion } from "@mall/ui/motion";
 
 import styles from "./homepage-v2.module.css";
 
@@ -12,86 +12,20 @@ export function Arrow() {
 }
 
 export function HomeScrollStory({ hero, children }: { hero: ReactNode; children: ReactNode }) {
-  useEffect(() => {
-    const video = document.querySelector<HTMLVideoElement>(`.${styles.film} video`);
-    if (!video) return;
-    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    let inView = false;
-    const syncPlayback = () => {
-      if (motion.matches || document.hidden || !inView) { video.pause(); return; }
-      void video.play().catch(() => {});
-    };
-    const observer = new IntersectionObserver(entries => {
-      inView = entries.some(entry => entry.isIntersecting);
-      syncPlayback();
-    }, { threshold: .15 });
-    syncPlayback();
-    observer.observe(video);
-    motion.addEventListener("change", syncPlayback);
-    document.addEventListener("visibilitychange", syncPlayback);
-    return () => {
-      observer.disconnect();
-      motion.removeEventListener("change", syncPlayback);
-      document.removeEventListener("visibilitychange", syncPlayback);
-      video.pause();
-    };
-  }, []);
   return <>
     <ScrollMotion refreshKey="homepage-v2" revealSelector={`#main-content [data-ui-layered-surface] > section:not([aria-label]):not(#phan-khu):not(#gioi-thieu):not(.${styles.location})`}/>
-    <HomeEditorialMotion/>
+    <VideoPlaybackMotion selector={`.${styles.film} video`}/>
+    <RevealLifecycle
+      rootSelector="#main-content"
+      entranceSelector={`.${styles.hero} [data-reveal]`}
+      scrollSelector={`#gioi-thieu [data-reveal], .${styles.location} [data-reveal]`}
+    />
     <LayeredScrollStory className={styles.story}>
       <LayeredScrollStory.Hero>{hero}</LayeredScrollStory.Hero>
       <LayeredScrollStory.Surface>{children}</LayeredScrollStory.Surface>
     </LayeredScrollStory>
   </>;
 }
-
-function HomeEditorialMotion() {
-  useLayoutEffect(() => {
-    const root = document.querySelector("#main-content") ?? document;
-    const hero = root.querySelector(`.${styles.hero}`);
-    const heroTargets = hero?.querySelectorAll<HTMLElement>("[data-reveal]");
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!reducedMotion) {
-      heroTargets?.forEach(target => target.style.setProperty("transition", "none", "important"));
-    }
-    const editorialEngine = createRevealEngine({
-      selector: `#gioi-thieu [data-reveal], .${styles.location} [data-reveal]`,
-      rootMargin: "0px 0px -10% 0px",
-    }).start(root);
-    let heroEngine: ReturnType<typeof createRevealEngine> | null = null;
-    let firstRevealFrame = 0;
-    let secondRevealFrame = 0;
-    heroTargets?.forEach(target => {
-      if (reducedMotion) return;
-      void window.getComputedStyle(target).opacity;
-      target.style.removeProperty("transition");
-    });
-    if (hero && reducedMotion) {
-      heroEngine = createRevealEngine({ selector: `.${styles.hero} [data-reveal]` }).start(root);
-    } else if (hero) {
-      firstRevealFrame = window.requestAnimationFrame(() => {
-        secondRevealFrame = window.requestAnimationFrame(() => {
-          heroEngine = createRevealEngine({
-            selector: `.${styles.hero} [data-reveal]`,
-            rootMargin: "0px 0px -10% 0px",
-          }).start(root);
-          heroEngine.revealVisible(root);
-        });
-      });
-    }
-    return () => {
-      window.cancelAnimationFrame(firstRevealFrame);
-      window.cancelAnimationFrame(secondRevealFrame);
-      heroEngine?.destroy();
-      editorialEngine.destroy();
-    };
-  }, []);
-
-  return null;
-}
-
-
 const spaces = [
   { id: "retail", title: "Retail / Shophouse", description: "Không gian trưng bày và kinh doanh, tạo nhịp sống cho mặt tiền.", floor: 1 },
   { id: "office", title: "Văn phòng", description: "Môi trường chuyên nghiệp, linh hoạt cho doanh nghiệp phát triển lâu dài.", floor: 3 },
@@ -105,7 +39,7 @@ export function SpacesGallery({ assetBase }: { assetBase: string }) {
   return <ExpandingGallery className={styles.spacesGallery} aria-label="Các loại hình không gian kinh doanh" activeRatio={3}>
     {spaces.map(space => <ExpandingGallery.Item key={space.id} value={space.id} className={styles.spacePanel} aria-label={space.title}>
       <ExpandingGallery.Media><img src={`${assetBase}/images/home-v2/${space.id}.webp`} alt="" loading="lazy" decoding="async"/></ExpandingGallery.Media>
-      <div className={styles.spaceLabel}>{space.title}<Arrow/></div>
+      <div className={styles.spaceLabel} data-ui-interaction="opacity">{space.title}<Arrow/></div>
       <ExpandingGallery.Content className={styles.spaceContent}><h3>{space.title}</h3><p>{space.description}</p><Link href={`/mat-bang/#tang-${space.floor}`} prefetch={false} className={styles.spaceLink}>Khám phá mặt bằng <Arrow/></Link></ExpandingGallery.Content>
     </ExpandingGallery.Item>)}
   </ExpandingGallery>;
