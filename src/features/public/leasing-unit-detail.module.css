@@ -64,9 +64,9 @@
 .sectionHead { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 12px 28px; }
 .planSection { min-width: 0; }
 .orientation { max-width: 720px; margin-top: 28px; }
-.planScroll { margin-block: 24px; scrollbar-color: var(--ui-color-border) var(--ui-color-surface); }
+.mapControl .planScroll { margin-block: 24px; overflow-x: clip; container-type: inline-size; }
 .planScroll:focus-visible { outline: 2px solid var(--ui-color-focus); outline-offset: 4px; }
-.planCanvas { border-color: var(--ui-color-border); background: var(--ui-color-surface-raised); }
+.mapControl .planCanvas { min-width: 0; border-color: var(--ui-color-border); background: var(--ui-color-surface-raised); }
 .planCanvas .planShared { background: var(--ui-color-surface); color: var(--ui-color-text-secondary); }
 .planCanvas .planUnit { text-decoration: none; background: var(--ui-color-surface-raised); border-color: var(--ui-color-border); }
 .planCanvas .planUnit:hover { background: color-mix(in srgb, var(--ui-color-action) 10%, var(--ui-color-surface-raised)); }
@@ -93,3 +93,8 @@
 .mapControl > button { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; min-width: 48px; min-height: 48px; padding: 0; border: 1px solid color-mix(in srgb, var(--ui-color-action) 24%, var(--ui-color-border)); border-radius: 10px; background: color-mix(in srgb, var(--ui-color-action) 12%, var(--ui-color-surface-raised)); color: var(--ui-color-action); box-shadow: 0 4px 14px rgb(0 33 22 / .16); transition: background-color 160ms ease-out, border-color 160ms ease-out, box-shadow 160ms ease-out; }
 .mapControl > button:hover:not(:disabled) { background: color-mix(in srgb, var(--ui-color-action) 12%, var(--ui-color-surface-raised)); border-color: color-mix(in srgb, var(--ui-color-action) 24%, var(--ui-color-border)); }
 .mapControl > button { border-radius: 50%; }
+.mapControl [role="dialog"] { inline-size: min(1280px, calc(100vw - 32px)); overflow-x: hidden; }
+.mapControl .planCanvas strong { font-size: clamp(6px, 2.05cqi, 14px); }
+.mapControl .planCanvas span { font-size: clamp(5px, 1.62cqi, 11px); }
+.mapControl .planCanvas .planShared { font-size: clamp(5px, 1.47cqi, 10px); }
+@media (max-width: 760px) { .mapControl [role="dialog"] { inline-size: calc(100vw - 16px); padding: 12px; } }

@@ -38,7 +38,7 @@ export function LeasingUnitDetail({ unit, floor, floorUnits }: { unit: LeasingUn
         <div><dt>Phía sau</dt><dd>{BROCHURE_ORIENTATION.rear}</dd></div><div><dt>Mặt tiền · Nguyễn Chí Thanh</dt><dd>{BROCHURE_ORIENTATION.front}</dd></div>
         <div><dt>Đầu giáp khu hồ</dt><dd>{BROCHURE_ORIENTATION.lakeSide}</dd></div><div><dt>Đầu giáp nhà máy nước</dt><dd>{BROCHURE_ORIENTATION.waterworksSide}</dd></div>
       </dl>
-      <div className={`${planStyles.planScroll} ${styles.planScroll}`} tabIndex={0} role="region" aria-label={`Sơ đồ tầng ${floor.id}, mặt bằng ${unit.id} đang xem, cuộn ngang để xem đầy đủ`}>
+      <div className={`${planStyles.planScroll} ${styles.planScroll}`} tabIndex={0} role="region" aria-label={`Sơ đồ tầng ${floor.id}, mặt bằng ${unit.id} đang xem, sơ đồ toàn tầng`}>
         <div className={`${planStyles.plan} ${styles.planCanvas}`}>
           {floor.sharedAreas.map((space, index) => <div key={index} className={`${planStyles.sharedArea} ${styles.planShared}`} style={planStyle(space)}>{space.label}</div>)}
           {floorUnits.map(item => <Link className={`${planStyles.planSlot} ${styles.planUnit}`} key={item.id} href={`/mat-bang/${encodeURIComponent(item.id)}/`} style={planStyle(item.plan)} aria-current={item.id === unit.id ? "page" : undefined} aria-label={`${item.id}, ${number(item.area)} mét vuông${item.id === unit.id ? ", đang xem" : ""}`}>
