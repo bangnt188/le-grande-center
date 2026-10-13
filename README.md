@@ -37,9 +37,9 @@ trong Git hay bản export. Ảnh, PDF, GLB và HDR của website cũng được
 `r2AssetBase`/`r2AssetUrl` trong `src/config/site.ts` giữ nguyên key tương đối,
 không còn tiền tố `public/`. Logo và favicon chỉ nằm trong Neon Object Storage bucket
 `media`; website chỉ dùng URL public, không đưa S3 credentials vào client.
-Các base URL là biến public `NEXT_PUBLIC_R2_PUBLIC_BASE_URL` và
-`NEXT_PUBLIC_NEON_MEDIA_BASE_URL`; mặc định là bucket public hiện tại. Chỉ asset
-3D cần CORS vì trình duyệt fetch GLB/HDR. Projection JSON vẫn đọc cùng origin.
+Các base URL là biến public `NEXT_PUBLIC_R2_PUBLIC_BASE_URL` và `NEXT_PUBLIC_NEON_MEDIA_BASE_URL`; mặc định dùng bucket hiện tại. Chỉ asset 3D cần CORS vì trình duyệt fetch GLB/HDR. Projection JSON vẫn đọc cùng origin.
+
+Chuyển sang tài khoản storage khác: sao chép object R2 và logo/icon trong Neon bucket `media`, giữ nguyên object keys; đặt GitHub Actions Variables `R2_PUBLIC_BASE_URL`, `NEON_MEDIA_PUBLIC_BASE_URL`, `GITHUB_PAGES_BASE_URL`, rồi deploy lại. Không cần sửa từng trang; S3 access keys chỉ dùng trong công cụ chuyển dữ liệu, không xuất bản.
 Video trang chủ không dùng thumbnail/poster.
 Video trang chủ tự phát tắt tiếng, lặp lại, chạy inline và không hiện thanh điều
 khiển native. Nút **Bật âm thanh / Tắt âm thanh** trên video đổi trạng thái sau
@@ -305,7 +305,7 @@ hiện tại thiếu quyền `workflow`. Khi có credential phù hợp: chuyển
 `.github/workflows/dev-pages.yml`, cấu hình Pages source là Actions và cho phép
 branch `dev` trong environment `github-pages`. Secret UI chỉ đọc đã được thiết lập.
 
-Demo: https://bangnt188.github.io/le-grande-center/admin-preview/
+Demo: https://bangnt188.github.io/le-grande-centre/admin-preview/
 
 Bản Pages là fixture công khai, không có dữ liệu người dùng thật, auth hoặc DB.
 Mặc định `npm run build` loại admin khỏi artifact website. Lệnh deploy demo opt-in

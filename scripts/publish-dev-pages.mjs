@@ -22,9 +22,10 @@ const remoteCommit = git("ls-remote", "origin", "refs/heads/dev").split(/\s+/)[0
 if (sourceCommit !== remoteCommit) throw new Error("Push dev before publishing its artifact.");
 const name = git("config", "user.name");
 const email = git("config", "user.email");
-const r2Base = process.env.R2_PUBLIC_BASE_URL ?? "https://pub-d9ed63c9208840ee87c1595f4a1077de.r2.dev";
+const r2Base = process.env.R2_PUBLIC_BASE_URL ?? process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL ?? "https://pub-d9ed63c9208840ee87c1595f4a1077de.r2.dev";
 const neonBase = process.env.NEXT_PUBLIC_NEON_MEDIA_BASE_URL ?? "https://br-tiny-butterfly-b3uuw92p.storage.c-4.ap-southeast-1.aws.neon.tech/media";
-const env = { ...process.env, NEXT_PUBLIC_SITE_URL: "https://bangnt188.github.io/le-grande-center/", R2_PUBLIC_BASE_URL: r2Base,
+const pagesBase = process.env.GITHUB_PAGES_BASE_URL ?? "https://bangnt188.github.io/le-grande-centre/";
+const env = { ...process.env, NEXT_PUBLIC_SITE_URL: pagesBase, R2_PUBLIC_BASE_URL: r2Base,
   NEXT_PUBLIC_R2_PUBLIC_BASE_URL: r2Base, NEXT_PUBLIC_NEON_MEDIA_BASE_URL: neonBase,
   NEXT_PUBLIC_ADMIN_DEMO: "true", INCLUDE_ADMIN_DEMO: "true", SEO_INDEXABLE: "false" };
 run("npm", ["run", "typecheck"]);

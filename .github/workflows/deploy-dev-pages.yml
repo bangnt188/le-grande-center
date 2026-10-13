@@ -18,9 +18,9 @@ jobs:
   build:
     if: github.ref == 'refs/heads/dev'
     env:
-      R2_PUBLIC_BASE_URL: https://pub-d9ed63c9208840ee87c1595f4a1077de.r2.dev
-      NEXT_PUBLIC_R2_PUBLIC_BASE_URL: https://pub-d9ed63c9208840ee87c1595f4a1077de.r2.dev
-      NEXT_PUBLIC_NEON_MEDIA_BASE_URL: https://br-tiny-butterfly-b3uuw92p.storage.c-4.ap-southeast-1.aws.neon.tech/media
+      R2_PUBLIC_BASE_URL: ${{ vars.R2_PUBLIC_BASE_URL || 'https://pub-d9ed63c9208840ee87c1595f4a1077de.r2.dev' }}
+      NEXT_PUBLIC_R2_PUBLIC_BASE_URL: ${{ vars.R2_PUBLIC_BASE_URL || 'https://pub-d9ed63c9208840ee87c1595f4a1077de.r2.dev' }}
+      NEXT_PUBLIC_NEON_MEDIA_BASE_URL: ${{ vars.NEON_MEDIA_PUBLIC_BASE_URL || 'https://br-tiny-butterfly-b3uuw92p.storage.c-4.ap-southeast-1.aws.neon.tech/media' }}
     runs-on: ubuntu-latest
     # COMPONENT_UI_READ_TOKEN is configured as an Environment secret.
     environment: github-pages
@@ -62,7 +62,7 @@ jobs:
 
       - name: Build static site
         env:
-          NEXT_PUBLIC_SITE_URL: https://bangnt188.github.io/le-grande-center/
+          NEXT_PUBLIC_SITE_URL: ${{ vars.GITHUB_PAGES_BASE_URL || 'https://bangnt188.github.io/le-grande-centre/' }}
           NEXT_PUBLIC_ADMIN_DEMO: 'true'
           INCLUDE_ADMIN_DEMO: 'true'
           SEO_INDEXABLE: 'false'
