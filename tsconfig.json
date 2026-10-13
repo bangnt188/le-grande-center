@@ -38,6 +38,7 @@
   "exclude": [
     "node_modules",
     "packages/ui",
-    "packages/backend"
+    "packages/backend",
+    "archives/3d-model-mall"
   ]
 }

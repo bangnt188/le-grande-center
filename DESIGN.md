@@ -271,7 +271,9 @@ The company list and dossier share one operational layout. Lease and request rec
 - **Don't** apply admin typography or semantic overrides to the public identity.
 - **Don't** present repeated fixture geometry or sample documents as confirmed inventory or signed records.
 
-## Public image-to-3D experience — confirmed redesign
+## Public image-to-3D experience — historical, archived 13/10/2026
+
+This section records the previous design. The customer requested complete public removal: no 3D CTA, route or published manifest/projection. Preserve the scene/viewer source and history in https://github.com/bangnt188/3d-model-mall, mounted at archives/3d-model-mall as a source-only submodule. Keep R2 asset URLs public. Preserve homepage v2 and its image-based 2D floor interaction; mobile cards start 16px below the image after removing the obsolete CTA. Shared component-ui 3D/motion modules remain unchanged.
 
 The supplied sunset image and https://realestate-neotix.vercel.app/ govern the public experience, not the admin workspace. Mode: Experience. Home leads with the exact supplied image, edge-to-edge, a quiet project title and the explicit “Khám phá” action. The image is a labelled concept reference, not evidence of the existing building architecture.
 
@@ -327,7 +329,7 @@ Local smoke covered desktop pointer hover, keyboard floor selection, 390px mobil
 
 ### Client-approved header and motion refinement
 
-Use one `SiteHeader` and `SiteFooter` across public routes, backed by `PUBLIC_NAVIGATION`. “Không gian kinh doanh” links to `/tong-quan-tang/`, “Le Grande Centre” to `/tong-quan/`, and “Đặt lịch tham quan” to `/lien-he/`; destination content and demo form behavior remain unchanged. Desktop labels are nowrap; at 1200px and below switch the complete navigation to the native disclosure rather than hiding destinations. Both modes include “KHÁM PHÁ 3D” linking to `/kham-pha/`. Header height is 88px desktop/76px at 720px and below, owned and consumed by the global public-header token. CTA radius is 8px, including contact-form submit and visit actions; inputs remain square. Keep old left-origin underline hover/active motion extended to keyboard focus.
+Use one `SiteHeader` and `SiteFooter` across public routes, backed by `PUBLIC_NAVIGATION`. “Không gian kinh doanh” links to `/tong-quan-tang/`, “Le Grande Centre” to `/tong-quan/`, and “Đặt lịch tham quan” to `/lien-he/`; destination content and demo form behavior remain unchanged. Desktop labels are nowrap; at 1200px and below switch the complete navigation to the native disclosure rather than hiding destinations. Neither mode includes a 3D link; `/kham-pha/` is removed as of 13/10/2026. Header height is 88px desktop/76px at 720px and below, owned and consumed by the global public-header token. CTA radius is 8px, including contact-form submit and visit actions; inputs remain square. Keep old left-origin underline hover/active motion extended to keyboard focus.
 
 V2 reuses `LayeredScrollStory` and `ScrollMotion` from v1: stationary hero under the header, a content surface sliding over it, cream cloud background motion and expo-out section entrances. No old homepage is imported. Reduced motion disables Lenis/entrances and makes hero relative with zero offset, avoiding a header-sized blank gap; content remains visible.
 

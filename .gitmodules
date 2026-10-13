@@ -6,3 +6,7 @@
 	path = packages/backend
 	url = https://github.com/bangnt188/lib-ts-be.git
 	branch = main
+[submodule "archives/3d-model-mall"]
+	path = archives/3d-model-mall
+	url = https://github.com/bangnt188/3d-model-mall.git
+	branch = main

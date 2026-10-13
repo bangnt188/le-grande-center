@@ -74,10 +74,6 @@
 .sectionHeading { display: flex; justify-content: space-between; align-items: end; gap: 40px; margin-bottom: 40px; }
 .floors { container-type: inline-size; }
 .floorScene { position: relative; isolation: isolate; overflow: clip; aspect-ratio: 1.5; background: var(--home-deep); color: var(--home-paper); border-radius: 12px; }
-.floorExplore { position: absolute; z-index: 4; right: 24px; bottom: 24px; display: inline-flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 48px; max-width: calc(100% - 48px); padding: 12px 20px; border-radius: 8px; background: var(--ui-color-action); color: var(--ui-color-action-foreground); font-size: 14px; font-weight: 500; line-height: 1.5; }
-.floorExplore:hover { background: var(--ui-color-action-hover); }
-.floorExplore svg { flex: none; }
-.floorScene .floorExplore:focus-visible { outline-color: var(--ui-color-focus); }
 .floorArt { position: absolute; width: 80%; aspect-ratio: 1.5; left: -3%; top: 12%; }
 .floorArt > figure { position: absolute; inset: 0; margin: 0; }
 .floorLayer { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
@@ -175,8 +171,7 @@
   .sectionHeading { align-items: start; }
   .floorScene { aspect-ratio: auto; height: calc(100cqw * .666667 + 540px); }
   .floorArt { width: 100%; left: 0; top: 0; }
-  .floorExplore { top: calc(100cqw * .666667 + 16px); bottom: auto; right: 16px; max-width: calc(100% - 32px); }
-  .floorCard { left: 24px; right: 24px; width: auto; top: calc(100cqw * .666667 + 88px); transform: none; padding: 24px; }
+  .floorCard { left: 24px; right: 24px; width: auto; top: calc(100cqw * .666667 + 16px); transform: none; padding: 24px; }
   .floorTitle { font-size: 30px; }
   .floorTitle span { font-size: 19px; }
   .floorConnectorDesktop { display: none; }

@@ -11,7 +11,7 @@
     "pull": "node scripts/pull-submodules.mjs",
     "predev": "npm run media:catalog && npm run build:backend && npm run build:ui",
     "dev": "next dev",
-    "prebuild": "npm run media:catalog && npm run check:scene-assets && npm run build:backend && npm run build:ui",
+    "prebuild": "npm run media:catalog && npm run build:backend && npm run build:ui",
     "build": "next build",
     "postbuild": "node scripts/prepare-public-export.mjs",
     "typecheck": "npm run build:backend && npm run typecheck:backend && npm run build:ui && npm run typecheck:ui && tsc --noEmit",
@@ -27,10 +27,7 @@
     "typecheck:backend": "npm run typecheck --workspace=@shared/backend",
     "test:backend": "npm run test --workspace=@shared/backend",
     "check:backend": "npm run check:integrity --workspace=@shared/backend",
-    "test:backend:consumer": "npm run build:backend && node --conditions=react-server --import tsx --test tests/backend-consumer.test.ts",
-    "models:export": "node scripts/export-scene-assets.mjs",
-    "check:scene-assets": "node scripts/check-scene-assets.mjs",
-    "test:scene": "node --import tsx --test tests/viewer-projection.test.ts"
+    "test:backend:consumer": "npm run build:backend && node --conditions=react-server --import tsx --test tests/backend-consumer.test.ts"
   },
   "dependencies": {
     "@mall/ui": "0.1.0",
@@ -40,14 +37,12 @@
     "next": "16.3.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "server-only": "0.0.1",
-    "three": "^0.186.1"
+    "server-only": "0.0.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@types/three": "^0.186.0",
     "typescript": "^5.9.0"
   }
 }

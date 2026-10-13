@@ -17,12 +17,10 @@
 .mobileMenu nav a { display: flex; align-items: center; min-height: 48px; font-size: 13px; font-weight: 500; text-transform: uppercase; }
 .mobileMenu nav a[aria-current="page"] { text-decoration: underline; text-underline-offset: 8px; }
 .mobileMenu[open] summary { color: #816322; }
-.desktopNavigation .exploreLink, .desktopNavigation .visitLink, .mobileMenu .visitLink { justify-content: space-between; gap: 18px; min-height: 48px; padding: 12px 18px; border-radius: 8px; font-size: 10px; }
-.desktopNavigation .exploreLink { border: 1px solid #a4853c; color: #816322; }
-.desktopNavigation .exploreLink:hover { background: #eee6d4; }
+.desktopNavigation .visitLink, .mobileMenu .visitLink { justify-content: space-between; gap: 18px; min-height: 48px; padding: 12px 18px; border-radius: 8px; font-size: 10px; }
 .desktopNavigation .visitLink, .mobileMenu .visitLink { color: #fffcf5; background: #123e2e; }
 .desktopNavigation .visitLink:is(:hover, :focus-visible, [aria-current="page"]), .mobileMenu .visitLink:is(:hover, :focus-visible) { color: #fffcf5; background: #245541; }
-.desktopNavigation :is(.exploreLink, .visitLink)::after { inset-inline: 18px; bottom: 8px; }
+.desktopNavigation .visitLink::after { inset-inline: 18px; bottom: 8px; }
 .desktopNavigation .visitLink::after { background: #e5d397; }
 .mobileMenu .visitLink { margin-top: 12px; font-size: 12px; }
 .page { min-height: 100svh; background: #f1e9dc; color: #201f1d; color-scheme: light; }

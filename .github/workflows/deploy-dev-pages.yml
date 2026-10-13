@@ -40,7 +40,7 @@ jobs:
             echo "::error::Set COMPONENT_UI_READ_TOKEN or SUBMODULE_READ_TOKEN with read access to both private submodule repositories."
             exit 1
           fi
-          git -c "url.https://x-access-token:$SUBMODULE_READ_TOKEN@github.com/.insteadOf=https://github.com/" submodule update --init --recursive --depth=1
+          git -c "url.https://x-access-token:$SUBMODULE_READ_TOKEN@github.com/.insteadOf=https://github.com/" submodule update --init --recursive --depth=1 -- packages/ui packages/backend
 
       - name: Setup Node
         uses: actions/setup-node@v4

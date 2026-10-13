@@ -162,6 +162,5 @@ export function FloorShowcase({ assetBase }: { assetBase: string }) {
         </Fragment>)}
       </div>
     </div>
-    <Link href="/kham-pha/" prefetch={false} className={styles.floorExplore} data-ui-theme="shopping-mall" data-ui-scheme="dark">Khám phá công trình 3D <Arrow/></Link>
   </div>;
 }

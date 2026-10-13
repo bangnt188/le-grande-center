@@ -11,7 +11,6 @@ import { AdminPagination, useAdminPagination } from "./admin-pagination";
 import { useRecordDetail } from "./use-record-detail";
 import styles from "./admin-records.module.css";
 import { StorageUsagePanel } from "./storage-usage-panel";
-import Link from "next/link";
 import { WebsiteSettingsPanel } from "./website-settings-panel";
 
 type Props = { data: AdminData; onMessage: (message: string, tone?: ToastTone) => void };
@@ -85,7 +84,6 @@ export function MediaWorkspace({ data, onMessage, initialMediaId, initialScope }
     </AdminPanel>} detail={<AdminPanel className={`records-panel ${styles.detail}`}>{media ? <>
       <div className={styles.heading}><h2>{media.name}</h2><Badge>{media.projectAsset ? "Asset dự án" : "Đã tải lên"}</Badge></div>
       <div className={styles.preview}>{media.url && media.kind === "Ảnh" ? <FilePreview source={media.url} fileName={media.name} mediaType={media.mimeType}/> : media.url && media.kind === "Video" ? <Video key={media.id} src={media.url} title={media.name} controls preload="metadata" fit="contain"/> : media.url && isPdf ? <iframe key={media.id} src={media.url} title={media.name}/> : <p>{media.kind === "Model 3D" ? "Asset GLB của cảnh 3D. Mở công trình để xem trong ngữ cảnh hoặc tải tệp gốc." : "HDR dùng làm ánh sáng môi trường; trình duyệt không có preview native. Có thể tải tệp gốc."}</p>}</div>
-      {media.kind === "Model 3D" && <Link href="/kham-pha/" target="_blank" rel="noopener noreferrer" prefetch={false}>Xem công trình 3D</Link>}
       {media.url && <div className={styles.actions}><a href={media.url} target="_blank" rel="noopener noreferrer">Mở tệp gốc</a><a href={media.url} download={media.name}>Tải tệp xuống</a></div>}
       <dl className={styles.facts}><dt>Loại</dt><dd>{media.kind}</dd><dt>Dung lượng</dt><dd>{media.size}</dd><dt>Nguồn / đường dẫn</dt><dd className={styles.note}>{media.sourcePath || "File upload trên trình duyệt này"}</dd><dt>Liên kết</dt><dd>{scopes.find(item => item.value === media.scope)?.label ?? media.scope}</dd><dt>Hồ sơ thuê sử dụng</dt><dd>{linkedLeases.map(lease => lease.id).join(", ") || "Không có"}</dd></dl>
       {protectedMedia && <Alert tone="info">{media.projectAsset ? "Tệp nguồn của dự án: chỉ xem, không sửa/xóa từ bản dùng thử. Không tính vào dung lượng upload IndexedDB." : selectedLogo ? "Tệp đang là logo website. Chọn logo khác trước khi xóa." : "Tệp đang gắn với hồ sơ thuê. Không đổi liên kết hoặc xóa; thay tài liệu trong hồ sơ thuê trước."}</Alert>}

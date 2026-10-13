@@ -14,8 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
           token: ${{ secrets.COMPONENT_UI_READ_TOKEN || github.token }}
+      - run: git submodule update --init --recursive --depth=1 -- packages/ui packages/backend
       - uses: actions/setup-node@v4
         with:
           node-version: "22"

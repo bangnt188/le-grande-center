@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { r2AssetBase } from "@/config/site";
 import { publicPageMetadata } from "@/features/public/seo-metadata";
 import { SitePage } from "@/features/public/site-page";
@@ -17,6 +16,5 @@ export default function FloorsPage() {
   return <SitePage active="/tong-quan-tang/" title="Sáu tầng. Nhiều cơ hội kinh doanh.">
     <p className={styles.intro}>Khám phá sáu tầng thương mại, dịch vụ và giải trí. Tìm không gian phù hợp cho thương hiệu của bạn.</p>
     <BusinessSpaceScrollStory assetBase={assetBase} />
-    <Link href="/kham-pha/" prefetch={false} className={styles.primary}>Khám phá công trình 3D</Link>
   </SitePage>;
 }

@@ -2,7 +2,7 @@
 
 **Thời điểm đo:** 11/10/2026, UTC.  
 **Phạm vi:** homepage v2, catalogue mặt bằng, popup xem ảnh và viewer 3D.  
-**Trạng thái:** baseline điều tra được giữ ở mục 1–5; viewer 3D đã được tối ưu và thay loading. Kết quả trước/sau, cache và kiểm chứng bản release ở mục 6. Các phần homepage/catalogue ngoài viewer chưa thay đổi.
+**Trạng thái:** baseline và kiểm chứng trước/sau ở dưới là lịch sử. Ngày 13/10/2026, route 3D đã gỡ khỏi website theo yêu cầu khách hàng; source/harness chuyển sang https://github.com/bangnt188/3d-model-mall. Các đường dẫn viewer/script trong báo cáo được hiểu tương đối trong repo 3D mới, không phải file còn chạy trong website. Các phần homepage/catalogue ngoài viewer chưa thay đổi.
 
 ## 1. Kết luận để báo cáo
 
