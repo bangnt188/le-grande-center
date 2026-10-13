@@ -17,6 +17,10 @@ concurrency:
 jobs:
   build:
     if: github.ref == 'refs/heads/dev'
+    env:
+      R2_PUBLIC_BASE_URL: https://pub-d9ed63c9208840ee87c1595f4a1077de.r2.dev
+      NEXT_PUBLIC_R2_PUBLIC_BASE_URL: https://pub-d9ed63c9208840ee87c1595f4a1077de.r2.dev
+      NEXT_PUBLIC_NEON_MEDIA_BASE_URL: https://br-tiny-butterfly-b3uuw92p.storage.c-4.ap-southeast-1.aws.neon.tech/media
     runs-on: ubuntu-latest
     # COMPONENT_UI_READ_TOKEN is configured as an Environment secret.
     environment: github-pages
@@ -47,11 +51,6 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Prepare four optimized gallery images
-        run: |
-          python3 -m pip install --user Pillow gdown
-          python3 scripts/prepare-gallery-images.py
-
       - name: Typecheck
         run: npm run typecheck
 
@@ -73,7 +72,8 @@ jobs:
         run: |
           test -f out/index.html
           test -f out/admin-preview/index.html
-          test -f out/admin-demo/floor-plan.png
+          curl --fail --silent --show-error --head "$R2_PUBLIC_BASE_URL/admin-demo/floor-plan.png" >/dev/null
+          curl --fail --silent --show-error --head "$NEXT_PUBLIC_NEON_MEDIA_BASE_URL/admin-demo/logo-without-text.webp" >/dev/null
           touch out/.nojekyll
 
       - name: Upload Pages artifact

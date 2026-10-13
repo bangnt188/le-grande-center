@@ -12,6 +12,7 @@ import { useWebsiteSettings } from "@/features/public/website-settings";
 import { telephoneHref } from "@/shared/admin/website-defaults";
 import { createLoadingProgress, createVideoPlaybackController, ScrollMotion } from "@mall/ui/motion";
 import { LayeredScrollStory, Loading, ProgressBar } from "@mall/ui";
+import { siteUrl } from "@/config/site";
 const VIEWS: { id: View; label: string }[] = [
   { id: "front", label: "Mặt tiền" },
   { id: "aerial", label: "Tổng thể" },
@@ -22,6 +23,7 @@ const FLOORS = [1, 2, 3, 4, 5, 6];
 
 
 export default function ModelViewer({ showAdminLink, assetBase, immersive = false }: { showAdminLink: boolean; assetBase: string; immersive?: boolean }) {
+  const projectionBase = new URL(siteUrl).pathname.replace(/\/+$/, "");
   const { settings, floorContent } = useWebsiteSettings();
   const host = useRef<HTMLDivElement>(null);
   const filmVideo = useRef<HTMLVideoElement>(null);
@@ -58,7 +60,7 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
     if (!immersive) return;
     const controller = new AbortController();
     let expiry: ReturnType<typeof setTimeout> | undefined;
-    void loadPublicProjection(assetBase, controller.signal).then(result => {
+    void loadPublicProjection(projectionBase, controller.signal).then(result => {
       if (controller.signal.aborted) return;
       setProjection(result);
       selection.current.allowedViews = result.projection?.allowedPresetIds ?? VIEWS.map(view => view.id);
@@ -75,7 +77,7 @@ export default function ModelViewer({ showAdminLink, assetBase, immersive = fals
       }
     });
     return () => { controller.abort(); clearTimeout(expiry); };
-  }, [assetBase, immersive]);
+  }, [projectionBase, immersive]);
 
   useEffect(() => {
     if (!immersive || !host.current) return;

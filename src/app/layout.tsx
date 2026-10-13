@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Be_Vietnam_Pro, Charis_SIL, Cormorant_Garamond, Playfair_Display } from "next/font/google";
 import "@mall/ui/styles";
 import "./globals.css";
-import { isIndexable, siteUrl } from "@/config/site";
+import { isIndexable, neonMediaUrl, siteUrl } from "@/config/site";
 import { WebsiteSettingsProvider } from "@/features/public/website-settings";
 
 const interfaceFont = Be_Vietnam_Pro({
@@ -38,12 +38,12 @@ const editorialFont = Cormorant_Garamond({
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Le Grande Center | Trung tâm thương mại",
-    template: "%s | Le Grande Center",
+    default: "Le Grande Centre | Trung tâm thương mại",
+    template: "%s | Le Grande Centre",
   },
   description: "Khám phá Le Grande Centre: shophouse, dịch vụ, văn phòng và không gian giải trí tại Sóc Trăng. Xem kiến trúc 3D và liên hệ tư vấn mặt bằng.",
   robots: { index: isIndexable, follow: isIndexable },
-  icons: { icon: new URL("client-reference/legacy/icon.png", siteUrl) },
+  icons: { icon: neonMediaUrl("/client-reference/legacy/icon.png") },
 };
 
 export const viewport: Viewport = {

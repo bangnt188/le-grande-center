@@ -1,6 +1,6 @@
-# Le Grande Center
+# Le Grande Centre
 
-Ứng dụng Le Grande Center. Repo:
+Ứng dụng Le Grande Centre. Repo:
 https://github.com/bangnt188/le-grande-center.git.
 
 `main` chỉ chứa README tạm; workspace và cấu hình phát triển nằm trên `dev`.
@@ -32,9 +32,15 @@ Trang chủ dùng homepage v2 theo bản tham chiếu khách hàng. Homepage v1 
 trong mã nguồn nhưng không import/render từ route `/`. Chưa thay thế domain production.
 
 Phim dự án trên trang chủ và viewer dùng URL R2 công khai tại
-`PROJECT_FILM_URL` trong `src/features/public/site-content.ts`; nguồn video và link
-mở phim dùng cùng URL. File MP4 không còn nằm trong `public/` hay bản export;
-Hero giữ ảnh `public/images/home-v2/hero.webp`; video không dùng thumbnail/poster.
+`PROJECT_FILM_URL` trong `src/features/public/site-content.ts`; file MP4 không nằm
+trong Git hay bản export. Ảnh, PDF, GLB và HDR của website cũng được tải từ R2;
+`r2AssetBase`/`r2AssetUrl` trong `src/config/site.ts` giữ nguyên key tương đối,
+không còn tiền tố `public/`. Logo và favicon chỉ nằm trong Neon Object Storage bucket
+`media`; website chỉ dùng URL public, không đưa S3 credentials vào client.
+Các base URL là biến public `NEXT_PUBLIC_R2_PUBLIC_BASE_URL` và
+`NEXT_PUBLIC_NEON_MEDIA_BASE_URL`; mặc định là bucket public hiện tại. Chỉ asset
+3D cần CORS vì trình duyệt fetch GLB/HDR. Projection JSON vẫn đọc cùng origin.
+Video trang chủ không dùng thumbnail/poster.
 Video trang chủ tự phát tắt tiếng, lặp lại, chạy inline và không hiện thanh điều
 khiển native. Nút **Bật âm thanh / Tắt âm thanh** trên video đổi trạng thái sau
 thao tác người dùng, giữ lựa chọn khi cuộn ra/vào video. Video tự dừng khi ra
@@ -56,7 +62,7 @@ npm run dev
 Với Next dev đang chạy, dùng Node.js 22+ và Chrome/Chromium có sẵn:
 
 ```sh
-npm run smoke:public -- http://localhost:3000/le-grande-center/
+npm run smoke:public -- http://localhost:3000/
 ```
 
 Đổi URL nếu server dùng port/base path khác. macOS mặc định dùng Google Chrome;
@@ -73,7 +79,7 @@ của static server thông thường không phải bằng chứng cho navigation
 Sau `npm run build`, phục vụ `out/` bằng static host rồi chạy (Node.js 22+):
 
 ```sh
-node scripts/profile-3d-startup.mjs http://127.0.0.1:3199/le-grande-center/ /tmp/le-grande-startup --check-loading
+node scripts/profile-3d-startup.mjs http://127.0.0.1:3199/ /tmp/le-grande-startup --check-loading
 ```
 
 Script mở Chrome/profile mới, đo khoảng 6 giây và lưu `.json`/`.cpuprofile`.
@@ -82,8 +88,22 @@ giữ lựa chọn tầng trong lúc tải, đổi góc nhìn và lỗi tải bu
 khác khi so số đo; không lấy Next dev/HMR làm baseline. Chi tiết trước/sau và
 cache: [docs/performance-audit.md](docs/performance-audit.md#6-cập-nhật-sau-triển-khai-cold-start-và-loading-3d).
 
-Mặc định local dùng base path `/le-grande-center/` giống GitHub Pages. Mở
-`http://localhost:3000/le-grande-center/admin-preview/` để mở trang đăng nhập demo (tên đăng nhập/mật khẩu bất kỳ, không dùng thông tin thật).
+Tên thương hiệu và title SEO dùng **Le Grande Centre**. Domain mặc định là
+`https://legrandecentre.vn/`; local mặc định không có base path. Mở
+`http://localhost:3000/admin-preview/` để mở trang đăng nhập demo (tên đăng nhập/mật khẩu bất kỳ, không dùng thông tin thật).
+`NEXT_PUBLIC_SITE_URL` vẫn ghi đè domain/path cho local và demo GitHub Pages;
+các pipeline deploy demo giữ URL riêng và `SEO_INDEXABLE=false`. Index chỉ bật
+khi build production với `SEO_INDEXABLE=true`; đổi domain không tự bật index
+
+## SEO public website
+
+Các trang public dùng title/description, canonical, Open Graph và Twitter metadata riêng.
+Homepage xuất `WebSite` JSON-LD; trang chi tiết mặt bằng xuất `BreadcrumbList`.
+`/mat-bang/` giữ trải nghiệm sơ đồ/popup và có danh sách liên kết HTML tới từng căn;
+sitemap bao gồm các trang chính, trải nghiệm 3D và các trang mặt bằng.
+Demo tiếp tục `noindex`; chỉ build production có domain chính thức và
+`SEO_INDEXABLE=true` mới xuất sitemap indexable, robots trỏ sitemap. Không deploy
+hoặc mở index bằng build này.
 
 ## Homepage v2 và kiến trúc 3D
 
@@ -115,7 +135,7 @@ Gallery tổng quan đổi ảnh bằng nút thumbnail; mặt bằng tham khảo
 chi tiết hiện có. Không công bố giá hay tình trạng còn trống. Rạp chiếu phim và
 các loại hình minh họa không phải xác nhận tenant đang hoạt động.
 
-Ảnh tại `public/images/home-v2/`: `floor-base.webp`, `floor-middle.webp` và
+Ảnh tại R2 key prefix `images/home-v2/`: `floor-base.webp`, `floor-middle.webp` và
 `floor-roof.webp` tách nền/phân lớp từ `phan-khu.png` khách cung cấp, dùng chung
 canvas 1440×960. Giữ phần ảnh gốc nhìn thấy, không dựng thêm mặt khuất.
 Sáu ảnh tiện ích cắt vùng ảnh không chữ từ `Trang chủ.png`; ba ảnh chi tiết
@@ -131,7 +151,8 @@ nền tĩnh. Nội dung sáu lý do giữ nguyên, không thêm cam kết pháp 
 Section vị trí dùng ảnh thực tế Le Grande; ảnh template chỉ tham khảo bố cục.
 Trang chủ bỏ các dòng hướng dẫn cuộn/rê chuột/chạm/bàn phím và chú thích nguồn
 lặp dưới section. Giữ nội dung chính, CTA, tên tầng/loại hình và nhãn accessibility.
-Đường dẫn media theo pathname của `siteUrl`, hỗ trợ base path và domain root.
+Ảnh/media dùng R2 base URL độc lập với `siteUrl`, nên hoạt động ở domain production
+và GitHub Pages base path; metadata/canonical và projection JSON vẫn theo `siteUrl`.
 Section “Vị Trí Chiến Lược” giữ iframe Google Maps Le Grande Centre ở cột trái.
 Cột phải: ảnh thực tế lớn → nội dung chữ → ảnh thực tế nhỏ (85% chiều rộng).
 Hai ảnh hiện có là `le-grande-aerial-context.webp` và `le-grande-aerial-close.webp`,
@@ -148,8 +169,8 @@ Link Zalo và số hotline được cấu hình độc lập, không tự đồn
 xanh nhận diện `#0068ff` theo yêu cầu khách hàng; nút gọi điện dùng token xanh
 shopping-mall. Không xác nhận tài khoản Zalo hoặc thực hiện cuộc gọi tự động.
 
-Kiến trúc 3D vẫn ở `/kham-pha/`, dùng `src/app/model-3d/` và asset tự host.
-Sáu tầng giữ công năng brochure, phép xoay/zoom/chọn tầng và reduced motion
+Kiến trúc 3D vẫn ở `/kham-pha/`, dùng `src/app/model-3d/`; GLB và HDR được tải từ R2,
+manifest/license/projection JSON ở repo. Sáu tầng giữ công năng brochure, phép xoay/zoom/chọn tầng và reduced motion
 hiện có; hình khối/tỷ lệ là minh họa, không thay thế hồ sơ thiết kế chính thức.
 Khung tách lớp ở section “Sáu tầng. Nhiều cơ hội kinh doanh.” có CTA
 **Khám phá công trình 3D** ở góc dưới phải, dẫn tới `/kham-pha/` với
@@ -238,12 +259,14 @@ lên GitHub Pages. Plan và bằng chứng: [slot detail](docs/slot-detail-plan.
 ### Asset pipeline và public viewer
 
 `npm run models:export` mở authoring server tại `http://127.0.0.1:4174/__author`;
-mở URL bằng Chromium để xuất lại 6 context GLB, giữ nguyên building GLB đã duyệt
+mở URL bằng Chromium để xuất lại 6 context GLB, giữ nguyên building GLB lấy từ R2
 và ghi `public/model-3d/asset-manifest.json`. Nguồn tải được pin URL/checksum trong
 `scripts/scene-asset-sources.json`, cache tại thư mục tạm của hệ thống.
 Tên file theo SHA-256, texture nhúng tối đa 1024px, không cần decoder hay Blender.
-`npm run check:scene-assets` kiểm tra bytes/hash/GLB/resource limits; tự chạy trước build.
-`npm run test:scene` kiểm tra allowlist, scene mismatch, ID/tầng, freshness và lỗi tải.
+GLB mới sinh vào `public/model-3d/assets/`; upload đúng key lên R2 trước khi build.
+`npm run check:scene-assets` tải asset từ R2 và kiểm tra bytes/hash/GLB/resource
+limits; tự chạy trước build. `npm run test:scene` kiểm tra allowlist, scene mismatch,
+ID/tầng, freshness và lỗi tải.
 
 `scene.ts` sở hữu IDs/anchors/presets; `viewer-projection.json` là publication tĩnh
 đọc-only, không lấy admin snapshot. Bản hiện có chỉ gồm brochure và vị trí minh họa;
@@ -328,11 +351,11 @@ SQL là thiết kế chưa apply; auth/backend/database vẫn chưa kết nối.
 - Hợp đồng chỉ upload/liên kết/thay PDF có sẵn; không soạn thảo, không eSign, không tự xác nhận đã ký. Lưu hồ sơ từ giữ chỗ chuyển toàn bộ tổ hợp sang thuê bằng thao tác rõ ràng.
 - Lịch hẹn: tạo/sửa, thời lượng/địa điểm, xác nhận/hủy; kiểm tra xung đột và hiển thị giờ Việt Nam.
 - Media hiển thị asset thật của dự án và file upload riêng: ảnh, PDF, video R2, model GLB và HDR. Asset có nguồn/đường dẫn, chỉ xem và không tính vào byte upload local. Tìm theo tên/đường dẫn, lọc loại/nguồn; ảnh dùng FilePreview, video dùng Video, PDF mở bản gốc. GLB có link viewer công trình; HDR tải tệp gốc, không giả preview native. Upload vẫn PNG/JPEG/WebP/PDF tối đa 10 MiB.
-- Cấu hình website: chỉnh Zalo, email, hotline, điện thoại bổ sung/ban quản lý và địa chỉ trong bản xem thử cùng browser/origin; không công bố toàn cầu. Logo đang giữ fallback/ảnh hiện tại; tải/chọn logo mới bị khóa cho đến khi có upload Neon được bảo vệ bằng xác thực thật.
+- Cấu hình website: chỉnh Zalo, email, hotline, điện thoại bổ sung/ban quản lý và địa chỉ trong bản xem thử cùng browser/origin; không công bố toàn cầu. Logo mặc định/fallback và favicon đọc từ Neon `media`; tải/chọn logo mới vẫn bị khóa đến khi có upload Neon được bảo vệ bằng xác thực thật.
 
 Form dùng component `@mall/ui`, lưu/hủy, lỗi và cảnh báo chưa lưu. Tab cũ phải tải lại snapshot trước khi lưu; nút tải lại trong form giữ nội dung đang nhập. Hạn mức nghiệp vụ 8,5 GB không bảo đảm quota thiết bị hoặc quota cloud. Bản dùng thử không có auth/phân quyền thật, API admin production hoặc kết nối Neon/R2; chỉ dùng dữ liệu thử nghiệm.
 
-Danh mục asset sinh từ public bằng npm run media:catalog (tự chạy trước dev/build), không chép file vào IndexedDB hoặc tự liệt kê toàn bộ bucket cloud. Website chỉ đọc cấu hình đã tồn tại; khách public chưa mở admin không bị tạo database demo. Defaults public vẫn giữ đúng thông tin hiện tại khi chưa cấu hình.
+- Danh mục asset được sinh từ file local nhưng giữ nguyên metadata của asset đã externalize trong `project-media.json`; URL project media trỏ R2 hoặc Neon theo loại. Không copy asset vào IndexedDB hoặc tự liệt kê bucket cloud. Website chỉ đọc cấu hình đã tồn tại; khách public chưa mở admin không bị tạo database demo.
 
 ## Architecture Decision: admin
 

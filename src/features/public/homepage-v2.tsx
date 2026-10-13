@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { siteUrl } from "@/config/site";
+import { r2AssetBase } from "@/config/site";
 import { SiteFooter } from "./site-footer";
 import { PROJECT_FILM_URL } from "./site-content";
 import { WebsiteAddress, WebsiteMapLink, WebsiteHotlineLink } from "./website-settings";
@@ -21,7 +21,7 @@ const reasons = [
 const featuredUnits = [1, 2, 3, 4].map(floor => BROCHURE_UNITS.find(unit => unit.floorId === floor)!);
 
 export default function HomePageV2() {
-  const assetBase = new URL(siteUrl).pathname.replace(/\/+$/, "");
+  const assetBase = r2AssetBase;
   const image = (path: string) => `${assetBase}${path}`;
   return <div className={styles.page} data-homepage-version="2" data-ui-interaction-group="colors">
     <SiteHeader/>

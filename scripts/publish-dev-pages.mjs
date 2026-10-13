@@ -22,13 +22,20 @@ const remoteCommit = git("ls-remote", "origin", "refs/heads/dev").split(/\s+/)[0
 if (sourceCommit !== remoteCommit) throw new Error("Push dev before publishing its artifact.");
 const name = git("config", "user.name");
 const email = git("config", "user.email");
-const env = { ...process.env, NEXT_PUBLIC_SITE_URL: "https://bangnt188.github.io/le-grande-center/",
+const r2Base = process.env.R2_PUBLIC_BASE_URL ?? "https://pub-d9ed63c9208840ee87c1595f4a1077de.r2.dev";
+const neonBase = process.env.NEXT_PUBLIC_NEON_MEDIA_BASE_URL ?? "https://br-tiny-butterfly-b3uuw92p.storage.c-4.ap-southeast-1.aws.neon.tech/media";
+const env = { ...process.env, NEXT_PUBLIC_SITE_URL: "https://bangnt188.github.io/le-grande-center/", R2_PUBLIC_BASE_URL: r2Base,
+  NEXT_PUBLIC_R2_PUBLIC_BASE_URL: r2Base, NEXT_PUBLIC_NEON_MEDIA_BASE_URL: neonBase,
   NEXT_PUBLIC_ADMIN_DEMO: "true", INCLUDE_ADMIN_DEMO: "true", SEO_INDEXABLE: "false" };
 run("npm", ["run", "typecheck"]);
 run("npm", ["run", "test:admin"]);
 run("npm", ["run", "build"], root, env);
-for (const file of ["index.html", "admin-preview/index.html", "admin-demo/floor-plan.png", "admin-demo/logo-without-text.webp"]) {
-  if (!existsSync(resolve("out", file))) throw new Error(`Missing artifact: ${file}`);
+for (const file of ["index.html", "admin-preview/index.html"]) {
+  if (!existsSync(resolve("out", file))) throw new Error("Missing artifact: " + file);
+}
+for (const url of [r2Base + "/admin-demo/floor-plan.png", neonBase + "/admin-demo/logo-without-text.webp"]) {
+  const response = await fetch(url, { method: "HEAD" });
+  if (!response.ok) throw new Error("Missing public storage asset: " + url);
 }
 const folder = mkdtempSync(join(tmpdir(), "legrande-pages-"));
 try {

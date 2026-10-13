@@ -3,12 +3,17 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
+import nextEnv from '@next/env';
+nextEnv.loadEnvConfig(process.cwd());
 
 const ids = ['building', 'tree', 'vehicle', 'person', 'lamp', 'bench', 'monument'];
 const hash = (bytes, algorithm = 'sha256') => createHash(algorithm).update(bytes).digest('hex');
 const previous = JSON.parse(await readFile('public/model-3d/asset-manifest.json', 'utf8'));
 const building = previous.assets.find(asset => asset.id === 'building');
-const buildingBytes = await readFile(`public/model-3d/${building.file}`);
+const assetBase = (process.env.R2_PUBLIC_BASE_URL ?? "https://pub-d9ed63c9208840ee87c1595f4a1077de.r2.dev").replace(/\/+$/, "");
+const buildingResponse = await fetch(assetBase + "/model-3d/" + building.file);
+if (!buildingResponse.ok) throw new Error("Cannot fetch preserved building from public R2");
+const buildingBytes = Buffer.from(await buildingResponse.arrayBuffer());
 if (hash(buildingBytes) !== '578abef2f86d3bac7093bf03e48fd7c4a590d1d6c6ee958d5ebc6bfc33ea6650') throw new Error('Preserved building checksum changed');
 const assets = { building };
 const sources = JSON.parse(await readFile('scripts/scene-asset-sources.json', 'utf8'));

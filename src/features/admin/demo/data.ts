@@ -4,6 +4,7 @@ import { projectMedia } from "./project-media";
 import { DEFAULT_WEBSITE_SETTINGS } from "../../../shared/admin/website-defaults";
 import { DEFAULT_FLOOR_CONTENT, FLOORS } from "../../../shared/admin/space-model";
 import type { Floor, Slot, SpaceGroup } from "../../../shared/admin/space-model";
+import { neonMediaUrl, r2AssetUrl } from "../../../config/site";
 
 // The customer's plan does not identify its floor. Repeated geometry is fixture
 // data for demonstrating workflows, not an assertion about actual inventory.
@@ -28,9 +29,8 @@ const leadFixtures: Lead[] = [
   { id: "DEMO-1045", name: "Khách hàng mẫu D", initials: "KD", interest: "Shophouse · 205 m²", floor: 1 as Floor, source: "Form website", time: "Hôm qua, 14:10", status: "Mới", note: "Quan tâm slot ở vị trí biên." },
 ];
 
-const basePath = new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://bangnt188.github.io/le-grande-center/").pathname.replace(/\/$/, "");
-export const referencePlanUrl = `${basePath}/admin-demo/floor-plan.png`;
-export const adminLogoUrl = `${basePath}/admin-demo/logo-without-text.webp`;
+export const referencePlanUrl = r2AssetUrl("admin-demo/floor-plan.png");
+export const adminLogoUrl = neonMediaUrl("admin-demo/logo-without-text.webp");
 const mediaFixtures = projectMedia();
 
 export function makeDemoSnapshot(): AdminSnapshot {

@@ -3,7 +3,7 @@ import type { AdminSnapshot, MediaItem } from "../../../shared/admin/contracts";
 import { formatStorageBytes } from "../../../shared/admin/storage-policy";
 import { PROJECT_FILM_URL } from "../../public/site-content";
 
-const basePath = new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://bangnt188.github.io/le-grande-center/").pathname.replace(/\/$/, "");
+import { neonMediaUrl, r2AssetUrl } from "../../../config/site";
 const ids: Record<string, string> = { "/admin-demo/floor-plan.png": "plan-reference", "/admin-demo/contract-sample.pdf": "contract-sample-pdf", "/le-grande-brochure.pdf": "sample-brochure" };
 export function projectMedia(): MediaItem[] {
   const media: MediaItem[] = catalog.map(item => ({
@@ -11,7 +11,7 @@ export function projectMedia(): MediaItem[] {
     mimeType: item.mimeType, sizeBytes: item.sizeBytes, size: formatStorageBytes(item.sizeBytes),
     sourcePath: item.path, projectAsset: true, hasUploadedFile: false,
     scope: item.path === "/admin-demo/floor-plan.png" ? "Chưa xác nhận tầng" : item.path === "/admin-demo/contract-sample.pdf" ? "lease:HD-2026-004" : "Toàn dự án",
-    reference: item.path === "/admin-demo/floor-plan.png", url: basePath + item.path.split("/").map(encodeURIComponent).join("/"),
+    reference: item.path === "/admin-demo/floor-plan.png", url: ["/admin-demo/logo-without-text.webp", "/client-reference/legacy/logo-without-text.png", "/client-reference/legacy/icon.png"].includes(item.path) ? neonMediaUrl(item.path) : r2AssetUrl(item.path),
   }));
   media.push({ id: "project:homepage-video", name: "video-homepage.mp4", kind: "Video", scope: "Toàn dự án", mimeType: "video/mp4", size: "Chưa có số liệu từ R2", sourcePath: PROJECT_FILM_URL, url: PROJECT_FILM_URL, projectAsset: true, hasUploadedFile: false });
   return media;

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Breadcrumbs } from "@mall/ui";
-import { siteUrl } from "@/config/site";
+import { r2AssetBase } from "@/config/site";
 import { BROCHURE_ORIENTATION, BROCHURE_PATH, BROCHURE_UNITS } from "./brochure-leasing";
 import { getShophousePair, type LeasingFloor, type LeasingUnit } from "./leasing-model";
 import { planStyle, planLabelStyle } from "./leasing-plan-style";
@@ -15,7 +15,7 @@ import { LeasingConsultation } from "./leasing-consultation";
 const number = (value: number) => value.toLocaleString("vi-VN");
 
 export function LeasingUnitDetail({ unit, floor, floorUnits }: { unit: LeasingUnit; floor: LeasingFloor; floorUnits: readonly LeasingUnit[] }) {
-  const assetBase = new URL(siteUrl).pathname.replace(/\/+$/, "");
+  const assetBase = r2AssetBase;
   const backHref = `/mat-bang/#tang-${floor.id}`;
   const detailHref = `/mat-bang/${encodeURIComponent(unit.id)}/`;
   const orderedUnits = floorUnits.filter(item => item.floorId === floor.id).sort((a, b) => a.id.localeCompare(b.id, "vi", { numeric: true }));

@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const siteUrl = new URL(
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://bangnt188.github.io/le-grande-center/",
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://legrandecentre.vn/",
 );
 const basePath = siteUrl.pathname.replace(/\/+$/, "");
 

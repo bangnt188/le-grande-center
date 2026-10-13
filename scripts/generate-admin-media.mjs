@@ -14,8 +14,11 @@ for (const file of files) {
   const path = absolute.slice(resolve(root, "public").length).replaceAll("\\", "/");
   rows.push({ path, name: file.name, kind: format[0], mimeType: format[1], sizeBytes: (await stat(absolute)).size });
 }
-rows.sort((a, b) => a.path.localeCompare(b.path, "en"));
 const output = resolve(root, "src/features/admin/demo/project-media.json");
+const previous = JSON.parse(await readFile(output, "utf8").catch(error => { if (error.code === "ENOENT") return "[]"; throw error; }));
+const localPaths = new Set(rows.map(item => item.path));
+rows.push(...previous.filter(item => !localPaths.has(item.path)));
+rows.sort((a, b) => a.path.localeCompare(b.path, "en"));
 const content = JSON.stringify(rows, null, 2) + "\n";
 if (await readFile(output, "utf8").catch(error => { if (error.code === "ENOENT") return ""; throw error; }) !== content) await writeFile(output, content);
-console.log("Admin media catalog: " + rows.length + " local assets");
+console.log("Admin media catalog: " + rows.length + " project assets");

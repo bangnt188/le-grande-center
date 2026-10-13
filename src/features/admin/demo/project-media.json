@@ -189,6 +189,20 @@
     "sizeBytes": 696926
   },
   {
+    "path": "/images/le-grande-aerial-third.webp",
+    "name": "le-grande-aerial-third.webp",
+    "kind": "Ảnh",
+    "mimeType": "image/webp",
+    "sizeBytes": 603838
+  },
+  {
+    "path": "/images/le-grande-hero-drive.webp",
+    "name": "le-grande-hero-drive.webp",
+    "kind": "Ảnh",
+    "mimeType": "image/webp",
+    "sizeBytes": 288356
+  },
+  {
     "path": "/images/leasing-hero.webp",
     "name": "leasing-hero.webp",
     "kind": "Ảnh",

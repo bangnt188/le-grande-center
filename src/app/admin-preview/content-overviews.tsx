@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { AdminPanel, Badge, Button, Input, Table, Textarea, type ToastTone } from "@mall/ui";
 import { FLOORS, FLOOR_PUBLIC_DESCRIPTION_MAX_LENGTH, FLOOR_PUBLIC_TITLE_MAX_LENGTH, FLOOR_PURPOSE_MAX_LENGTH, type Floor } from "@/shared/admin/space-model";
-import { siteUrl } from "@/config/site";
+import { r2AssetBase } from "@/config/site";
 import { BROCHURE_FLOORS, BROCHURE_PATH } from "@/features/public/brochure-leasing";
 import type { AdminData } from "@/features/admin/use-admin-data";
 import { AdminEditor } from "@/features/admin/admin-editor";
@@ -16,7 +16,7 @@ const number = (value: number) => new Intl.NumberFormat("vi-VN").format(value);
 
 export function FloorOverview({ data, onSpace, onMessage }: Props) {
   const [editing, setEditing] = useState<Floor | null>(null);
-  const assetBase = new URL(siteUrl).pathname.replace(/\/+$/, "");
+  const assetBase = r2AssetBase;
   const rows = FLOORS.map(floor => {
     const members = data.slots.filter(slot => slot.floor === floor);
     const floorGroups = data.groups.filter(group => group.floor === floor);

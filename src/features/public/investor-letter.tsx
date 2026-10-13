@@ -1,8 +1,8 @@
-import { siteUrl } from "@/config/site";
+import { r2AssetBase } from "@/config/site";
 import styles from "./investor-letter.module.css";
 
 export function InvestorLetter({ paragraphs, backgroundPath }: { paragraphs: readonly string[]; backgroundPath: string }) {
-  const assetBase = new URL(siteUrl).pathname.replace(/\/+$/, "");
+  const assetBase = r2AssetBase;
   const backgroundImage = `linear-gradient(rgba(250, 248, 240, .91), rgba(250, 248, 240, .91)), url("${assetBase}${backgroundPath}")`;
   return <section id="letter" className={styles.letter} aria-labelledby="investor-letter-heading" style={{ backgroundImage }}>
     <div className={styles.inner}>

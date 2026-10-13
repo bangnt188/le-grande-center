@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
-const base = new URL(process.argv[2] ?? "http://localhost:3000/le-grande-center/");
+const base = new URL(process.argv[2] ?? "http://localhost:3000/");
 if (!base.pathname.endsWith("/")) base.pathname += "/";
 const profile = await mkdtemp(join(tmpdir(), "le-grande-smoke-"));
 const chrome = spawn(process.env.CHROME_BIN ?? (process.platform === "darwin" ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" : "chromium"), [

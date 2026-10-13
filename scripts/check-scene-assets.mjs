@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
+import nextEnv from '@next/env';
+nextEnv.loadEnvConfig(process.cwd());
 
 const manifest = JSON.parse(await readFile('public/model-3d/asset-manifest.json', 'utf8'));
+const assetBase = (process.env.R2_PUBLIC_BASE_URL ?? "https://pub-d9ed63c9208840ee87c1595f4a1077de.r2.dev").replace(/\/+$/, "");
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 assert.equal(manifest.schemaVersion, 1);
 assert.equal(manifest.assetManifestHash, hash(JSON.stringify(manifest.assets)));
@@ -19,7 +22,9 @@ for (const asset of manifest.assets) {
   assert(!ids.has(asset.id)); ids.add(asset.id);
   assert.match(asset.file, /^assets\/[a-z]+-[a-f0-9]{12}\.glb$/);
   assert(asset.source && asset.license && asset.bytes <= 32 * 1024 * 1024);
-  const data = await readFile(`public/model-3d/${asset.file}`);
+  const response = await fetch(assetBase + "/model-3d/" + asset.file);
+  assert.equal(response.status, 200, "Missing external scene asset: " + asset.id);
+  const data = Buffer.from(await response.arrayBuffer());
   assert.equal(data.length, asset.bytes); assert.equal(hash(data), asset.sha256);
   assert.equal(data.readUInt32LE(0), 0x46546c67); assert.equal(data.readUInt32LE(4), 2);
   assert.equal(data.readUInt32LE(8), data.length); assert.equal(data.readUInt32LE(16), 0x4e4f534a);

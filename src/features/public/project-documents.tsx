@@ -1,4 +1,4 @@
-import { siteUrl } from "@/config/site";
+import { r2AssetBase } from "@/config/site";
 import styles from "./project-documents.module.css";
 
 import type { ProjectDocumentGroup } from "./project-document-model";
@@ -14,7 +14,7 @@ function DownloadIcon() {
 }
 
 export function ProjectDocuments({ groups }: { groups: readonly ProjectDocumentGroup[] }) {
-  const assetBase = new URL(siteUrl).pathname.replace(/\/+$/, "");
+  const assetBase = r2AssetBase;
   return <section id="documents" className={styles.section} aria-labelledby="project-documents-heading">
     <div className={styles.heading}>
       <p className={styles.label}>Tài Liệu Dự Án</p>

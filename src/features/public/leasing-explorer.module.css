@@ -75,6 +75,11 @@
 .pairMember a, .pairFloors a { min-height: 44px; display: inline-flex; align-items: center; color: var(--ui-color-action); text-decoration: underline; text-underline-offset: 4px; font-size: 14px; }
 .pairFloors { display: flex; flex-wrap: wrap; gap: 8px 24px; }
 .unitArea small { display: block; font-size: 11px; color: var(--reference-muted); }
+.unitDirectory { margin: 8px 6% 56px; padding: 0 24px; border: 1px solid var(--reference-line); border-radius: 8px; background: #fffdf8; color: var(--reference-green); }
+.unitDirectory summary { min-height: 48px; padding-block: 14px; cursor: pointer; font-size: 14px; font-weight: 500; }
+.unitDirectory ul { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 4px 20px; margin: 0; padding: 0 0 20px; list-style: none; }
+.unitDirectory a { display: flex; align-items: center; min-height: 40px; color: var(--reference-green); font-size: 13px; text-underline-offset: 3px; }
+@media (max-width: 760px) { .unitDirectory { margin: 4px 6% 36px; padding-inline: 16px; } .unitDirectory ul { grid-template-columns: 1fr; } }
 @media (max-width: 760px) {
   .explorer { padding: 28px 6% 40px; }
   .floorNav { grid-template-columns: repeat(5, 144px); overflow-x: auto; padding-bottom: 8px; scrollbar-width: thin; scrollbar-color: #b6c7b5 #eeeee6; }

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { siteUrl } from "@/config/site";
+import { r2AssetBase } from "@/config/site";
 import styles from "./canva-pages.module.css";
 
 type ProjectImage = { path: string; alt: string; caption: string };
@@ -10,7 +10,7 @@ export function ProjectHero({ title, description, image }: {
   description: string;
   image: ProjectImage;
 }) {
-  const assetBase = new URL(siteUrl).pathname.replace(/\/+$/, "");
+  const assetBase = r2AssetBase;
   return <section className={styles.hero}>
     <div><h1>{title}</h1><p>{description}</p></div>
     <figure><img className={styles.heroImage} src={`${assetBase}${image.path}`} alt={image.alt} decoding="async"/><figcaption>{image.caption}</figcaption></figure>

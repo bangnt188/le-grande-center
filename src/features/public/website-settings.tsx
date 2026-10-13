@@ -1,13 +1,12 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { siteUrl } from "@/config/site";
+import { neonMediaUrl } from "@/config/site";
 import { DEFAULT_WEBSITE_SETTINGS, telephoneHref } from "@/shared/admin/website-defaults";
 import { isWebsiteSettings, type WebsiteSettings } from "@/shared/admin/website-settings";
 import { DEFAULT_FLOOR_CONTENT, isFloorConfigurations } from "@/shared/admin/space-model";
-const assetBase = new URL(siteUrl).pathname.replace(/\/+$/, "");
 const publicFloors = DEFAULT_FLOOR_CONTENT.map(({ number, publicTitle, publicDescription }) => ({ number, publicTitle, publicDescription }));
-const defaults = { settings: DEFAULT_WEBSITE_SETTINGS, logoUrl: `${assetBase}/client-reference/legacy/logo-without-text.png`, floorContent: publicFloors };
+const defaults = { settings: DEFAULT_WEBSITE_SETTINGS, logoUrl: neonMediaUrl("/client-reference/legacy/logo-without-text.png"), floorContent: publicFloors };
 const WebsiteContext = createContext(defaults);
 const imageTypes: Record<string, true | undefined> = { "image/png": true, "image/jpeg": true, "image/webp": true, "image/gif": true, "image/avif": true, "image/svg+xml": true };
 type PublicFloorContent = (typeof publicFloors)[number];
@@ -18,11 +17,10 @@ function assetLogoUrl(media: Record<string, unknown>): string | null {
   if (media.projectAsset !== true || typeof media.sourcePath !== "string" || typeof media.url !== "string") return null;
   const path = media.sourcePath;
   if (!path.startsWith("/") || path.startsWith("//") || /[\\?#\u0000-\u001f]/.test(path) || path.split("/").some(part => part === "." || part === ".." || part.includes("%"))) return null;
-  const encodedPath = path.split("/").map(encodeURIComponent).join("/");
   try {
     const url = new URL(media.url, window.location.origin);
-    if (url.origin !== window.location.origin || url.username || url.password || url.search || url.hash || !url.pathname.endsWith(encodedPath)) return null;
-    return assetBase + encodedPath;
+    if (url.href !== neonMediaUrl(path)) return null;
+    return url.href;
   } catch { return null; }
 }
 

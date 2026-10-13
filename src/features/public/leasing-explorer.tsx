@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState, type MouseEvent } from "react";
 import Link from "next/link";
 import { Modal } from "@mall/ui";
-import { siteUrl } from "@/config/site";
+import { r2AssetBase } from "@/config/site";
 import type { AreaFilter, LeasingFloor, LeasingOrientation, LeasingUnit } from "./leasing-model";
 import { planStyle, planLabelStyle } from "./leasing-plan-style";
 import { useLeasingExplorer } from "./use-leasing-explorer";
@@ -40,7 +40,7 @@ export function LeasingExplorer({ floors, units: inventory, orientation, sourceD
   if (!group) return null;
   const visibleIds = new Set(visible.map(unit => unit.id));
   const selectedFloor = publicFloors.find(item => item.id === selected?.floorId);
-  const assetBase = new URL(siteUrl).pathname.replace(/\/+$/, "");
+  const assetBase = r2AssetBase;
   const selectedPair = selected ? getShophousePair(selected, inventory) : null;
   const listUnits = visible.filter(unit => { const pair = getShophousePair(unit, inventory); return !pair || unit.id === pair[0].id || !visibleIds.has(pair[0].id); });
   function openUnit(unit: LeasingUnit, event: MouseEvent<HTMLButtonElement>) {
