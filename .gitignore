@@ -13,3 +13,4 @@ coverage/
 .impeccable
 .neon
 skills-lock.json
+.wrangler/

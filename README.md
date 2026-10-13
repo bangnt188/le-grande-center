@@ -311,6 +311,13 @@ Bản Pages là fixture công khai, không có dữ liệu người dùng thật
 Mặc định `npm run build` loại admin khỏi artifact website. Lệnh deploy demo opt-in
 qua `NEXT_PUBLIC_ADMIN_DEMO=true` và `INCLUDE_ADMIN_DEMO=true`; cấu hình này không
 cho phép gắn backend API. Không dùng demo Pages làm admin production.
+### Static deploy trên Cloudflare Workers
+
+Cloudflare Workers Build giữ deploy command npx wrangler deploy. wrangler.jsonc
+fetch hai submodule private khi chưa có, cài dependencies, build Next.js static
+export vào out/ rồi deploy thư mục đó dạng static assets. Đặt SUBMODULE_READ_TOKEN
+thành build secret chỉ đọc component-ui và lib-ts-be; không dùng Worker runtime secret.
+Build production dùng https://legrandecentre.vn/ và bật indexability.
 
 ## Kết nối dữ liệu sau này
 

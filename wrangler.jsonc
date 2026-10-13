@@ -1,0 +1,10 @@
+{
+  "name": "le-grande-center",
+  "compatibility_date": "2026-10-13",
+  "build": {
+    "command": "set -eu\nif [ ! -f packages/ui/package.json ] || [ ! -f packages/backend/package.json ]; then\n  if [ -z \"$SUBMODULE_READ_TOKEN\" ]; then echo 'Set SUBMODULE_READ_TOKEN as a Cloudflare build secret for the private submodules'; exit 1; fi\n  git -c \"url.https://x-access-token:$SUBMODULE_READ_TOKEN@github.com/.insteadOf=https://github.com/\" submodule update --init --recursive --depth=1\nfi\nnpm ci\nNEXT_PUBLIC_SITE_URL=https://legrandecentre.vn/ SEO_INDEXABLE=true npm run build"
+  },
+  "assets": {
+    "directory": "./out"
+  }
+}
