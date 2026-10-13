@@ -1,0 +1,436 @@
+{
+  "schemaVersion": 1,
+  "sceneVersion": "2026-10-07.3",
+  "publicationRevision": "brochure-illustrative-2026-10-07.3",
+  "updatedAt": "2026-10-07T00:00:00Z",
+  "allowedPresetIds": [
+    "front",
+    "aerial",
+    "rearLake",
+    "side"
+  ],
+  "floors": [
+    {
+      "floorId": "T1",
+      "label": "Shophouse thương mại · thông tầng 1–2"
+    },
+    {
+      "floorId": "T2",
+      "label": "Shophouse thương mại · thông tầng 1–2"
+    },
+    {
+      "floorId": "T3",
+      "label": "Dịch vụ – văn phòng"
+    },
+    {
+      "floorId": "T4",
+      "label": "Dịch vụ – văn phòng"
+    },
+    {
+      "floorId": "T5",
+      "label": "Giải trí · rạp chiếu phim dự kiến"
+    },
+    {
+      "floorId": "T6",
+      "label": "Dịch vụ ngoài trời – sự kiện (dự kiến)"
+    }
+  ],
+  "slots": [
+    {
+      "slotId": "T1-B1",
+      "floorId": "T1",
+      "label": "B.1 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T1-B2",
+      "floorId": "T1",
+      "label": "B.2 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T1-B3",
+      "floorId": "T1",
+      "label": "B.3 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T1-B4",
+      "floorId": "T1",
+      "label": "B.4 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T1-B5",
+      "floorId": "T1",
+      "label": "B.5 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T1-B6",
+      "floorId": "T1",
+      "label": "B.6 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T1-B7",
+      "floorId": "T1",
+      "label": "B.7 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T1-B8",
+      "floorId": "T1",
+      "label": "B.8 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T1-B9",
+      "floorId": "T1",
+      "label": "B.9 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T1-B10",
+      "floorId": "T1",
+      "label": "B.10 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T1-B11",
+      "floorId": "T1",
+      "label": "B.11 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T2-B1",
+      "floorId": "T2",
+      "label": "B.1 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T2-B2",
+      "floorId": "T2",
+      "label": "B.2 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T2-B3",
+      "floorId": "T2",
+      "label": "B.3 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T2-B4",
+      "floorId": "T2",
+      "label": "B.4 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T2-B5",
+      "floorId": "T2",
+      "label": "B.5 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T2-B6",
+      "floorId": "T2",
+      "label": "B.6 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T2-B7",
+      "floorId": "T2",
+      "label": "B.7 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T2-B8",
+      "floorId": "T2",
+      "label": "B.8 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T2-B9",
+      "floorId": "T2",
+      "label": "B.9 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T2-B10",
+      "floorId": "T2",
+      "label": "B.10 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T2-B11",
+      "floorId": "T2",
+      "label": "B.11 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T3-B1",
+      "floorId": "T3",
+      "label": "B.1 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T3-B2",
+      "floorId": "T3",
+      "label": "B.2 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T3-B3",
+      "floorId": "T3",
+      "label": "B.3 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T3-B4",
+      "floorId": "T3",
+      "label": "B.4 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T3-B5",
+      "floorId": "T3",
+      "label": "B.5 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T3-B6",
+      "floorId": "T3",
+      "label": "B.6 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T3-B7",
+      "floorId": "T3",
+      "label": "B.7 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T3-B8",
+      "floorId": "T3",
+      "label": "B.8 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T3-B9",
+      "floorId": "T3",
+      "label": "B.9 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T3-B10",
+      "floorId": "T3",
+      "label": "B.10 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T3-B11",
+      "floorId": "T3",
+      "label": "B.11 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T4-B1",
+      "floorId": "T4",
+      "label": "B.1 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T4-B2",
+      "floorId": "T4",
+      "label": "B.2 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T4-B3",
+      "floorId": "T4",
+      "label": "B.3 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T4-B4",
+      "floorId": "T4",
+      "label": "B.4 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T4-B5",
+      "floorId": "T4",
+      "label": "B.5 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T4-B6",
+      "floorId": "T4",
+      "label": "B.6 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T4-B7",
+      "floorId": "T4",
+      "label": "B.7 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T4-B8",
+      "floorId": "T4",
+      "label": "B.8 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T4-B9",
+      "floorId": "T4",
+      "label": "B.9 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T4-B10",
+      "floorId": "T4",
+      "label": "B.10 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T4-B11",
+      "floorId": "T4",
+      "label": "B.11 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T5-B1",
+      "floorId": "T5",
+      "label": "B.1 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T5-B2",
+      "floorId": "T5",
+      "label": "B.2 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T5-B3",
+      "floorId": "T5",
+      "label": "B.3 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T5-B4",
+      "floorId": "T5",
+      "label": "B.4 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T5-B5",
+      "floorId": "T5",
+      "label": "B.5 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T5-B6",
+      "floorId": "T5",
+      "label": "B.6 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T5-B7",
+      "floorId": "T5",
+      "label": "B.7 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T5-B8",
+      "floorId": "T5",
+      "label": "B.8 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T5-B9",
+      "floorId": "T5",
+      "label": "B.9 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T5-B10",
+      "floorId": "T5",
+      "label": "B.10 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T5-B11",
+      "floorId": "T5",
+      "label": "B.11 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T6-B1",
+      "floorId": "T6",
+      "label": "B.1 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T6-B2",
+      "floorId": "T6",
+      "label": "B.2 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T6-B3",
+      "floorId": "T6",
+      "label": "B.3 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T6-B4",
+      "floorId": "T6",
+      "label": "B.4 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T6-B5",
+      "floorId": "T6",
+      "label": "B.5 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T6-B6",
+      "floorId": "T6",
+      "label": "B.6 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T6-B7",
+      "floorId": "T6",
+      "label": "B.7 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T6-B8",
+      "floorId": "T6",
+      "label": "B.8 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T6-B9",
+      "floorId": "T6",
+      "label": "B.9 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T6-B10",
+      "floorId": "T6",
+      "label": "B.10 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    },
+    {
+      "slotId": "T6-B11",
+      "floorId": "T6",
+      "label": "B.11 · vị trí minh họa, không phải mặt bằng đo đạc",
+      "confidence": "illustrative"
+    }
+  ]
+}
