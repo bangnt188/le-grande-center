@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AdminCommand, AdminSnapshot } from "../../shared/admin/contracts";
-import { createDemoRepository } from "./demo/repository";
 import { createHttpRepository } from "./http-repository";
 import { storageUploadIssue } from "../../shared/admin/storage-policy";
+import { useRouter } from "next/navigation";
 
 export type AdminData = Pick<AdminSnapshot, "floors" | "slots" | "groups" | "leads" | "media" | "companies" | "requests" | "reservations" | "leases" | "appointments" | "storage"> & {
   settings: AdminSnapshot["settings"] | null;
@@ -14,11 +14,13 @@ export type AdminData = Pick<AdminSnapshot, "floors" | "slots" | "groups" | "lea
   execute: (command: AdminCommand) => Promise<boolean>;
   uploadFiles: (files: File[], scope: string) => Promise<boolean>;
   reload: () => Promise<boolean>;
+  reviewMedia: (id: string, note: string) => Promise<boolean>;
+  reconcileStorage: () => Promise<boolean>;
 };
 
 export function useAdminData(): AdminData {
-  const [repository] = useState(() => process.env.NEXT_PUBLIC_ADMIN_API_URL
-    ? createHttpRepository(process.env.NEXT_PUBLIC_ADMIN_API_URL) : createDemoRepository());
+  const router = useRouter();
+  const [repository] = useState(() => createHttpRepository("/api/admin"));
   const [data, setData] = useState<AdminSnapshot | null>(repository.initialSnapshot);
   const [pending, setPending] = useState(false);
   const [loading, setLoading] = useState(!repository.initialSnapshot);
@@ -63,17 +65,25 @@ export function useAdminData(): AdminData {
     storage: data?.storage ?? null, pending, loading, error,
     execute: async (command: AdminCommand) => {
       const saved = await run(() => repository.execute(command));
-      if (saved && (command.type === "update-website-settings" || command.type === "update-settings" || command.type === "update-floor")) {
-        window.dispatchEvent(new Event("legrande-website-settings"));
-        if (typeof BroadcastChannel !== "undefined") { const channel = new BroadcastChannel("legrande-website-settings"); channel.postMessage("saved"); channel.close(); }
-      }
+      if (saved && (command.type === "update-website-settings" || command.type === "update-settings" || command.type === "update-floor")) router.refresh();
       return saved;
     },
     uploadFiles: (files: File[], scope: string) => run(() => {
       const issue = storageUploadIssue(data?.storage ?? null, files);
+      if (files.length > 4 || files.reduce((total, file) => total + file.size, 0) >= 20 * 1024 * 1024) throw new Error("Mỗi lần tối đa 4 tệp, tổng dung lượng dưới 20 MiB.");
       if (issue) throw new Error(issue);
       return repository.upload(files, scope);
     }),
     reload: () => run(() => repository.read()),
+    reviewMedia: (id, note) => run(async () => {
+      const response = await fetch(`/api/admin/media/${encodeURIComponent(id)}/review`, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() }, body: JSON.stringify({ confirmedExternalReview: true, note, expectedRevision: data?.revision }) });
+      if (!response.ok) throw new Error(response.status === 409 ? "Dữ liệu đã thay đổi. Tải lại trước khi duyệt." : "Không thể duyệt tài liệu.");
+      return repository.read();
+    }),
+    reconcileStorage: () => run(async () => {
+      const response = await fetch("/api/admin/media/reconcile", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() }, body: JSON.stringify({ expectedRevision: data?.revision }) });
+      if (!response.ok) throw new Error(response.status === 409 ? "Dữ liệu đã thay đổi. Tải lại trước khi đối soát." : "Không thể đối soát dung lượng. Tải lên vẫn bị khóa khi số liệu chưa xác định.");
+      return repository.read();
+    }),
   };
 }

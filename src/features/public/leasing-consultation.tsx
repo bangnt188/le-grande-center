@@ -7,6 +7,7 @@ import type { LeasingUnit } from "./leasing-model";
 import { useWebsiteSettings } from "./website-settings";
 import { telephoneHref } from "@/shared/admin/website-defaults";
 import styles from "./leasing-consultation.module.css";
+import { createContactSubmitter } from "@/features/contact/submit-contact";
 
 function ContactIcon({ kind }: { kind: "chat" | "phone" | "callback" }) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{kind === "chat" ? <path d="M20 11a8 8 0 0 1-8 8H5l-3 3v-7a8 8 0 1 1 18-4Z"/> : <><path d="M7 3H4a1 1 0 0 0-1 1c0 9.4 7.6 17 17 17a1 1 0 0 0 1-1v-3l-5-2-2 2a14 14 0 0 1-7-7l2-2-2-5Z"/>{kind === "callback" && <path d="M20 3v6h-6m6 0-6-6"/>}</>}</svg>;
@@ -26,13 +27,14 @@ export function LeasingConsultation({ unit, pair, className, open: controlledOpe
   const [callback, setCallback] = useState(false);
   const [scope, setScope] = useState("single");
   const [errors, setErrors] = useState<{ name?: string; phone?: string; consent?: string }>({});
+  const [sendContact] = useState(createContactSubmitter);
   const portal = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const id = useId();
   const open = controlledOpen ?? internalOpen;
   const { settings } = useWebsiteSettings();
   const pairLabel = pair ? `${pair[0].id} – ${pair[1].id}` : unit.id;
-  const submission = useSurveySubmission<{ name: string; phone: string; unit: string; scope: string }>({ mode: "demo", storageKey: "legrande:callback-preview-rate-limit:v1", storage: "local" });
+  const submission = useSurveySubmission<{ name: string; phone: string; unit: string; scope: string }>({ mode: "live", storageKey: "legrande:callback-live-rate-limit:v1", storage: "local", onSubmit: values => sendContact({ name: values.name, phone: values.phone, space: values.unit, scope: values.scope, unitId: unit.id, intent: "callback", consent: true, company: "", email: "", business: "", area: "", timing: "", note: "" }) });
   function changeOpen(next: boolean) {
     if (controlledOpen === undefined) setInternalOpen(next);
     onOpenChange?.(next);
@@ -67,7 +69,7 @@ export function LeasingConsultation({ unit, pair, className, open: controlledOpe
         <a href={settings.zaloUrl} target="_blank" rel="noopener noreferrer"><ContactIcon kind="chat"/><span><strong>Trao đổi qua Zalo</strong><small>Nhắn tin và nhận tài liệu</small></span><Chevron/></a>
         <a href={telephoneHref(settings.hotline)}><ContactIcon kind="phone"/><span><strong>Gọi bộ phận kinh doanh</strong><small>Trao đổi trực tiếp · {settings.hotline}</small></span><Chevron/></a>
         <button type="button" onClick={() => setCallback(true)}><ContactIcon kind="callback"/><span><strong>Yêu cầu gọi lại</strong><small>Để lại số điện thoại để được liên hệ</small></span><Chevron/></button>
-      </div><p className={styles.note}>Diện tích tham khảo theo brochure; xác nhận tình trạng và phương án thuê với bộ phận kinh doanh. Yêu cầu gọi lại hiện là bản demo, chưa gửi hoặc lưu thông tin.</p></> : <SurveyForm submission={submission} onSubmit={submit} noValidate className={styles.callback} aria-label="Yêu cầu gọi lại">
+      </div><p className={styles.note}>Diện tích tham khảo theo brochure; xác nhận tình trạng và phương án thuê với bộ phận kinh doanh. Yêu cầu gọi lại được gửi đến đội ngũ Le Grande Centre.</p></> : <SurveyForm submission={submission} feedback={{ successTitle: "Đã tiếp nhận yêu cầu gọi lại", successMessage: "Đội ngũ Le Grande Centre sẽ liên hệ theo số điện thoại bạn cung cấp." }} onSubmit={submit} noValidate className={styles.callback} aria-label="Yêu cầu gọi lại">
         <Button variant="quiet" onClick={() => { setCallback(false); setErrors({}); submission.dismissNotice(); }}>Trở lại phương thức liên hệ</Button>
         <h3>Yêu cầu gọi lại</h3>
         {pair && <fieldset className={styles.scope}><legend>Phương án quan tâm</legend><label><input type="radio" name="scope" value="single" checked={scope === "single"} onChange={() => setScope("single")}/>Thuê riêng {unit.id} · {unit.area.toLocaleString("vi-VN")} m²</label><label><input type="radio" name="scope" value="pair" checked={scope === "pair"} onChange={() => setScope("pair")}/>Kết hợp {pairLabel} · {(pair[0].area + pair[1].area).toLocaleString("vi-VN")} m²</label></fieldset>}

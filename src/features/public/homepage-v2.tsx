@@ -3,7 +3,7 @@ import { r2AssetBase } from "@/config/site";
 import { SiteFooter } from "./site-footer";
 import { PROJECT_FILM_URL } from "./site-content";
 import { WebsiteAddress, WebsiteMapLink, WebsiteHotlineLink } from "./website-settings";
-import { BROCHURE_UNITS } from "./brochure-leasing";
+import { readPublicLeasing } from "@/server/public-leasing";
 import { HomeScrollStory, Arrow, SpacesGallery, OverviewGallery } from "./homepage-v2-interactive";
 import HomeVideoSoundToggle from "./home-video-sound-toggle";
 import { FloorShowcase } from "./floor-showcase";
@@ -18,9 +18,10 @@ const reasons = [
   { title: "Tiềm năng dài hạn", description: "Một địa điểm kinh doanh gắn với nhịp phát triển đô thị và nhu cầu thương mại, dịch vụ của cộng đồng." },
   { title: "Thông tin minh bạch", description: "Tìm hiểu mặt bằng qua brochure dự án, hồ sơ hiện có và trao đổi trực tiếp với đội ngũ tư vấn." },
 ];
-const featuredUnits = [1, 2, 3, 4].map(floor => BROCHURE_UNITS.find(unit => unit.floorId === floor)!);
 
-export default function HomePageV2() {
+export default async function HomePageV2() {
+  const { units } = await readPublicLeasing();
+  const featuredUnits = [1, 2, 3, 4].flatMap(floor => { const unit = units.find(item => item.floorId === floor); return unit ? [unit] : []; });
   const assetBase = r2AssetBase;
   const image = (path: string) => `${assetBase}${path}`;
   return <div className={styles.page} data-homepage-version="2" data-ui-interaction-group="colors">

@@ -5,9 +5,11 @@ import { useSurveySubmission } from "@mall/ui/forms";
 import { useSearchParams } from "next/navigation";
 import { getShophousePair, type LeasingUnit } from "../public/leasing-model";
 import { localDateValue, readContactValues, validateContact, type ContactErrors, type ContactValues } from "./contact-model";
+import { createContactSubmitter } from "./submit-contact";
 
 export function useContactForm(units: readonly LeasingUnit[]) {
   const [errors, setErrors] = useState<ContactErrors>({});
+  const [sendContact] = useState(createContactSubmitter);
   const params = useSearchParams();
   const inquiry = units.find(unit => unit.id === params.get("unit")) ?? null;
   const visit = params.get("intent") === "visit";
@@ -39,9 +41,11 @@ export function useContactForm(units: readonly LeasingUnit[]) {
     };
   }, [visit]);
   const submission = useSurveySubmission<ContactValues>({
-    mode: "demo",
-    storageKey: "legrande:contact-preview-rate-limit:v1",
+    mode: "live",
+    storageKey: "legrande:contact-live-rate-limit:v1",
     storage: "local",
+    rateLimit: { maxSuccesses: 1 },
+    onSubmit: values => sendContact({ ...values, intent: visit ? "visit" : "consultation", unitId: inquiry?.id }),
   });
 
   async function submit(event: FormEvent<HTMLFormElement>) {

@@ -3,7 +3,8 @@ import { PublicPageLayout } from "@/features/public/public-page-layout";
 import { r2AssetBase } from "@/config/site";
 import { LeasingExplorer } from "@/features/public/leasing-explorer";
 import styles from "@/features/public/leasing-hero.module.css";
-import { BROCHURE_FLOORS, BROCHURE_ORIENTATION, BROCHURE_PATH, BROCHURE_UNITS } from "@/features/public/brochure-leasing";
+import { BROCHURE_ORIENTATION, BROCHURE_PATH } from "@/features/public/brochure-leasing";
+import { readPublicLeasing } from "@/server/public-leasing";
 import Link from "next/link";
 import directoryStyles from "@/features/public/leasing-explorer.module.css";
 
@@ -12,7 +13,8 @@ export const metadata = publicPageMetadata(
   "Tra cứu mặt bằng shophouse, dịch vụ và văn phòng tại Le Grande Centre, Sóc Trăng. Xem sơ đồ tầng, diện tích brochure và liên hệ tư vấn.",
   "mat-bang/",
 );
-export default function SpacesPage() {
+export default async function SpacesPage() {
+  const { floors, units } = await readPublicLeasing();
   const assetBase = r2AssetBase;
   return <PublicPageLayout active="/mat-bang/" variant="project">
     <section className={styles.hero} aria-labelledby="leasing-title">
@@ -23,12 +25,12 @@ export default function SpacesPage() {
         <p className={styles.description}>Chọn một tầng để bắt đầu, hoặc lọc theo loại hình và diện tích bạn cần.</p>
       </div>
     </section>
-    <LeasingExplorer floors={BROCHURE_FLOORS} units={BROCHURE_UNITS} orientation={BROCHURE_ORIENTATION} sourceDocument={BROCHURE_PATH}/>
+    <LeasingExplorer floors={floors} units={units} orientation={BROCHURE_ORIENTATION} sourceDocument={BROCHURE_PATH}/>
     <details className={directoryStyles.unitDirectory}>
       <summary>Danh sách mặt bằng theo tầng</summary>
-      {BROCHURE_FLOORS.map(floor => <section key={floor.id} aria-labelledby={`directory-floor-${floor.id}`}>
+      {floors.map(floor => <section key={floor.id} aria-labelledby={`directory-floor-${floor.id}`}>
         <h2 id={`directory-floor-${floor.id}`}>Mặt bằng tầng {floor.id}</h2>
-        <ul>{BROCHURE_UNITS.filter(unit => unit.floorId === floor.id).map(unit => <li key={unit.id}>
+        <ul>{units.filter(unit => unit.floorId === floor.id).map(unit => <li key={unit.id}>
           <Link href={`/mat-bang/${encodeURIComponent(unit.id)}/`}>Mặt bằng {unit.id} · Tầng {unit.floorId} · {unit.area.toLocaleString("vi-VN")} m²</Link>
         </li>)}</ul>
       </section>)}

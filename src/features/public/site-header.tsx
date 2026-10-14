@@ -18,7 +18,7 @@ export function SiteHeader({ active = "/", overlay = false, showAdminLink = fals
   const navigation = links;
   return <header className={`${styles.header} ${overlay ? styles.overlay : ""}`} data-ui-interaction-group="colors">
     <Link href="/" className={styles.brand} aria-label="Le Grande Centre — Trang chủ" onNavigate={navigateToTop}>
-      <img className={styles.brandMark} src={logoUrl} width="40" height="40" alt=""/>
+      {logoUrl && <img className={styles.brandMark} src={logoUrl} width="40" height="40" alt=""/>}
       <span className={styles.brandText}><strong>Le Grande</strong><span>Centre</span></span>
     </Link>
     <nav className={styles.desktopNavigation} aria-label="Điều hướng chính">{navigation}</nav>
@@ -26,6 +26,6 @@ export function SiteHeader({ active = "/", overlay = false, showAdminLink = fals
       <summary>Menu<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.5"/></svg></summary>
       <nav aria-label="Điều hướng chính trên điện thoại">{navigation}</nav>
     </details>
-    {showAdminLink && <Link className={styles.adminLink} href="/admin-preview/" prefetch={false} onNavigate={navigateToTop}>Quản trị</Link>}
+    {showAdminLink && <Link className={styles.adminLink} href="/admin/" prefetch={false} onNavigate={navigateToTop}>Quản trị</Link>}
   </header>;
 }

@@ -4,9 +4,10 @@ import { AdminPanel, Badge, ProgressBar, Button } from "@mall/ui";
 import { useId, useState, type CSSProperties } from "react";
 import { formatStorageBytes, storageState, type StorageUsage } from "../../shared/admin/storage-policy";
 
-export function StorageUsagePanel({ usage, pending }: {
+export function StorageUsagePanel({ usage, pending, onReconcile }: {
   usage: StorageUsage | null;
   pending: boolean;
+  onReconcile: () => Promise<boolean>;
 }) {
   const state = storageState(usage);
   const [expanded, setExpanded] = useState(false);
@@ -20,15 +21,16 @@ export function StorageUsagePanel({ usage, pending }: {
     </div>
     <p className="storage-summary" aria-live="polite">{!usage ? "Tải lên tạm khóa · Chưa có số liệu dung lượng" : state.blocked ? "Tải lên đã khóa · Đã đạt hạn mức 8,5 GB" : `Còn ${formatStorageBytes(state.remainingBytes)} theo hạn mức nghiệp vụ`}</p>
     <Button variant="quiet" className="storage-details-toggle" aria-expanded={expanded} aria-controls={detailsId} onClick={() => setExpanded(!expanded)}>{expanded ? "Thu gọn dung lượng" : "Chi tiết dung lượng"}</Button>
+    <Button variant="secondary" disabled={pending} loading={pending} loadingLabel="Đang đối soát dung lượng" onClick={() => void onReconcile()}>Đối soát dung lượng thực tế</Button>
     <div id={detailsId} className="storage-details" data-expanded={expanded || undefined}>
     <dl className="storage-facts">
       <div><dt>Đã lưu</dt><dd>{usage ? formatStorageBytes(usage.usedBytes) : "—"}</dd></div>
       <div><dt>Còn có thể tải lên</dt><dd>{usage ? formatStorageBytes(state.remainingBytes) : "—"}</dd></div>
-      <div><dt>Phạm vi số liệu</dt><dd>Dữ liệu tệp trong bản dùng thử</dd></div>
+      <div><dt>Phạm vi số liệu</dt><dd>R2 mall-assets công khai, mall-documents riêng tư và media Neon được theo dõi</dd></div>
     </dl>
     <p className="storage-note">{!usage ? "Upload tạm khóa đến khi tải được số liệu dung lượng." : state.blocked ? "Upload đã khóa. Giải phóng dung lượng hoặc liên hệ quản trị viên để tiếp tục." : state.tone === "error" ? "Dung lượng trên 85%. Ưu tiên rà soát tệp không còn sử dụng trước khi tải thêm." : state.tone === "warning" ? "Dung lượng trên 65%. Theo dõi và sắp xếp lại các tệp không còn sử dụng." : "Hình ảnh và tài liệu dùng chung hạn mức. Hệ thống kiểm tra tổng dung lượng trước khi nhận tệp."}</p>
     {!!usage?.reservedBytes && <p className="storage-note">Đang dành chỗ cho upload: {formatStorageBytes(usage.reservedBytes)} · đã tính trong thanh dung lượng.</p>}
-    <p className="storage-note">Hạn mức nghiệp vụ không bảo đảm dung lượng IndexedDB. Trình duyệt có thể cấp ít hơn hoặc từ chối lưu; hệ thống chỉ báo thành công sau khi lưu được tệp. Chưa có số liệu quota R2/Neon.</p>
+    <p className="storage-note">Hạn mức 8,5 GB là giới hạn nghiệp vụ tổng hợp, không phải cam kết free tier của R2 hoặc Neon. Đối soát liệt kê object thực tế trên R2; số liệu chưa xác định hoặc không khớp ledger sẽ khóa tải lên. Media Neon được tính riêng vào tổng theo byte đã ghi nhận.</p>
     </div>
   </AdminPanel>;
 }

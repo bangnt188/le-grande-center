@@ -1,66 +1,62 @@
-# Backend readiness trước khi khách hàng tạo tài khoản
+# Backend readiness — phase 2
 
-## Kết luận
+Cập nhật 14/10/2026. Đây là trạng thái ứng dụng thật, không phải checklist folder-only hoặc demo Pages.
 
-Core library và hai module R2/Cloudinary đã có implementation generic để cấu hình khi được cấp credentials. **Admin production chưa ready end-to-end; không chỉ thiếu email.** Không thay GitHub Pages demo bằng backend giả, không đưa dữ liệu/secret thật vào fixture.
+## Đã triển khai
 
-Cập nhật 12/10/2026: đã [sắp xếp shared contracts và demo riêng](backend-structure.md),
-chưa viết binding BE mới. Neon PostgreSQL và Object Storage là hai sản phẩm/quota riêng;
-xem [nghiên cứu Neon](neon-free-tier-research.md) và [Cloudflare](cloudflare-free-tier-research.md).
-Danh sách tài khoản Vercel/Cloudinary phía dưới thuộc phương án chuẩn bị trước đây,
-không phải yêu cầu đăng ký thêm cho đề xuất Neon/R2 hiện tại.
-
-## Phần đã có code và kiểm tra local
-
-- `@shared/backend`: access/policy, CRUD, SQL adapter, HTTP endpoints/client, validation, safe errors, webhook inbox, field encryption.
-- `packages/backend/src/r2.ts`: SigV4 PUT/GET, metadata HEAD, delete; private transfer policy và signed headers. Không cần SDK dependency runtime.
-- `packages/backend/src/cloudinary.ts`: signed Blob upload image/video/raw, authenticated mặc định, không ghi đè, destroy theo stable locator, authenticated download API có thời hạn.
-- `packages/backend/scripts/storage-smoke.mjs`: lệnh upload/read/delete để kiểm tra ngay khi có credentials; không in secrets và không xóa object không thuộc smoke.
-- Provider implementation generic, inject config/fetch/clock; không env global, KYC, booking, phòng homestay, tenant/quota Mall/Solar hardcode. Reuse protocol từ `homeStay/v0-homestay-booking-app/lib/services/server/images.ts`; không copy service nghiệp vụ hay secret fallback. Không tìm thấy R2 implementation trong repo homestay được chỉ định.
-
-[Interface và cấu hình storage](../packages/backend/docs/storage.md).
-
-## Code production còn thiếu, không giải quyết chỉ bằng đăng ký email
-
-| Nhóm | Hiện trạng / việc bắt buộc trước production |
+| Boundary | Implementation hiện tại |
 | --- | --- |
-| Session và quyền | `src/server/workspace-api.ts` nhận adapter verified session/transaction nhưng chưa có binding provider thật. Cần verified issuer/subject, membership/grants hiện hành, revoke/disabled, audit, Origin/cookie policy; UI role switch không cấp quyền. |
-| DB và command nghiệp vụ | Schema ở `database/` là design chưa apply; app chưa có parser đủ command, transaction-bound repository, revision CAS/idempotency receipts và transition/invariants B2B. Core CRUD không thay nghiệp vụ hợp đồng/ghép mặt bằng. |
-| Upload/quota | Chưa có `/media` production, Worker bounded ingress, quarantine/scan/finalize, ledger/reservation atomic 8.5 GB và cleanup/reconcile. R2 signed PUT không enforce hard cap. Không đưa hợp đồng signed qua pipeline biến đổi Cloudinary. |
-| Private documents | Worker view phải resolve document version/DB-owned key, kiểm tra quyền GET/HEAD/Range, clean/sealed/retention, stream private và audit. Module ký GET không thay authorization mỗi request. |
-| Runtime/deployment | `next.config.ts` vẫn `output: 'export'`; giữ public Pages, deploy admin/API runtime riêng hoặc chuyển có chủ đích. `http-repository.ts` hiện POST multipart `/media`, còn Vercel Function payload max 4.5 MB: tệp 10 MiB phải qua ingress phù hợp, không chỉ nối provider vào route này. |
+| Runtime | Next App Router SSR (`output: standalone`), OpenNext Cloudflare; admin/API cùng origin. Không static export/Pages hoặc deploy-dev-pages. |
+| Auth | `/admin/` dùng Neon Auth, upstream session mới, emailVerified, issuer/subject binding với staff allowlist/assignment DB active. Signup không tự cấp quyền. `/admin/workspace/` và từng API kiểm tra độc lập; mutation kiểm tra origin. Không demo login/IndexedDB fallback. Hiện workspace dành cho administrator được allowlist, không tuyên bố portal/multi-role đã hoàn tất. |
+| DB | `src/server/database.ts` dùng request-local Neon Pool, transaction `leasing_runtime` và actor context/RLS. `workspace.ts` parse command, property lock, CAS revision, idempotency receipts và audit trong cùng transaction; lưu quan hệ, không opaque snapshot. |
+| Schema | Baseline + migrations 001–004 đã áp dụng trên stage2, regression disposable và backend production. Production seed chỉ 6 tầng/81 căn approved brochure, configured owner allowlist và approved Neon logo đã xác minh, không customer/financial transactions giả. Frontend production chưa deploy/cutover. |
+| Public | SSR và `/api/public/website` đọc projection DB; không trả tenant/contact nội bộ, hold expiry hoặc hợp đồng. DB lỗi không chuyển fixture. |
+| Intake | `@mall/ui/forms` live → `POST /api/contact`, cap JSON 16 KiB, consent/field/origin validation, UUID idempotency, HMAC IP + DB cooldown/rate limit. Commit lead/intake trước HTTP 201; visit request không tạo/xác nhận booking. Không có Turnstile. |
+| Media | Bounded multipart, PNG/JPEG/WebP decode/re-encode trên Node; Neon-only logo/ảnh upload, R2 private PDF; DB ownership/quota/reservations, inventory và cleanup/reconcile. |
+| Tài liệu | PDF quarantine; ordinary view 403 trước manual external review. Review ghi actor/time/note/hash, không đặt scan-clean hay xác nhận chữ ký. GET/HEAD/Range kiểm tra quyền, retention/link chặn xóa. Không soạn hợp đồng/eSign. |
 
-Không tự chọn auth/DB provider hoặc đổi HTTP contract v1 sang direct upload khi application chưa có các adapter trên. Transport UI hiện được giữ nguyên; không có caller production để thay thế bằng adapter storage lúc này.
+## Media origin và secrets
 
-## Phần cần tài khoản/quyền của khách hàng
+`src/server/media/neon-function.ts` là protected trusted server origin. App gọi `NEON_MEDIA_FUNCTION_URL` với `x-secret: MEDIA_ORIGIN_SECRET`; function kiểm tra constant-time secret (ít nhất 64 ký tự) trước body/storage. Chỉ GET/PUT/DELETE key branding UUID đã giới hạn và key logo approved (không PUT), PNG/JPEG/WebP tối đa 10 MiB, có signature/dimension checks. Không phải public arbitrary object proxy. App authorize session/property/quota và durable reservation trước hop này. AWS S3 keys chỉ tại origin; cookie/DB/HMAC/media-origin secrets đều server-only.
 
-1. Owner email để tạo/nhận quyền tài khoản Vercel, Cloudflare và Cloudinary; bật MFA và cấp quyền thành viên qua invitation, không gửi mật khẩu/OTP.
-2. R2 private bucket + token scoped đúng bucket: `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`. Không bật public access cho private files; browser CORS theo origin được duyệt nếu thực sự dùng direct transfer.
-3. Cloudinary: `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`; xác nhận policy authenticated delivery, loại file và account restrictions. Preview/Production tách credentials.
-4. Verified auth/DB bindings và production origin/domain được cấp quyền; deploy secrets qua dashboard/secret manager, không commit `.env`, không đưa DB/token vào `NEXT_PUBLIC_*`.
-5. Chạy live smoke bên dưới, rồi integration quyền/quota/Worker và restore với môi trường thực. Đăng ký email không tự tạo các credentials hoặc hoàn thiện các adapter nghiệp vụ.
+`scripts/build-cloudflare.mjs` giấu envfiles chuẩn trong lúc OpenNext bundle rồi khôi phục. Không gọi trực tiếp OpenNext build với file chứa secret. Nếu deploy sau này, cấp secret ở Worker runtime; không commit/bundle hoặc dùng `NEXT_PUBLIC_*` cho secrets.
 
-```sh
-npm run smoke:storage --workspace=@shared/backend -- r2
-npm run smoke:storage --workspace=@shared/backend -- cloudinary
-```
+`mall-assets` là public R2 project catalog; `mall-documents` là private production bucket, `mall-documents-stage2` là private stage2 bucket. Wrangler dev bindings `remote: true` thực sự đọc/ghi cloud. Meter bao gồm inventory public + tracked Neon/private + reservations, không chỉ uploaded list; mismatch/unavailable inventory khóa upload. Xem [quota](storage-quota.md).
 
-Hai lệnh tạo/xóa một asset nhỏ unique ở `storage-smoke/`; cần read/write/delete. Nếu cleanup lỗi, command exit 1; kiểm tra dashboard để xóa đúng asset smoke còn sót.
+## Bằng chứng runtime đã quan sát trong giai đoạn phase 2
 
-## Bằng chứng kiểm tra trong lần chuẩn bị này
+Các kết quả sau được ghi nhận ở localhost:3100 chạy Node Next với Neon/R2 thật, không phải kết quả deploy Worker production:
 
-- Build backend, typecheck backend/application và source integrity (`npm run build:backend`, `npm run typecheck:backend`, `npm exec -- tsc --noEmit`, `npm run check:backend`): pass. Integrity receipt được cập nhật cho source mới.
-- `npm run test:backend`: 101 tests pass; `npm run test:backend:consumer`: 2 tests pass. Không fail/skip.
-- Native module HTTP smoke: R2 upload → HEAD → download đúng bytes → delete → NOT_FOUND; Cloudinary authenticated upload → download đúng bytes → destroy. HTTP server local kiểm tra chữ ký độc lập bằng Node crypto. Throwaway protocol smoke đã xóa; chỉ giữ command live smoke.
-- Smoke command từ chối cấu hình thiếu bằng tên biến cần cấp, không gọi provider hoặc in giá trị secret.
-- Live R2/Cloudinary, CORS browser, production session/DB/Worker/quota/deploy: chưa kiểm tra, chưa được cấp credentials. GitNexus không có MCP resource và project không cấu hình LSP; evidence dùng source trực tiếp và runtime checks, không graph analysis.
+- Neon Auth sign-in HTTP 200 và authorized workspace HTTP 200.
+- PNG upload 200, public object GET 200; sau xóa, physical object GET 404.
+- Private PDF upload 200; ordinary view khi quarantine 403; manual external review 200; authorized Range đọc 206.
+- Ghi hồ sơ thuê từ held B.1/B.2 chuyển toàn bộ sang Đang thuê; appointment requested → confirmed.
+- Browser public form POST 201 tạo lead/intake thực, không tạo appointment.
+- Migrations 001–004 trên stage2 và branch disposable; sau đó backend production cũng đã được khởi tạo baseline+migrations, 6 tầng/81 căn approved brochure, chỉ configured owner allowlist và approved Neon logo (native authorized GET kiểm bytes/hash, 25.230 bytes). Không có production frontend deployment trong bằng chứng này.
+- Tắt quyền fixture DB khi Auth session còn hợp lệ: get-session 200 nhưng workspace/private PDF đều 403; đăng xuất qua UI đưa về /admin và cả hai API trả 401.
+- PDF R2 không liên kết: upload/rename/delete đều 200, GET sau xóa 404; used bytes trở về đúng mức trước upload và reserved bytes bằng 0.
+- Local localhost:3101 dùng backend production đã seed sạch: public API/homepage 200, 6 tầng/81 căn đều Trống, logo Neon đúng branch, không tenant fields; admin chưa đăng nhập 401. Domain/DNS và frontend production không đổi.
+- Artifact standalone: npm start chạy server.js không cảnh báo next-start/standalone; năm trang public, /mat-bang/A.1/ và JS asset trả 200, admin chưa đăng nhập 401.
 
-Library là Git submodule canonical `lib-ts-be`; thay đổi hiện nằm trong working tree, chưa commit/push hoặc upgrade Solar. Publish library và update gitlink từng consumer là việc riêng, không tự nâng app khác.
+Regression riêng đã chạy: `npm run test:database` **2/2 pass, không skip**, tạo child từ empty `test-template`, apply nguyên baseline + migrations001–004 + approved seed hai lần, verify Neon PNG bytes/SHA và xóa đúng child trong finally. `test:admin` **23 pass/1 deliberate live skip**, gồm category precedence/time-boundary; typecheck/backend integrity, 101 shared backend tests và OpenNext build pass. Browser1440/390/320px không page overflow, tenant table min720 scroll nội bộ. Live suite thực thi riêng, production-parent override bị từ chối trước DB connection. Không phải email-delivery/Worker-media/frontend-deploy proof.
 
-## Tài liệu liên quan
+EmailVerified của **test fixture** đã được đặt trong DB phục vụ kiểm tra. Sign-in thành công không chứng minh email OTP delivery, Google OAuth, recovery email hoặc production owner onboarding đã hoạt động. Không suy một path pass thành tất cả workflow/security checks pass.
 
-- [Quota và bounded ingress](storage-quota.md).
-- [Private Worker view và retention](private-documents-r2.md).
-- [Contract admin và migration](admin-data-contract.md).
-- [Database production gates](../database/README.md).
-- [Vercel payload limits](https://vercel.com/docs/functions/limitations).
+## Giới hạn còn thật
+
+**Native Cloudflare Worker fetch tới Neon S3 và Neon Functions trả 403 HTML trước provider**, gồm anonymous GET. Node native request thành công và Worker tới Neon Auth được. Protected origin đã có code nhưng chưa chứng minh vượt cross-zone denial; không tuyên bố full Worker media ready hoặc đã sửa lỗi provider network. Local Node với R2 remote không phải full Worker proof.
+
+Production backend đã được chuẩn bị như trên; Neon Auth production đã bật email OTP, require verification và gửi verification khi signup/signin, thêm trusted origin localhost:3000. Cấu hình không chứng minh email delivery hoặc owner onboarding. Production frontend **chưa deploy/cutover**; không dùng stage2 fixture làm owner production. Người dùng đã **hoãn kết nối `legrandecentre.vn`/DNS**; không đòi DNS/custom-domain task để hoàn tất code, không deploy hoặc đổi domain trong scope này.
+
+## Lệnh và CI
+
+Xem [README](../README.md) và [Neon setup](neon-setup.md) cho `scripts/dev-live.mjs --env ...`, Node 22.22+ và remote stage2 bindings. Không dùng Node `--env-file` để spawn Next dev.
+
+- `npm run check:backend`, `typecheck`, `test:backend`, `test:admin`: integrity/type/pure checks.
+- `npm run test:database`: isolated real Neon regression, cần quyền operator; không chạy giả trong CI không có secrets.
+- `npm run db:migrate`: operator-only **DATABASE_URL_UNPOOLED** direct URL, không override pooled DATABASE_URL, không trong build/deploy job.
+- `npm run build` và `build:cloudflare`: standalone/OpenNext artifacts, không cloud proof.
+
+`.github/workflows/backend-ci.yml` dùng environment tên lịch sử `github-pages` để đọc secret `COMPONENT_UI_READ_TOKEN`, fetch đúng packages/ui + packages/backend; archive 3D bị loại. CI không có CF/Neon runtime secrets, không deploy hay tự migrate. Shared backend integrity/type/tests vẫn giữ. Cloudinary generic còn thuộc library nhưng không phải provider được yêu cầu cấp cho Mall hiện tại.
+
+Tài liệu: [structure](backend-structure.md), [private documents](private-documents-r2.md), [portability](database-portability.md), [DB migrations](../database/README.md).

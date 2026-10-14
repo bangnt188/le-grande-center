@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AdminPanel, Alert, Badge, Button, ConfirmDialog, EmptyState, Input, Select, LoadingIndicator } from "@mall/ui";
 import type { ToastTone } from "@mall/ui";
-import { dateLabel, requestLabels, timeLabel } from "./demo/b2b-data";
+import { dateLabel, requestLabels, timeLabel } from "./record-labels";
 import type { AdminData } from "./use-admin-data";
 import { SLOT_STATUSES, hasCommitment, isSlotStatus } from "@/shared/admin/space-model";
 
@@ -82,12 +82,12 @@ export default function SlotDetail({ id, data, onBack, onSlot, onRecord, onMedia
         <div className="slot-dossier-main">
           <AdminPanel className="slot-dossier-section" labelledBy="slot-original-heading">
             <h2 id="slot-original-heading">Slot gốc {slot.code}</h2>
-            <dl className="slot-dossier-facts"><div><dt>Mã quản trị</dt><dd>{slot.id}</dd></div><div><dt>Tầng</dt><dd>{slot.floor}</dd></div><div><dt>Diện tích gốc</dt><dd>{fmt(slot.area)} m²</dd></div><div><dt>Chiều rộng fixture</dt><dd>{fmt(slot.width)} m</dd></div><div><dt>Trạng thái slot gốc</dt><dd><Badge className="slot-state-badge" data-slot-status={slot.status}>{slot.status}</Badge></dd></div><div><dt>Tenant / đối tác slot</dt><dd>{slot.tenant || "Chưa có đối tác"}</dd></div></dl>
+            <dl className="slot-dossier-facts"><div><dt>Mã quản trị</dt><dd>{slot.id}</dd></div><div><dt>Tầng</dt><dd>{slot.floor}</dd></div><div><dt>Diện tích gốc</dt><dd>{fmt(slot.area)} m²</dd></div><div><dt>Chiều rộng theo brochure</dt><dd>{slot.width > 0 ? `${fmt(slot.width)} m` : "Chưa có số liệu"}</dd></div><div><dt>Trạng thái slot gốc</dt><dd><Badge className="slot-state-badge" data-slot-status={slot.status}>{slot.status}</Badge></dd></div><div><dt>Tenant / đối tác slot</dt><dd>{slot.tenant || "Chưa có đối tác"}</dd></div></dl>
           </AdminPanel>
           <AdminPanel className="slot-dossier-section" labelledBy="slot-effective-heading">
             <div className="slot-dossier-section-heading"><h2 ref={effectiveHeading} tabIndex={-1} id="slot-effective-heading">{group ? group.name : "Mặt bằng hiện tại"}</h2><Badge className="slot-state-badge slot-dossier-status" data-slot-status={group?.status ?? slot.status} tone={(group?.status ?? slot.status) === "Trống" ? "success" : "neutral"}>{group?.status ?? slot.status}</Badge></div>
-            <p>{group ? `${group.id} · ${members.length} slot gốc · ${fmt(members.reduce((sum, item) => sum + item.area, 0))} m² tổng diện tích fixture` : "Slot độc lập, chưa thuộc nhóm ghép."}</p>
-            <ul className="slot-dossier-members">{members.map(member => <li key={member.id}><Button variant="quiet" onClick={() => onSlot(member.id)} aria-label={`Mở hồ sơ slot ${member.id}`} aria-current={member.id === id ? "page" : undefined}>{member.id}</Button><span>{fmt(member.area)} m² · {fmt(member.width)} m · {member.tenant || "Chưa có đối tác"}</span></li>)}</ul>
+            <p>{group ? `${group.id} · ${members.length} slot gốc · ${fmt(members.reduce((sum, item) => sum + item.area, 0))} m² tổng diện tích` : "Slot độc lập, chưa thuộc nhóm ghép."}</p>
+            <ul className="slot-dossier-members">{members.map(member => <li key={member.id}><Button variant="quiet" onClick={() => onSlot(member.id)} aria-label={`Mở hồ sơ slot ${member.id}`} aria-current={member.id === id ? "page" : undefined}>{member.id}</Button><span>{fmt(member.area)} m² · {member.width > 0 ? `${fmt(member.width)} m` : "Chiều rộng chưa xác nhận"} · {member.tenant || "Chưa có đối tác"}</span></li>)}</ul>
             {group && <p className="muted">Trạng thái đang khai thác áp dụng cho cả nhóm. Diện tích và mã từng slot gốc được giữ nguyên.</p>}
           </AdminPanel>
           <AdminPanel className="slot-dossier-section" labelledBy="slot-requests-heading">

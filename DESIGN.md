@@ -145,12 +145,12 @@ components:
 
 Le Grande pairs a deep-green mall identity with restrained gold and editorial serif display type. In the admin workspace, that identity becomes a calm leasing desk: a dark green navigation rail, a warm light canvas, pale panels and focused green actions. The admin palette is a scoped product adaptation; it does not replace the public shopping-mall theme.
 
-The workspace treats floor geometry and records as working information. The plan, slot register and inspector stay visually connected; labels carry status meaning alongside color. Company and contract surfaces use the same restrained operational frame. Typography, spacing and state colors support quick scanning without making fixture data look like a confirmed inventory.
+The workspace treats approved brochure references and DB-backed records as working information, without claiming surveyed geometry. The plan, register and inspector stay connected; labels carry status alongside color. Company, tenant and contract views share one enterprise module rather than separate sidebar destinations.
 
 **Key Characteristics:**
 
 - Deep green, warm paper and muted gold, with separate public and admin scopes.
-- Editorial serif for public display and admin page titles; sans serif for controls and records.
+- Editorial serif for public display and local admin panel/dossier headings; sans serif for controls and records. No global page-title/description/reload block.
 - Flat bordered panels, quiet selection fills and explicit text status.
 - Fixed-width geometry with contained scrolling and stacked mobile layouts.
 
@@ -185,12 +185,12 @@ The public theme also defines dark and light semantic surfaces. Admin route over
 
 **Public display:** Playfair Display with Georgia and serif fallback. **Public body:** Be Vietnam Pro, Aptos, system UI and sans fallback. These stacks are declared in CSS; this document does not assume the named web fonts are downloaded.
 
-**Admin display:** Georgia and Times New Roman serif stack for page and dossier headings. **Admin body:** system UI sans. Tabular numerals support dates, areas and register values.
+**Admin display:** Georgia and Times New Roman serif stack for local panel and dossier headings. **Admin body:** system UI sans. Tabular numerals support dates, areas and register values; global `AdminPageHeader` is no longer rendered.
 
 ### Hierarchy
 
 - **Public display** (regular, fluid 2.5–5rem): the centered holding-page headline.
-- **Admin headline** (regular, 34px desktop and 30px mobile): route title and major dossier heading.
+- **Admin headline** (regular): local dossier heading where needed, not a repeated global route header; panels keep their contextual titles.
 - **Area display** (regular, 32px): selected area in the plan inspector.
 - **Panel title** (semibold, 17px): section and register headings.
 - **Body** (13–14px, 1.55–1.8 line height): workspace copy and records.
@@ -200,17 +200,17 @@ The interface keeps small operational labels compact, but important status, inve
 
 ## Layout
 
-The shared admin shell supports sidebar and top navigation for consumers. Le Grande uses one fixed grouped sidebar (Mặt bằng, Kinh doanh, Tài nguyên, Hệ thống), with no layout selector or separate workflow dropdown. Cấu hình edits internal operational defaults; it does not publish the public website. The 248px sidebar collapses to a 76px icon rail; links keep accessible names and native title tooltips. The sticky header holds breadcrumbs, Mở website and Đăng xuất; dossier tabs remain contextual.
+The shared shell supports sidebar/top navigation for other consumers. Le Grande uses a fixed grouped sidebar (Mặt bằng, Kinh doanh, Tài nguyên, Hệ thống), no layout selector or workflow dropdown. Kinh doanh has one **Doanh nghiệp** destination, not separate tenant/contract items. Inside it, outer shared `Tabs` expose **Tất cả / Khách đang thuê / Hợp đồng**. Arrow keys focus tabs and Enter activates. The sticky shell header retains breadcrumbs, Mở website and Đăng xuất; the global `AdminPageHeader` title/description/reload block has been removed from every screen. Local panel headings and error-only **Thử lại** for recovering an empty failed workspace remain.
 
-Website configuration additionally selects a real media image as the logo and edits independent Zalo URL, email, leasing phones, management phone and address. Browser-only persistence updates public contact/header/footer components on the same origin; it is not global publishing. Media separates read-only project files from uploaded browser files, with image, PDF and video previews and links to the existing 3D viewer.
+Website configuration stores independent Zalo/email/phones/address in Neon PostgreSQL; public SSR reads its filtered DB projection rather than same-browser state. Branding/uploaded raster images are Neon-only, project images/video/brochure use public R2, and PDF documents use private R2 quarantine plus external manual review. No static/R2/browser logo fallback or 3D viewer link; no antivirus-clean/eSign claim. Metadata and bytes do not persist in browser IndexedDB.
 
 The Le Grande workspace has a 1564px content cap, 36px desktop inline padding and 24px padding below 1250px. The sidebar uses 18px inline padding and 24px top inset. At 850px and below, desktop navigation is replaced by a themed modal menu with focus containment, Escape dismissal and focus return. The mobile workspace uses 16px inline padding, 44px minimum touch controls and 16px field text.
 
-Admin entry /admin-preview/ uses shared TextField, PasswordField and Button with visible labels, native required validation and the system password-visibility control. Demo credentials are not sent/stored; the sessionStorage marker is presentation-only. Workspace opens at floors. Saved snapshots/files persist in browser IndexedDB across reload/logout; unsaved drafts remain ephemeral. No customer portal or embedded website preview.
+Admin entry `/admin/` uses managed Neon Auth with shared form fields, verified email and active DB staff allowlist/assignment; signup never grants workspace access by itself. `/admin/workspace/` uses the same-origin API and relational CAS/idempotency/audit/RLS. No demo username/password/session marker or IndexedDB fallback. Unsaved drafts remain ephemeral with confirmation on navigation. No customer portal or embedded website preview.
 
 Plan and record views place a primary region beside an inspector, then stack them at the compact breakpoint. The B2B dossier gives its company list a wider stable column before stacking. Feature breakpoints at 1250px, 1100px, 1000px, 800px and 520px handle content density independently of the shared shell breakpoint. Six floor choices stay in a fixed grid; narrow filters wrap and media tiles reduce to two columns.
 
-The floor diagram keeps a 680px minimum width and 310px minimum height inside a labelled, keyboard-focusable horizontal scroll region. Tables scroll inside their panels. Long statuses and media names wrap; supporting lead details truncate within their rows.
+The floor diagram keeps contained labelled, keyboard-focusable scrolling. Tables scroll inside panels; the tenant table has a 720px minimum width without widening the page. Main observed no page overflow at 1440/390/320px after the enterprise-tabs cutover. Long statuses/media names wrap and supporting lead details truncate within rows.
 
 ## Elevation & Depth
 
@@ -238,7 +238,7 @@ Record edits reuse AdminEditor with shared Modal/ConfirmDialog, save/cancel, pen
 
 Vertical and horizontal navigation use the same item states. The active item has a tinted surface, semantic border and a 3px position marker; horizontal navigation moves the marker to the bottom edge. A collapsed icon rail keeps the button hover surface inside the rail and exposes its name with the native `title` attribute. Keyboard focus remains a separate 3px outline.
 
-Floor choices communicate one of six fixed floors with a clear selected fill and border. The floor labels are fixture descriptions, not confirmed tenant allocations.
+Floor choices communicate one of six fixed floors with a clear selected fill and border. Floor titles/content come from DB-backed approved project seed/settings, not fabricated tenant allocations. Brochure diagrams remain provisional references, not survey certification.
 
 ### Status and feedback
 
@@ -246,13 +246,15 @@ Badges combine a restrained tone with a text label. Inventory state must never r
 
 ### Floor plan and grouped spaces
 
-The signature view connects the slot plan to its register and inspector. Selection previews area and membership. A grouped footprint remains visually composed from its original slots; it does not replace their identity. The customer B-series reference keeps the lobby/void break between B.5 and B.6. Its repeated use across floors is a fixture, not a confirmed technical drawing.
+The signature view connects the slot plan to register/inspector. Selection previews area and membership; a group remains composed of original slots. Approved brochure geometry retains its source and gaps; do not repeat an old B-series fixture across floors as confirmed technical inventory.
 
 **The Slot Identity Rule.** A grouped space is shown as a combination of base slots; keep each original slot code and area visible in the register.
 
 ### Company and contract workspace
 
-The company list and dossier share one operational layout. Lease and request records link back to the affected slots, while local SVG mini-plans are navigation aids rather than formal drawings. Document samples use a restrained paper sheet treatment and stay visually distinct from a signed contract.
+The company list/dossier, tenant projection and contract register live under one **Doanh nghiệp** module with outer `@mall/ui Tabs` **Tất cả / Khách đang thuê / Hợp đồng**. Company-card category derives in strict order: recorded lease → **Đang thuê**; otherwise active unexpired hold → **Đang giữ chỗ**; otherwise submitted/reviewing request → **Đang tư vấn**; otherwise **Chưa thuê**. Never persist a second category field. Dossier→contract navigation carries the exact record ID across subtabs and retains unsaved-note confirmation, not a reset to the first contract. Lease/request records link to slots; mini-plans are navigation aids. PDF original bytes are real private files requiring external manual review, not signature or antivirus evidence.
+
+Current phase2 evidence reported by Main: `test:admin`23pass/1deliberateliveskip, isolated `test:database`2/2pass with owned child cleanup, typecheck/shared backend integrity/tests/OpenNext build pass; browser1440/390/320px no overflow and keyboard/record-context checks. Production backend seed/Auth settings exist, but frontend production/domain/DNS cutover is explicitly deferred. Worker→Neon S3/Functions still returns403 before provider; no all-Worker readiness or OTP-delivery claim. Subsequent dated design notes preserve historical evidence and do not override this current admin state.
 
 ## Do's and Don'ts
 

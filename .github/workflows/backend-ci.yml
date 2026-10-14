@@ -1,4 +1,4 @@
-name: Shared backend consumer
+name: Application and shared backend CI
 on:
   push:
     branches: [dev]
@@ -8,31 +8,43 @@ on:
 permissions:
   contents: read
 jobs:
-  backend:
+  application:
     runs-on: ubuntu-latest
+    # Historical environment name: contains the existing private-submodule token.
+    # This workflow does not publish Pages or deploy a Worker.
     environment: github-pages
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      SEO_INDEXABLE: "false"
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: false
           token: ${{ secrets.COMPONENT_UI_READ_TOKEN || github.token }}
-      - name: Fetch required private submodules
+      - name: Fetch required private submodules only
         env:
           SUBMODULE_READ_TOKEN: ${{ secrets.COMPONENT_UI_READ_TOKEN || secrets.SUBMODULE_READ_TOKEN }}
         run: |
           set -euo pipefail
           if [ -z "$SUBMODULE_READ_TOKEN" ]; then
-            echo "::error::Set COMPONENT_UI_READ_TOKEN or SUBMODULE_READ_TOKEN with read access to both private submodule repositories."
+            echo "::error::Set COMPONENT_UI_READ_TOKEN or SUBMODULE_READ_TOKEN with read access to component-ui and lib-ts-be."
             exit 1
           fi
           git -c "url.https://x-access-token:$SUBMODULE_READ_TOKEN@github.com/.insteadOf=https://github.com/" submodule update --init --recursive --depth=1 -- packages/ui packages/backend
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "22.22.0"
           cache: npm
       - run: npm ci
-      - run: npm run check:backend
-      - run: npm run typecheck:backend
-      - run: npm run test:backend
-      - run: npm run test:backend:consumer
-      - run: node scripts/prepare-backend-handoff.mjs
+      - name: Check shared backend source integrity
+        run: npm run check:backend
+      - name: Typecheck application and shared packages
+        run: npm run typecheck
+      - name: Test shared backend primitives
+        run: npm run test:backend
+      - name: Test pure application boundaries
+        run: npm run test:admin
+      - name: Prepare shared backend handoff
+        run: node scripts/prepare-backend-handoff.mjs
+      - name: Build Next standalone and OpenNext Worker
+        run: npm run build:cloudflare

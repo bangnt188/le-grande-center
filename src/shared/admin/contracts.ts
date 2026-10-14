@@ -8,8 +8,9 @@ export type Lead = {
   id: string; name: string; initials: string; interest: string; floor: Floor;
   source: string; time: string; status: (typeof LEAD_STATUSES)[number]; note: string;
   companyId?: string; email?: string; phone?: string;
+  contactDetails?: { intent: "consultation" | "visit" | "callback"; company: string; business: string; area: string; timing: string; space: string; scope?: string; visitDate?: string; visitTime?: string };
 };
-export type LeadInput = Omit<Lead, "id" | "initials" | "time">;
+export type LeadInput = Omit<Lead, "id" | "initials" | "time" | "contactDetails">;
 export type AdminSettings = { propertyName: string; contactEmail: string; contactPhone: string; defaultHoldHours: number; appointmentMinutes: number; appointmentLocation: string; website: WebsiteSettings };
 export function isAdminSettings(value: unknown): value is AdminSettings {
   if (!value || typeof value !== "object") return false;
@@ -25,6 +26,7 @@ export type MediaItem = {
   id: string; name: string; kind: "Ảnh" | "Tài liệu" | "Video" | "Model 3D" | "Tài nguyên"; scope: string;
   size: string; url?: string; reference?: boolean; sizeBytes?: number; mimeType?: string; hasUploadedFile: boolean;
   projectAsset?: boolean; sourcePath?: string;
+  uploadState?: "ready" | "quarantine"; reviewUrl?: string; reviewedAt?: string;
 };
 export type AdminSnapshot = B2BData & { revision: number; storage: StorageUsage | null; floors: FloorConfiguration[]; settings: AdminSettings; slots: Slot[]; groups: SpaceGroup[]; leads: Lead[]; media: MediaItem[] };
 export type AdminCommand = B2BCommand

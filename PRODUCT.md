@@ -4,49 +4,84 @@
 
 ## Platform
 
-web
+web — Next.js SSR/standalone + OpenNext, same-origin admin/API/public.
 
 ## Users
 
-Chủ đầu tư và đội vận hành dự án quản lý yêu cầu tư vấn (leads), media và mặt bằng thương mại.
+Chủ đầu tư và đội vận hành được cấp quyền quản lý doanh nghiệp, yêu cầu, mặt bằng,
+lịch hẹn và tài liệu. Public khách gửi nhu cầu tư vấn/tham quan; chưa có portal khách thuê.
 
 ## Product Purpose
 
-Giúp đội vận hành xem mặt bằng theo tầng, theo dõi trạng thái sử dụng, ghép các slot phù hợp và quản lý thông tin tư vấn, hình ảnh, tài liệu.
+Giúp đội vận hành đọc đúng quan hệ tầng/slot/mặt bằng ghép và hồ sơ doanh nghiệp,
+tiếp nhận nhu cầu thật, theo dõi giữ chỗ/hồ sơ thuê mà không giả availability, tiền
+hoặc chữ ký từ nội dung minh họa.
 
 ## Capabilities and Constraints
 
-- Sáu tầng cố định, cho sửa công năng; không thêm/xóa tầng và không tự đổi nội dung brochure/website.
-- Slot thuộc một tầng. Chỉ ghép các slot liền kề cùng tầng, không ghép qua sảnh/thông tầng. Người dùng xác nhận ngày 06/10/2026.
-- Public shophouse tầng 1–2 gồm 11 cặp A.n/B.n liên thông. Khách xác nhận ngày 12/10/2026 có thể thuê riêng từng căn hoặc kết hợp hai tầng; không mặc định thuê cả cặp. Liên kết public không phải thao tác ghép slot xuyên tầng trong admin.
-- Ghép/tách giữ danh tính và diện tích thành viên. Diện tích slot chỉ sửa trực tiếp khi chưa có cam kết và chưa thuộc nhóm; tổng diện tích yêu cầu chưa duyệt được cập nhật từ slot.
-- Slot chỉ có hai trạng thái sử dụng: Trống và Đang thuê. Đang chọn là trạng thái tương tác riêng, không lưu trong dữ liệu. Giữ chỗ thuộc hồ sơ thuê và vẫn khóa thao tác xung đột dù slot chưa thuê.
-- Toàn bộ admin hiện có hỗ trợ nghiệp vụ dùng thử và lưu snapshot/tệp bằng IndexedDB trên trình duyệt. Chưa có DB/cloud storage, auth, API production hoặc phân quyền thật.
-- Chưa có bản vẽ chính thức của cả sáu tầng; không suy diễn fixture thành số liệu thực tế.
+- Sáu tầng cố định. Nội dung/công năng website có trường DB được chỉnh rõ ràng;
+  không tự sửa brochure hoặc coi geometry tham khảo là bản vẽ khảo sát.
+- Slot thuộc một tầng; chỉ ghép liền kề cùng tầng, không qua sảnh/thông tầng.
+  Ghép/tách giữ danh tính/diện tích thành viên và chặn khi có cam kết.
+- Public tầng 1–2 có 11 cặp A.n/B.n liên thông; khách có thể thuê riêng/kết hợp,
+  không mặc định thuê cả cặp. Đây không là ghép admin xuyên tầng.
+- Occupancy chỉ **Trống / Đang thuê**; **Đang chọn** là UI. Hold vẫn Trống nhưng
+  active/unexpired hold khóa thao tác xung đột.
+- `/admin/` dùng Neon Auth thật, verified email + DB staff allowlist/assignment
+  active. Signup không tự cấp quyền; không demo auth/IndexedDB fallback.
+- Relational Neon PostgreSQL commands có CAS/idempotency/audit/RLS. Metadata DB,
+  raster/logo Neon-only, PDF R2 private; không opaque snapshot persistence.
+- Baseline+migrations001–004 có trên stage2/regression/production backend;
+  production chỉ seed 6 tầng/81 approved brochure slots, owner allowlist và verified
+  Neon logo, không fake customer/financial transactions. Frontend production/domain/
+  DNS **chưa cutover theo yêu cầu người dùng**.
+- Worker→Neon S3/Functions còn 403 HTML trước provider; local Node real-cloud
+  proof không chứng minh all-Worker media ready. Auth OTP configured không chứng
+  minh email delivery/owner onboarding.
 
 ## B2B workflow confirmed
 
-- Khách hàng doanh nghiệp có nhu cầu thuê, hợp đồng, lịch hẹn và tài liệu liên kết.
-- Gửi yêu cầu → chủ đầu tư duyệt → giữ chỗ có thời hạn; lịch hẹn độc lập.
-- Hợp đồng/hold deadline chỉ hiển thị trong quản trị nội bộ có quyền. Public chỉ hiển thị khả dụng dự kiến được duyệt và đăng ký quan tâm. Không có portal đăng nhập dành cho khách thuê trong phạm vi hiện tại.
-- Hợp đồng chỉ upload/liên kết/thay PDF, không có ký online/eSign hoặc tự xác nhận nội dung đã ký. Tài liệu production cần storage riêng tư và quyền kiểm tra phía server.
-- Giữ chỗ/lịch hẹn dùng thời gian hiện tại. Cấu hình browser đặt mặc định giờ giữ chỗ, thời lượng và địa điểm hẹn; chưa phải chính sách production của khách hàng.
-- Admin có một sidebar chia nhóm Mặt bằng/Kinh doanh/Tài nguyên/Hệ thống; mục Cấu hình gồm chính sách dùng thử và logo, Zalo, email, hotline, địa chỉ website. Thay đổi website chỉ áp dụng cùng origin/trình duyệt, chưa công bố toàn cầu hoặc nối DB. Không có portal khách thuê hoặc mô phỏng website bên trong; header mở website thật.
-- `/admin-preview/` là form username/password demo, không lưu/gửi thông tin; bấm đăng nhập đi vào Tổng quan tầng tại `/admin-preview/workspace/`. Marker local không cấp quyền production.
+- Gửi yêu cầu → chủ đầu tư duyệt → giữ chỗ có hạn; lịch hẹn độc lập.
+- Public live form commit lead/intake trước báo tiếp nhận, không tạo/xác nhận booking.
+  Public projection không tenant/contact nội bộ, hold deadline hoặc hợp đồng private.
+- Hợp đồng chỉ upload/quản lý/liên kết/thay PDF có sẵn, không draft editor/eSign/
+  tự xác nhận đã ký. PDF quarantine cần **manual external review**, không antivirus.
+  Financial fields thiếu vẫn unknown/null, không số mẫu giả.
+- Sidebar giữ một mục **Doanh nghiệp**, không mục riêng Khách đang thuê/Hợp đồng.
+  Bên trong dùng outer `@mall/ui Tabs`: **Tất cả / Khách đang thuê / Hợp đồng**.
+- Card category là projection theo thứ tự: recorded lease → **Đang thuê**; else
+  active hold chưa hết hạn → **Đang giữ chỗ**; else submitted/reviewing request →
+  **Đang tư vấn**; else **Chưa thuê**. Không lưu category như master field riêng.
+- Dossier→Hợp đồng giữ đúng record ID qua subtab; unsaved notes có xác nhận.
+  Arrow keys di chuyển focus tab, Enter kích hoạt. Không giả mất context bằng
+  chọn record đầu tiên sau chuyển tab.
+- Bỏ global `AdminPageHeader` title/description/reload trên mọi screen. Giữ heading
+  nội bộ panel và error-only **Thử lại** để phục hồi empty workspace; shell vẫn có
+  breadcrumb/Mở website/Đăng xuất.
+- Website settings lưu DB và public dùng approved projection, không giới hạn browser.
+  Zalo độc lập hotline; logo chỉ Neon, private PDF không public CDN.
 
 ## Brand Commitments
 
-Website tham chiếu: https://legrandecentre.vn/. Bộ theme shopping-mall hiện có trong packages/ui là nguồn màu thương hiệu của ứng dụng. Tên hiển thị dùng Le Grande Centre.
+Tên đúng **Le Grande Centre**, domain tham chiếu https://legrandecentre.vn/ (chưa
+kết nối/cutover lần này). Semantic theme shopping-mall từ packages/ui là nguồn màu;
+Zalo giữ xanh nhận diện riêng. Shared motion/forms/toasts ở component-ui, app giữ
+nội dung/business validation. Source 3D đã archive, homepage 2D giữ nguyên.
 
 ## Evidence on Hand
 
-- Bản vẽ do khách hàng cung cấp: B.1 và B.11 có diện tích 205 m², B.2–B.10 có diện tích 164 m²; sảnh/thông tầng nằm giữa B.5 và B.6. Chưa xác nhận bản vẽ ứng với tầng nào.
-- Prototype admin hiện có tại src/app/admin-preview/.
-- Tài liệu kiến trúc tại docs/admin-architecture-decision.md.
+- Approved brochure seed 6 tầng/81 căn; geometry/dimensions là tham khảo có nguồn,
+  không cam kết bản vẽ chính thức hoặc quyền tháo tường.
+- Local real-cloud sign-in/workspace/media/lease/appointment/intake đã quan sát;
+  chi tiết và giới hạn tại docs/backend-readiness.md.
+- Latest Main browser checks tại 1440/390/320px: không page overflow, bảng tenant
+  min720 cuộn trong panel; Tabs/record entry/draft confirmation đúng.
+- Main reported `test:admin` 23 pass/1 live skip, isolated `test:database` 2/2 pass,
+  typecheck/backend integrity/tests/OpenNext build pass; không rerun bởi doc editor.
 
 ## Product Principles
 
-- Đọc được quan hệ slot, tầng và mặt bằng ghép.
-- Mọi trạng thái đều có nhãn text; màu chỉ hỗ trợ nhận biết.
-- Không làm mất slot gốc khi ghép hoặc tách mặt bằng.
-- Dữ liệu minh họa và thông tin dự án đã xác nhận phải dễ phân biệt.
+- Giữ slot identity/relationships và nhãn status đọc được, không chỉ màu.
+- Category suy ra từ workflow thật, không thêm nguồn dữ liệu mâu thuẫn.
+- Không bỏ draft/record context khi điều hướng, không false-success trước commit.
+- Tách bằng chứng local/CI khỏi production deploy, OTP delivery, antivirus và pháp lý.

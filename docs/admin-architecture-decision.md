@@ -1,4 +1,19 @@
-# Architecture Decision: Admin Le Grande Center
+# Architecture Decision: Admin Le Grande Centre
+
+## Trạng thái hiện tại — 14/10/2026
+
+Phase2 đã thay phương án prototype/static ở phần lịch sử dưới đây: Next SSR standalone/OpenNext, `/admin/` Neon Auth verified email + DB active staff allowlist, cùng-origin API; không demo login/IndexedDB fallback. Relational Neon commands có property lock/CAS/idempotency/audit/RLS. Public đọc projection tối thiểu; live form tạo lead/intake, không booking.
+
+Sidebar chỉ **Doanh nghiệp**; outer shared Tabs **Tất cả / Khách đang thuê / Hợp đồng**, không sidebar tenants/contracts riêng. Card category suy ra recorded lease trước, rồi unexpired active hold, rồi submitted/reviewing request, cuối cùng Chưa thuê; không persisted category. Dossier→contract chuyển đúng record ID; unsaved notes có confirm; arrows focus/Enter activate. Bỏ global AdminPageHeader title/description/reload trên mọi screen, giữ panel headings và error-only Thử lại phục hồi empty workspace.
+
+Logo/raster upload Neon-only, PDF R2 private quarantine + manual external review; không antivirus-clean, online signature hoặc fake financials. Baseline+migrations001–004 đã áp dụng stage2/regression/production backend; production seed chỉ approved 6 tầng/81 slot, owner allowlist và verified Neon logo. Production Auth verification/OTP đã cấu hình, chưa chứng minh delivery. Frontend production/domain/DNS vẫn hoãn; Worker→Neon S3/Functions 403 trước provider chưa được chứng minh sửa.
+
+Main browser 1440/390/320px: không page overflow, tenant table min720 cuộn nội bộ; latest admin tests23pass/1liveskip, isolatedDB2/2pass, typecheck/backend integrity/backend tests/OpenNext build pass. Không rerun trong doc edit. Xem [readiness](backend-readiness.md).
+
+## Lịch sử quyết định ban đầu — đã bị phase2 thay thế
+
+Các phần dưới ghi bối cảnh/đề xuất và bằng chứng lúc prototype, **không mô tả runtime hiện tại**. Static export/Pages, demo auth/fixtures và split deployment không còn áp dụng; không làm theo migration/DNS tasks lịch sử như yêu cầu hiện tại.
+
 
 ## Bối cảnh
 

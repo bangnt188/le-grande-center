@@ -1,24 +1,34 @@
-# Neon, Supabase và SQLite
+# Neon, PostgreSQL portability và SQLite
 
-## Kết luận
+## Runtime hiện tại
 
-- **Neon ↔ Supabase:** cùng PostgreSQL wire protocol và SQL. Backend có thể dùng cùng `pg` Pool/Client, query/repository và application schema; đổi connection string, TLS/pool mode, roles và auth integration theo provider.
-- **REST/SDK không giống nhau:** Supabase `supabase-js` dùng Data API/PostgREST; Neon có HTTP driver và Data API riêng. Chúng không thay trực tiếp `PgQuery` hay transaction nhiều bước pinned trên một connection. Dùng `pg` client cho transaction tương tác.
-- **SQLite:** có thể chuyển, nhưng phải viết adapter và schema/dialect khác. Baseline hiện tại cần ranges/GiST/EXCLUDE, deferred constraint triggers, PL/pgSQL và RLS; SQLite không cung cấp các cơ chế tương đương nguyên trạng. Không được bỏ các invariant nghiệp vụ khi port.
-- **Vercel:** SQLite file trong function hoặc `/tmp` không phải DB shared/durable giữa instances. SQLite hosted vẫn cần port SQL/transactions theo provider.
+Mall dùng Neon PostgreSQL thật qua `@neondatabase/serverless` Pool. `src/server/database.ts` tạo pool theo request, pin client trong transaction, `SET LOCAL ROLE leasing_runtime` và actor context; không giữ socket xuyên Worker requests. Workspace ghi quan hệ với property lock, revision CAS, idempotency receipts, audit và RLS. `AdminSnapshot` là DTO đọc, không phải persistence format.
 
-## Schema và audit hiện tại
+`database/schema.sql` là baseline; `database/migrations/001`–`004` là incremental evolution có hash tracking. Đã áp dụng trên stage2, regression disposable và backend production. Production seed gồm 6 tầng/81 căn brochure được duyệt, configured owner allowlist và verified Neon logo, không giả customer/contract/financials. Frontend production chưa deploy/cutover. Migration operator-only qua `npm run db:migrate`, direct URL, không pooler và không bước build. Xem [database guide](../database/README.md).
 
-`database/schema.sql` là baseline PostgreSQL duy nhất, chưa áp dụng. Baseline có 40 bảng B2B và đủ sáu audit fields. `@shared/backend/pg-connection` export `createPostgresDatabase({pool})`, pin một client mỗi transaction và truyền query gắn với transaction cho repository.
+## Đổi provider
 
-Cấu hình PostgreSQL runtime và migration nên tách URL/role. Neon pooled URL và Supabase transaction pooler dùng transaction pooling; luôn giữ các bước trong transaction trên cùng client, không phụ thuộc session state. Migrations cần connection mode phù hợp DDL/session tooling. Không dùng credential management API làm SQL credential hoặc expose database URL trong browser.
+- **Neon ↔ Supabase:** cùng PostgreSQL protocol/SQL nhưng không chỉ đổi URL. Giữ application schema/invariants; kiểm tra extensions, version, roles/privileges/RLS, direct vs pooler, TLS và transaction driver. Neon Auth và Object Storage không tự port sang Supabase Auth/Storage.
+- **REST/SDK khác nhau:** Supabase Data API/PostgREST và Neon HTTP/Data API không thay trực tiếp transaction tương tác pinned trên một connection. Shared `@shared/backend/pg-connection` có transaction contract; app Neon Pool vẫn phải giữ các bước cùng client.
+- **SQLite:** cần schema/adapter/dialect riêng. Baseline dùng ranges/GiST/EXCLUDE, deferred constraints, PL/pgSQL và RLS; SQLite không cung cấp nguyên trạng. Không bỏ invariant chống trùng cam kết hoặc quyền để port nhanh.
+- File SQLite local hoặc `/tmp` của serverless/Worker không phải shared durable database. Hosted SQLite vẫn cần kiểm chứng transaction/concurrency và thiết kế tương đương.
 
-**Không có database cloud nào được kết nối hoặc migrate.** PostgreSQL 18.6 disposable local đã chạy `database/schema.sql`; 40 bảng có sáu audit fields và bật RLS. Smoke kiểm tra insert/update/soft-delete/restore ghi đúng actor. SQLite cần schema/adapter riêng; chưa kiểm chứng cloud roles/policies/workflows.
+## Chuyển tài khoản/dữ liệu
 
-## Tài liệu chính thức
+1. Chuyển baseline + migrations + lịch sử áp dụng và dữ liệu quan hệ có stable IDs/FKs, actor/audit, CAS/receipts. Kiểm tra restore/row counts/invariants trước mở writes.
+2. Chuyển identity issuer/subject/verified staff mapping theo auth provider thực; không copy session cookies/test fixture emailVerified làm chứng nhận onboarding production.
+3. Copy object bytes R2/Neon theo stable object keys/catalog. Verify bytes/size/hash; chuyển metadata provider/bucket/key/visibility/review/retention có audit. Không lưu/copy presigned URLs như locator.
+4. Cấu hình runtime secrets và public URLs mới; kiểm tra authorized/private/public projection. **Không import/export opaque browser snapshots** và không tạo demo data khi DB lỗi.
 
-- [Neon connection](https://neon.com/docs/connect/connect-from-any-app), [Neon serverless driver](https://neon.com/docs/serverless/serverless-driver), [Neon pooling](https://neon.com/docs/connect/connection-pooling).
-- [Supabase PostgreSQL connections](https://supabase.com/docs/guides/database/connecting-to-postgres), [Supabase Data API](https://supabase.com/docs/guides/api), [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security).
+Provider credentials và API quản trị không phải browser SQL credential. Tách runtime/migration URL/role theo môi trường; không đưa DB URL vào `NEXT_PUBLIC_*` hoặc bundle. Migrations/restore là operator action, không CI build/deploy tự động.
+
+## Giới hạn đã biết
+
+Native Cloudflare Worker → Neon S3/Functions hiện 403 HTML trước provider, Node requests được; đây không phải lỗi SQL portability đã được giải quyết. Local real-cloud runtime không chứng minh all-Worker media ready. Frontend production chưa deploy/cutover, domain/DNS do người dùng hoãn. [Readiness](backend-readiness.md) ghi bằng chứng và giới hạn riêng; không có live cloud verification mới trong lần chỉnh docs này.
+
+## Nguồn chính thức
+
+- [Neon connection](https://neon.com/docs/connect/connect-from-any-app), [serverless driver](https://neon.com/docs/serverless/serverless-driver), [pooling](https://neon.com/docs/connect/connection-pooling).
+- [Supabase PostgreSQL connections](https://supabase.com/docs/guides/database/connecting-to-postgres), [Data API](https://supabase.com/docs/guides/api), [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security).
 - [node-postgres transactions](https://node-postgres.com/features/transactions).
 - [SQLite types](https://sqlite.org/datatype3.html), [transactions](https://sqlite.org/lang_transaction.html), [triggers](https://sqlite.org/lang_createtrigger.html), [omitted features](https://sqlite.org/omitted.html).
-- [Vercel SQLite local-file note](https://vercel.com/kb/guide/is-sqlite-supported-in-vercel).

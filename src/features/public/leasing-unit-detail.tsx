@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Breadcrumbs } from "@mall/ui";
 import { r2AssetBase } from "@/config/site";
-import { BROCHURE_ORIENTATION, BROCHURE_PATH, BROCHURE_UNITS } from "./brochure-leasing";
+import { BROCHURE_ORIENTATION, BROCHURE_PATH } from "./brochure-leasing";
 import { getShophousePair, type LeasingFloor, type LeasingUnit } from "./leasing-model";
 import { planStyle, planLabelStyle } from "./leasing-plan-style";
 import { WebsiteEmailLink, WebsiteFloorDescription, WebsiteFloorTitle, WebsiteLeasingPhones } from "./website-settings";
@@ -14,7 +14,7 @@ import { LeasingConsultation } from "./leasing-consultation";
 
 const number = (value: number) => value.toLocaleString("vi-VN");
 
-export function LeasingUnitDetail({ unit, floor, floorUnits }: { unit: LeasingUnit; floor: LeasingFloor; floorUnits: readonly LeasingUnit[] }) {
+export function LeasingUnitDetail({ unit, floor, floorUnits, inventory }: { unit: LeasingUnit; floor: LeasingFloor; floorUnits: readonly LeasingUnit[]; inventory: readonly LeasingUnit[] }) {
   const assetBase = r2AssetBase;
   const backHref = `/mat-bang/#tang-${floor.id}`;
   const detailHref = `/mat-bang/${encodeURIComponent(unit.id)}/`;
@@ -23,14 +23,14 @@ export function LeasingUnitDetail({ unit, floor, floorUnits }: { unit: LeasingUn
   const previous = unitIndex > 0 ? orderedUnits[unitIndex - 1] : undefined;
   const next = unitIndex >= 0 ? orderedUnits[unitIndex + 1] : undefined;
   const others = orderedUnits.filter(item => item.id !== unit.id);
-  const pair = getShophousePair(unit, BROCHURE_UNITS);
+  const pair = getShophousePair(unit, inventory);
   const counterpart = pair?.find(item => item.id !== unit.id);
   return <div className={styles.page} data-ui-theme="shopping-mall" data-ui-scheme="light">
     <div className={styles.breadcrumb}><Breadcrumbs label="Vị trí mặt bằng" items={[
-      { label: "Trang chủ", href: `${assetBase}/` },
-      { label: "Mặt bằng/Cho thuê", href: `${assetBase}/mat-bang/` },
-      { label: `Tầng ${floor.id}`, href: assetBase + backHref },
-      { label: unit.id, href: assetBase + detailHref, current: true },
+      { label: "Trang chủ", href: "/" },
+      { label: "Mặt bằng/Cho thuê", href: "/mat-bang/" },
+      { label: `Tầng ${floor.id}`, href: backHref },
+      { label: unit.id, href: detailHref, current: true },
     ]}/></div>
     <LeasingUnitMap key={unit.id} unitId={unit.id} floorId={floor.id}>
       <div className={styles.planSection}>

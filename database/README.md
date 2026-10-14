@@ -1,48 +1,106 @@
-# Thiết kế database
+# Database PostgreSQL / Neon
 
-Schema chưa được áp dụng production; đã smoke test trên PostgreSQL 18.6 disposable.
+`schema.sql` remains the authoritative relational baseline; reviewed migrations
+`001-live-workspace.sql` through `004-recorded-document-financials.sql` evolve it.
+There is no opaque stored workspace snapshot or browser persistence fallback.
+Runtime composition lives in `src/server/{database,workspace,public}.ts` and `media/`.
 
-## Baseline
+## Current state — 14/10/2026
 
-`database/schema.sql` là baseline PostgreSQL duy nhất: B2B cùng sáu trường audit và trigger.
+Baseline and migrations 001–004 have been applied to stage2, disposable regression
+branches and the production backend. Production initialization contains only six
+approved brochure floors/81 slots, the configured owner allowlist and the approved
+Neon logo verified by native authorized GET (25,230 bytes, SHA-256 checked).
+No customer companies, leads, requests, holds, leases, appointments or financial
+transactions were fabricated. The owner organization is not a customer; the disabled
+system import actor cannot sign in/administer the property.
 
-Không phải migration production đã chạy. Chạy toàn bộ file trên database mới; không áp vào DB có dữ liệu. Runtime phải đặt `app.actor_id` transaction-local. DB cloud chưa kết nối.
-## DB constraints trong v2
+Production Neon Auth OTP/verification and signup/signin verification-send settings
+are configured; localhost:3000 was added as a trusted origin. Configuration and the
+stage2 fixture's verified-email login do not prove email delivery/owner onboarding.
+**Production frontend is not deployed/cut over; customer-domain/DNS connection is
+explicitly deferred.** This is not a request to deploy or reconnect the domain.
 
-- Composite FK ngăn trộn property/floor hoặc contact/brand khác doanh nghiệp.
-- Tầng giới hạn 1–6; UI không thêm/xóa, provisioning cần đủ sáu tầng đã xác nhận.
-- Deferred assertions đối chiếu đủ member slots/period khi commit hold/lease;
-  active hold cần request đã duyệt/ack, executed lease cần file ký clean/sealed.
-- Candidate spaces được phép chồng slot. Allocation chưa release không giao nhau
-  trên cùng slot gốc theo `daterange`; resource booking không trùng `tstzrange`.
-- UUID, numeric cho diện tích/tiền, timezone-aware timestamp và [start,end) ranges.
-- Published plan/slot/space, signed lease version, sealed file metadata được đóng
-  băng; child membership/measurement/frontage/document link cũng được bảo vệ.
-- RLS enabled và PUBLIC grants bị thu hồi; runtime policy/role chưa provision.
+## Bootstrap (operator only)
 
-Cần review `btree_gist` trên managed provider. `gen_random_uuid()` giả định bản
-PostgreSQL hiện đại có built-in này. Không áp nguyên file vào DB đang có dữ liệu;
-`CREATE SCHEMA leasing` cố ý không idempotent để không che schema tồn tại khác.
+Use an isolated branch first and supply **`DATABASE_URL_UNPOOLED`** with its direct
+connection. The CLI does not read/override pooled `DATABASE_URL` for migration.
 
-## Các gate trước production
+```sh
+node --env-file=.env.stage2.local --conditions=react-server --import tsx scripts/migrate-database.ts
+```
 
-1. Geometry/topology validator; command publish có đủ slot, số liệu, bản vẽ và
-   approval, freeze sau khi thêm toàn bộ child records.
-2. Runtime validation các deferred assertions trong draft và transaction approve/
-   expire/cancel/convert; không suy ra workflow hoàn chỉnh từ overlap constraint.
-3. Workflow transition guard, acknowledgement, policy TTL/quota và idempotency.
-4. Signed lease phải có clean/sealed PDF đúng doanh nghiệp, đầy đủ party/term
-   snapshot và verification chữ ký; DB không tự chứng nhận chữ ký hợp lệ.
-5. Appointment/resource period đồng bộ; ownership documents đúng lease/plan.
-6. RLS/grants bằng role không owner, không BYPASSRLS; transaction actor context,
-   append-only audit/receipt/extension quyền đúng và không log PII tùy tiện.
-7. Upload pipeline, quota, cleanup orphan có retention/legal hold, khôi phục.
-8. Chạy validation trên disposable DB với provider mục tiêu sau khi được yêu cầu;
-   chỉ review SQL trong repo không phải bằng chứng DB chạy thành công.
+Or, with the environment already loaded:
 
-Các gate này được ghi rõ để baseline không bị hiểu nhầm là backend production
-đã hoàn tất. Không có credentials, provisioning hoặc lệnh apply tự động.
+```sh
+npm run db:migrate
+```
 
-[Thiết kế B2B](../docs/b2b-leasing-design.md) ·
-[Tài liệu private R2](../docs/private-documents-r2.md) ·
-[Portability Neon / Supabase / SQLite](../docs/database-portability.md)
+Node `--env-file` is valid for this direct migration process, **not** for spawning
+Next dev; Next runtime must use `scripts/dev-live.mjs --env ...` as in the root README.
+Never print/commit connection strings. Migration is not a build/CI/deploy step.
+The runner initializes the baseline only when absent, checks applied migration
+hashes and seeds approved brochure content idempotently. Do not splice baseline SQL
+or delete `leasing_runtime` to bypass provider branch limitations.
+
+Only a verified managed-auth issuer/subject/email may bind the configured owner
+allowlist. Identity mismatch, disabled user, revoked assignment or allowlist fails
+closed; signup does not create administrator permission.
+
+Import `media/client-reference/legacy/logo-without-text.png` only after independently
+verifying the real Neon object: `importApprovedLogo(connectionString,
+{publicUrl, bytes, sha256})`, or CLI variables `APPROVED_LOGO_URL`,
+`APPROVED_LOGO_BYTES`, `APPROVED_LOGO_SHA256`. Static/R2/browser branding fallback is
+not registered. Existing metadata that differs from verified bytes/hash is rejected.
+
+## Invariants
+
+- Request-local Neon Pool, one pinned transaction client, `SET LOCAL ROLE
+  leasing_runtime` (non-owner/NOBYPASSRLS), actor context and rollback; application
+  authorization additionally resolves/rechecks active staff/property scope.
+- Property serialization, revision CAS, actor-scoped idempotency receipt and outcome
+  audit commit together. Successful receipt replay returns current projection
+  without mutating twice; mismatched key reuse fails.
+- Organizations/contacts/inventory versions/members, requests/holds/leases,
+  appointments/documents/receipts/audit remain relational. Private fields never enter
+  public DTOs. Company category is a **derived UI projection**, not a new DB column:
+  recorded lease → Đang thuê; else unexpired active hold → Đang giữ chỗ; else
+  submitted/reviewing request → Đang tư vấn; else Chưa thuê.
+- Diagram coordinates are labelled brochure references, not surveyed polygons.
+  Same-row rectangular boundaries are source-labelled connections, not permission
+  to remove walls; gaps/irregular outdoor geometry are not invented connections.
+- Rental recording means a recorded PDF file, not eSign/signature certification.
+  Financial fields stay unknown/null unless supplied. Replacement appends a version
+  and retains previous linked bytes.
+- PDF starts quarantine. Authorized **external manual review** records reviewer,
+  time/note/seal; `scan_state` stays pending, no antivirus-clean claim. Byte signature
+  checks are not antivirus. Retention/lease/plan links and selected logo block delete.
+- Public contact commits lead/intake/cooldown/idempotency/audit, not a fabricated
+  company, hold, booking or confirmed appointment.
+
+## Isolated real database regression
+
+```sh
+npm run test:database
+```
+
+Requires authorized Neon CLI/project context. Defaults to `NEON_TEST_PARENT=test-template`;
+`NEON_TEST_PROJECT_ID` may select the project. Parent must be a dedicated **empty**
+non-primary/non-default/unprotected template, never production/customer data.
+The runner checks parent/child non-system regular/partitioned/foreign/materialized
+relations; only installed-extension-owned relations identified through `pg_depend`
+are exempt. It checks distinct child branch/compute identity, initializes untouched
+baseline+migrations+approved brochure seed, fetch-verifies real Neon PNG bytes/hash,
+imports metadata, runs live tests and finally deletes **only its owned child**.
+Schema-only is unavailable in this project because of the legacy web-access role;
+normal cloning from the verified empty template preserves security roles safely.
+Do not run `tests/live-workspace.test.ts` manually against a live workspace.
+
+Observed: isolated command **2/2 passed, no skips**, repeated initialization validated
+checksums/idempotency and the owned child was deleted; production-parent override
+was refused before connection retrieval/DB query. Latest pure `test:admin` **23
+passed / 1 deliberate live skip**, including category precedence/time-boundary test.
+Main also reported typecheck, shared backend integrity/tests and OpenNext build pass.
+These checks do not prove OTP delivery, antivirus or all-Worker media readiness:
+native Worker→Neon S3/Functions still returns 403 HTML before provider. See
+[readiness](../docs/backend-readiness.md). No checks rerun for this documentation edit.

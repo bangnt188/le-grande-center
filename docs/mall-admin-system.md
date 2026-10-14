@@ -1,5 +1,22 @@
 # Architecture Decision — Mall admin dùng UI system
 
+## Trạng thái hiện tại — 14/10/2026
+
+Admin phase2 dùng Neon Auth verified email + active DB staff allowlist và same-origin HTTP repository, relational PostgreSQL CAS/idempotency/audit/RLS; không demo login, IndexedDB hoặc quota scenarios fallback. Next SSR standalone/OpenNext thay Pages/static. Website settings DB/public projection, live form lead/intake không booking; Neon-only branding/raster, private R2 PDF quarantine + manual external review, không antivirus-clean/eSign/fake financials.
+
+- Sidebar chỉ mục **Doanh nghiệp**, không Khách đang thuê/Hợp đồng riêng. Outer `@mall/ui Tabs`: **Tất cả / Khách đang thuê / Hợp đồng**.
+- Company card category derived precedence: recorded lease → Đang thuê; else active unexpired hold → Đang giữ chỗ; else submitted/reviewing request → Đang tư vấn; else Chưa thuê. Không category persisted field.
+- Dossier→contract entry mang exact record ID qua subtab; unsaved note confirmation giữ nguyên, arrows focus/Enter activate.
+- Global `AdminPageHeader` title/description/reload đã bỏ toàn bộ screen; local panel headings còn, error-only **Thử lại** còn để phục hồi empty workspace. Shell breadcrumb/Mở website/Đăng xuất giữ nguyên.
+- Main browser1440/390/320px không page overflow, tenant table min720 scroll nội bộ. Latest `test:admin`23pass/1liveskip (category precedence/time-boundary regression), isolatedDB2/2pass + child cleanup, typecheck/backend integrity/backend tests/OpenNext build pass. Không rerun bởi doc editor.
+
+Production backend baseline+migrations001–004/approved6floors81slots/owner allowlist/verified Neon logo đã chuẩn bị; production Auth verification/OTP configured không chứng minh email delivery. Frontend production/domain/DNS **chưa cutover theo yêu cầu người dùng**; Worker→Neon S3/Functions 403 trước provider vẫn là deployment limitation. [Readiness](backend-readiness.md) là nguồn trạng thái/bằng chứng.
+
+## Lịch sử thiết kế và bằng chứng — không phải runtime hiện tại
+
+Các phần từ đây bảo tồn quyết định/capture/check cũ. Demo/IndexedDB/admin-preview/static-export/3D viewer/standalone tenant-contract menus và global AdminPageHeader trong các ghi chép này đã bị current status phía trên thay thế; không dùng lịch sử làm acceptance proof phase2.
+
+
 ## Hiểu
 
 Yêu cầu: tăng độ sang của admin mall, dùng component hiện có, thay feedback banner bằng toast system và hiển thị pagination thật. Giữ quy trình B2B, dữ liệu mẫu, sáu tầng cố định và điều kiện ghép slot.

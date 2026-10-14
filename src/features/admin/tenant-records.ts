@@ -1,5 +1,11 @@
 import type { AdminSnapshot } from "../../shared/admin/contracts";
 
+export function companyCategory(data: Pick<AdminSnapshot, "leases" | "reservations" | "requests">, companyId: string, now = Date.now()) {
+  if (data.leases.some(lease => lease.companyId === companyId)) return "Đang thuê";
+  if (data.reservations.some(hold => hold.companyId === companyId && hold.status === "active" && Date.parse(hold.expiresAt) > now)) return "Đang giữ chỗ";
+  if (data.requests.some(request => request.companyId === companyId && (request.status === "submitted" || request.status === "reviewing"))) return "Đang tư vấn";
+  return "Chưa thuê";
+}
 /** A registered tenant requires a lease; a manually occupied slot remains a separate record. */
 export function tenantRecords(data: Pick<AdminSnapshot, "companies" | "leases" | "slots">) {
   const leasedIds = new Set(data.leases.flatMap(lease => lease.slotIds));

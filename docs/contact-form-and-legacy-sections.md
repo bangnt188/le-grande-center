@@ -1,68 +1,49 @@
-# Architecture Decision — Form liên hệ và section từ website cũ
+# Form liên hệ và section từ website cũ
 
-Ngày: 08/10/2026.
+Cập nhật 14/10/2026: contact/callback đã chuyển sang **live intake**, thay quyết định UI-only/demo ngày 08/10. Không còn random success hoặc tuyên bố mô phỏng đã gửi lead.
 
-## Hiểu
+## Form và trust boundary
 
-- Khách yêu cầu form theo bố cục Canva, cơ chế hạn chế gửi giống Solar.
-- Người dùng xác nhận chưa có API/Turnstile: làm giao diện và cơ chế chặn trước.
-- Bổ sung nguồn ưu tiên cho Thư ngỏ và Tài liệu dự án: https://legrandecentre.vn/.
-- Giữ menu đã chốt và kiến trúc component hiện có.
+`ProjectContact` ghép `ContactForm`; fields dùng public exports `@mall/ui`. App giữ business validation/focus/reset trong `contact-model.ts` và `use-contact-form.ts`; shared `SurveyForm`/`useSurveySubmission` giữ submission state, Toast và UX cooldown. Adapter chọn `mode: live`, gọi `createContactSubmitter` → cùng origin `POST /api/contact`.
 
-## Thiết kế
+Họ tên, doanh nghiệp, điện thoại, email, loại hình, diện tích, thời gian thuê, căn quan tâm và ghi chú là nhu cầu khách cung cấp; consent không tick sẵn. Visit intent thêm ngày/giờ mong muốn, không phải availability đã xác nhận. Validation lỗi không submit; gửi lỗi giữ dữ liệu, thành công reset và giữ ngữ cảnh căn. Không lưu PII/draft trong browser storage. Shared local-storage key `legrande:contact-live-rate-limit:v1` chỉ lưu timestamps/cooldown UX (maxSuccesses 1), không persistence lead và không là backend anti-abuse authority.
 
-`ProjectContact` là component trình bày thông tin liên hệ, ghép `ContactForm` tại feature contact. Form dùng `TextField`, `SelectField`, `TextareaField`, `CheckboxField`, `Button` qua export công khai của `@mall/ui`. Không sửa submodule để nhúng nội dung hay route ứng dụng.
+Server `src/app/api/contact/route.ts` + `src/server/public.ts`:
 
-Form gồm họ tên, doanh nghiệp, điện thoại, email, loại hình kinh doanh, diện tích mong muốn, thời gian thuê, căn quan tâm và ghi chú. Consent không được tick sẵn. Các option loại hình/diện tích/thời gian là bộ lựa chọn ban đầu, cần khách duyệt trước production.
+- Same-origin guard; JSON content type, stream cap 16 KiB, UTF-8/field/consent validation.
+- UUID idempotency header; retry cùng payload reuse key, different payload không reuse receipt. Client chỉ reset receipt attempt sau `{accepted: true}`.
+- Unit ID đối chiếu public DB catalog; pair chỉ hợp lệ shophouse A/B. Không nhận diện tích/tầng/geometry từ query làm dữ liệu chuẩn.
+- HMAC IP với server-only `CONTACT_RATE_LIMIT_SECRET`; deployed ingress phải bảo đảm `cf-connecting-ip` từ proxy tin cậy. Local requests không có IP header dùng bucket `local`, không chứng minh rate policy phân biệt clients production.
+- DB transaction/property lock, durable intake payload hash/receipt, cooldown một request/5 phút và tối đa 20/24h theo hash; retry receipt trước rate check không tạo lead trùng. Không lưu raw IP như application identity.
+- Commit lead/intake + audit/revision rồi trả HTTP 201 `{accepted: true}`. Visit request **không tạo appointment hoặc booking đã xác nhận**, không tự tạo company giả. Nhân viên xử lý lead và tạo/xác nhận lịch trong workflow riêng.
 
-- `contact-model.ts`: kiểu dữ liệu, đọc trường và kiểm tra input nghiệp vụ; không chứa gateway hay thuật toán gửi.
-- `@mall/ui/forms`: `useSurveySubmission` sở hữu khóa gửi, storage, trạng thái và policy mặc định: 3 lần thành công trong rolling window 300 giây → cooldown 300 giây tính từ lần thứ 3, hết cooldown reset cửa sổ. `SurveyForm` sở hữu Toast hệ thống và disclosure demo.
-- `use-contact-form.ts`: adapter nhỏ chọn `mode: "demo"`, local storage với key `legrande:contact-preview-rate-limit:v1`, validation/focus lỗi đầu tiên và reset chỉ sau kết quả thành công. Lỗi giữ nguyên nội dung; validation lỗi không gọi shared submit và không tính quota.
-- `ContactForm`: markup, labels, style nghiệp vụ và countdown; dùng wrapper `SurveyForm` thay vì tự render Toast. Giới thiệu demo đặt trước các trường và liên kết hotline thực tế; disclosure cuối và feedback vẫn thuộc shared wrapper. Demo dùng delay 700ms và kết quả ngẫu nhiên 50/50 của shared hook, không gửi mạng/lưu lead. Chỉ timestamps/cooldown được lưu ở localStorage; storage bị chặn thì shared hook giữ fallback trong cùng tab.
-- `InvestorLetter`: component riêng nhận nội dung và ảnh nền; căn giữa, title/emphasis vàng, divider SVG, ba trích dẫn và chữ ký theo website cũ.
-- `project-document-model.ts`: contract group/download độc lập; `ProjectDocuments` nhận dữ liệu qua props. File có filename → anchor download; nguồn PDF để đọc → anchor mở tab riêng. Tệp chưa có → nhãn và trạng thái chờ, không tạo nút tải disabled hay URL giả. Sơ đồ brochure dẫn tới trang 5; sơ đồ kỹ thuật riêng và giấy phép vẫn được ghi rõ chưa có.
-- Route Tổng quan chỉ ghép các section với `legacy-content.ts`; nguồn/tệp/checksum tại `public/client-reference/legacy/SOURCE.md`.
+Không có Turnstile/Siteverify, email notification hoặc cam kết abuse protection toàn diện trong implementation này. Không yêu cầu thêm provider/domain/DNS để hoàn tất code; domain cutover đã được người dùng hoãn.
 
-Lý do: giao diện nghiệp vụ và validation ở ứng dụng; thuật toán gửi, policy và feedback dùng chung giữa Solar và Le Grande trong component-ui. Trade-off: browser limit có thể bị vượt qua bằng sửa storage/clock hoặc gửi đồng thời từ nhiều tab; đây chỉ là hạn chế thao tác cho UI. Không dùng nó làm kiểm soát abuse production.
+## Public projection và ngữ cảnh căn
 
-## Validate security và file nguồn
+Root public SSR đọc `readPublicWebsite()`; contact options/catalog lấy DB projection, không IndexedDB/fixture fallback. Company/customer contact nội bộ, hold expiry và hợp đồng không được gửi ra public. Mã căn hợp lệ từ `/lien-he/?unit=C.12` điền ngữ cảnh và nhu cầu diện tích; không coi hướng mặt ngoài brochure là hướng cửa đã khảo sát. Mã không hợp lệ giữ form chung, không phản chiếu chuỗi tùy ý thành dự án thật. CTA visit giữ intent/date/time mong muốn, không xác nhận còn trống hoặc đặt lịch thành công.
 
-Form dùng nút “Gửi yêu cầu tư vấn”, consent và trạng thái bằng ngôn ngữ dành cho khách hàng. Adapter chọn demo rõ ràng; disclosure và Toast dùng chung xác định kết quả mô phỏng, không xác nhận lưu hoặc tiếp nhận lead. Không log/ghi personal data, không thêm admin permission hay bí mật client, không nhúng script/raw HTML website cũ. Chỉ đưa public copy vào React và self-host ảnh/tệp đã lấy.
+## Section và file legacy
 
-Kiểm tra URL nguồn:
+Giữ menu/kiến trúc component đã chốt; public không hiển thị hướng dẫn triển khai/nguồn nhập nội dung. Không nhúng raw HTML/script từ website cũ.
 
-| Tài liệu | Kết quả | Cách dùng |
+- `InvestorLetter` nhận copy/ảnh nền, title/emphasis vàng, divider, trích dẫn/chữ ký trình bày từ nguồn cũ. Không phải tính năng ký hợp đồng.
+- `project-document-model.ts` giữ group/download contract; `ProjectDocuments` nhận props, file có URL thật mới có link. Tệp chưa có ghi rõ chờ, không URL giả.
+- Route Tổng quan ghép `legacy-content.ts`; nguồn/checksum lịch sử tại `public/client-reference/legacy/SOURCE.md`. Public files hiện được phục vụ từ R2; không dùng bucket tài liệu private cho download brochure.
+
+Kết quả khảo sát nguồn **08/10/2026** (không phải fetch lại trong lần cập nhật này):
+
+| Tài liệu | Kết quả nguồn lúc khảo sát | Cách dùng |
 | --- | --- | --- |
-| Brochure | URL website cũ 404 | Dùng PDF 17 trang đã có trong repo, SHA-256 khớp file nguồn tải dưới URL sơ đồ |
-| Sơ đồ | URL 200 nhưng bytes/hash trùng brochure | Chờ sơ đồ kỹ thuật riêng; không công bố brochure như một tệp sơ đồ độc lập |
-| Quyết định | 200 application/pdf, 2 trang | Copy nguyên tệp vào public và bật download |
-| Giấy phép XD | 404 | Chờ tệp, không tạo link tải hỏng |
+| Brochure | URL website cũ 404 | Dùng brochure 17 trang đã có, hash khớp nguồn sơ đồ |
+| Sơ đồ | 200 nhưng bytes/hash trùng brochure | Brochure mở đúng trang; không gọi là technical plan độc lập |
+| Quyết định | 200 application/pdf, 2 trang | Giữ nguyên public document đã duyệt |
+| Giấy phép XD | 404 | Chờ file đúng; không tạo broken link |
 
-Tải lại tài liệu công khai không xác nhận tình trạng pháp lý ngoài nội dung file. Stock background của website cũ chỉ là trang trí, không phải ảnh công trình Le Grande Centre.
+Download file không xác nhận tình trạng pháp lý ngoài nội dung của file. Stock background từ site cũ là trang trí, không phải ảnh công trình. Website không có viewer 3D từ 13/10/2026; cảnh homepage 2D/brochure không biến thành surveyed geometry.
 
-## Đề xuất và migration
+## Bằng chứng và giới hạn
 
-1. Duyệt giao diện/options và cung cấp đúng các tệp còn thiếu.
-2. Xây API tiếp nhận serverless ở phạm vi production đã chốt, dùng core backend dùng chung và dữ liệu Lead ứng dụng.
-3. Áp dụng lại lớp server Solar: body cap/validation, allowed origin được cấu hình cố định, Turnstile Siteverify kiểm hostname/action, bộ đếm atomic dùng chung (HMAC IP từ proxy tin cậy, không raw IP log), per-client/global budget và idempotency.
-4. HTTP gateway chỉ trả `received` sau commit lưu lead; token mới cho retry chưa commit, idempotency giữ theo cùng payload. Chuyển UI preview sang chế độ live sau khi có backend, consent/privacy copy được duyệt, cấu hình Turnstile và quy trình quản lý lead.
-5. Không bỏ static export chỉ để giả API trong lần làm UI này. Không bật gửi thật hoặc tự provision dịch vụ bên ngoài.
+Browser local real-cloud phase2 đã POST `/api/contact` 201 và tạo lead/intake DB, không appointment. Kết quả demo/visual checks ngày 08/10 chỉ là lịch sử UI, không bằng chứng backend production. Test auth fixture emailVerified không chứng minh email OTP delivery. Lần chỉnh docs này không chạy build/test hoặc browser smoke mới.
 
-Nguồn kỹ thuật: code Solar `src/features/survey/survey-form.tsx` và `src/services/survey-submissions.ts`; [Turnstile client rendering](https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/) và [server-side validation](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/).
-
-## Kiểm tra
-
-- `tsc --noEmit`: đạt.
-- `git diff --check`: không có lỗi whitespace.
-- Rà hình desktop/mobile ở 1440px/390px cho form, thư ngỏ và tài liệu: không tràn ngang trang. Ảnh lazy-load cần vào vùng nhìn thấy; không suy từ trạng thái chưa tải thành lỗi tệp.
-- Lượt kiểm tra tương tác form qua Orca bị gián đoạn khi runtime đóng kết nối; chưa xác minh hoàn chỉnh chuỗi gửi 3 lần/reload trong trình duyệt. Policy được áp dụng trong module riêng theo code Solar.
-- Không chạy test suite hoặc deploy. API, Turnstile server và lưu lead thật chưa triển khai theo scope đã xác nhận.
-
-## Cập nhật trải nghiệm khách thuê — 08/10/2026
-
-- CTA từ mặt bằng giữ mã ô qua `/lien-he/?unit=C.12`; contact đối chiếu mã với catalog brochure được truyền vào, không nhận diện tích/tầng/hướng từ query tùy ý. Mã hợp lệ điền sẵn ô/tầng và nhóm diện tích, có tóm tắt diện tích thực, hướng mặt ngoài tham khảo từ catalog và cho phép chỉnh sửa nhu cầu. Hướng không được gọi là hướng cửa đã xác nhận; F.1 nội khu giữ trạng thái chưa xác nhận. Mã không hợp lệ giữ form yêu cầu chung; không phản chiếu chuỗi query vào dữ liệu dự án.
-- Gửi demo lỗi giữ mọi giá trị. Thành công reset dữ liệu người dùng nhập về mặc định, giữ ngữ cảnh ô đang xem nếu có. Reload URL giữ được mã ô và nhóm diện tích; không lưu PII hay draft vào storage.
-- Đã smoke trên Chromium 1440×960 và 390×844: C.12/tầng 3/83 m² đi qua cả CTA chi tiết và CTA chung; validation 5 trường bắt buộc focus họ tên; cả hai kết quả demo đã quan sát; lỗi giữ nội dung chỉnh sửa, thành công reset, unknown unit để trống. Sơ đồ trong brochure trả HTTP 200 và có link trang 5. Không thay API, consent, quota hay shared UI package.
-
-
-Theo yêu cầu mới, nguồn nhập nội dung và hướng dẫn triển khai không nằm trên giao diện public. Menu và kiến trúc component giữ nguyên. Form chọn demo của shared survey submission, giữ validation/focus nghiệp vụ và countdown; chưa nối API. Shared `SurveyForm` vẫn hiển thị disclosure và thông báo mô phỏng trung thực, không khẳng định có lead đã lưu. Những dữ liệu vị trí 3D chỉ dùng minh họa không được hiển thị thành mặt bằng thật; người dùng được dẫn sang sơ đồ brochure đã nhập. Không thay đổi quyền truy cập, kiểm tra freshness của projection hay dữ liệu cho thuê. Vận hành nhận lead vẫn cần shared live mode với HTTP handler thật và kiểm soát server trong migration ở trên.
+Next dùng SSR/standalone/OpenNext, không static export/Pages. Frontend production chưa deploy/cutover; native Worker→Neon S3/Functions còn 403 HTML trước provider, không claim all-Worker media ready. [Backend readiness](backend-readiness.md) ghi ranh giới proof và giới hạn. Public/form không đọc opaque browser snapshots khi DB lỗi.

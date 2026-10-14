@@ -15,7 +15,7 @@ export type LeasingOrientation = Readonly<{
 export type LeasingAvailability = "available" | "leased";
 export type LeasingUnit = Readonly<{
   id: string; floorId: number; area: number; types: readonly string[];
-  availability: LeasingAvailability; // Temporary mock until approved availability is connected.
+  availability: LeasingAvailability; // Published occupancy from the server public projection.
   orientation: string; // Approximate exterior aspect, not a certified entrance direction.
   dimensions?: Readonly<{ width: number; depth: number }>;
   note?: string;

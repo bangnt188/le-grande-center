@@ -2,22 +2,18 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { publicPageMetadata } from "@/features/public/seo-metadata";
 import { LeasingBreadcrumbStructuredData } from "@/features/public/seo-structured-data";
-import { BROCHURE_FLOORS, BROCHURE_UNITS } from "@/features/public/brochure-leasing";
+import { readPublicLeasing } from "@/server/public-leasing";
 import { PublicPageLayout } from "@/features/public/public-page-layout";
 import { LeasingUnitDetail } from "@/features/public/leasing-unit-detail";
 import styles from "@/features/public/leasing-unit-detail.module.css";
 
 type Props = { params: Promise<{ unitId: string }> };
 
-export const dynamicParams = false;
-
-export function generateStaticParams() {
-  return BROCHURE_UNITS.map(unit => ({ unitId: unit.id }));
-}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { unitId } = await params;
-  const unit = BROCHURE_UNITS.find(item => item.id === unitId);
+  const { units } = await readPublicLeasing();
+  const unit = units.find(item => item.id === unitId);
   if (!unit) notFound();
   const title = `Mặt bằng ${unit.id} · Tầng ${unit.floorId} | Le Grande Centre`;
   const description = `Mặt bằng ${unit.id}, tầng ${unit.floorId}, diện tích ${unit.area.toLocaleString("vi-VN")} m² theo brochure Le Grande Centre. Xem sơ đồ vị trí, thông tin tham khảo và liên hệ tư vấn.`;
@@ -26,10 +22,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function UnitPage({ params }: Props) {
   const { unitId } = await params;
-  const unit = BROCHURE_UNITS.find(item => item.id === unitId);
-  const floor = BROCHURE_FLOORS.find(item => item.id === unit?.floorId);
+  const { units, floors } = await readPublicLeasing();
+  const unit = units.find(item => item.id === unitId);
+  const floor = floors.find(item => item.id === unit?.floorId);
   if (!unit || !floor) notFound();
   return <><LeasingBreadcrumbStructuredData unitId={unit.id} floorId={floor.id}/><PublicPageLayout active="/mat-bang/" variant="project" className={styles.frame} colorScheme="light">
-    <LeasingUnitDetail unit={unit} floor={floor} floorUnits={BROCHURE_UNITS.filter(item => item.floorId === floor.id)}/>
+    <LeasingUnitDetail unit={unit} floor={floor} floorUnits={units.filter(item => item.floorId === floor.id)} inventory={units}/>
   </PublicPageLayout></>;
 }

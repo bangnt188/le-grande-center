@@ -1,10 +1,65 @@
 {
-  "name": "le-grande-center",
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "le-grande-centre",
+  "main": ".open-next/worker.js",
   "compatibility_date": "2026-10-13",
-  "build": {
-    "command": "set -eu\nif [ ! -f packages/ui/package.json ] || [ ! -f packages/backend/package.json ]; then\n  if [ -z \"${SUBMODULE_READ_TOKEN:-}\" ]; then echo 'Set SUBMODULE_READ_TOKEN as a Cloudflare build secret for the private submodules'; exit 1; fi\n  git -c \"url.https://x-access-token:$SUBMODULE_READ_TOKEN@github.com/.insteadOf=https://github.com/\" submodule update --init --recursive --depth=1 -- packages/ui packages/backend\nfi\nnpm ci\nNEXT_PUBLIC_SITE_URL=https://legrandecentre.vn/ SEO_INDEXABLE=true npm run build"
-  },
+  "compatibility_flags": [
+    "nodejs_compat",
+    "global_fetch_strictly_public"
+  ],
+  "workers_dev": true,
   "assets": {
-    "directory": "./out"
-  }
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "r2_buckets": [
+    {
+      "binding": "PRIVATE_DOCUMENTS",
+      "bucket_name": "mall-documents",
+      "remote": true
+    },
+    {
+      "binding": "PUBLIC_ASSETS",
+      "bucket_name": "mall-assets",
+      "remote": true
+    }
+  ],
+  "vars": {
+    "NEXT_PUBLIC_SITE_URL": "https://legrandecentre.vn/",
+    "SEO_INDEXABLE": "true",
+    "R2_PRIVATE_BUCKET": "mall-documents",
+    "R2_ACCOUNT_ID": "4e577220abb44fa926f2a11b8cf10b55"
+  },
+  "build": {
+    "command": "set -eu\nif [ ! -f packages/ui/package.json ] || [ ! -f packages/backend/package.json ]; then\n  if [ -z \"${SUBMODULE_READ_TOKEN:-}\" ]; then echo \"Set SUBMODULE_READ_TOKEN as a build secret for private submodules\"; exit 1; fi\n  git -c \"url.https://x-access-token:$SUBMODULE_READ_TOKEN@github.com/.insteadOf=https://github.com/\" submodule update --init --recursive --depth=1 -- packages/ui packages/backend\nfi\nnpm ci\nnpm run build:cloudflare"
+  },
+  "env": {
+    "stage2": {
+      "name": "le-grande-centre-stage2",
+      "workers_dev": true,
+      "assets": {
+        "directory": ".open-next/assets",
+        "binding": "ASSETS"
+      },
+      "r2_buckets": [
+        {
+          "binding": "PRIVATE_DOCUMENTS",
+          "bucket_name": "mall-documents-stage2",
+          "remote": true
+        },
+        {
+          "binding": "PUBLIC_ASSETS",
+          "bucket_name": "mall-assets",
+          "remote": true
+        }
+      ],
+      "vars": {
+        "NEXT_PUBLIC_SITE_URL": "https://legrandecentre.vn/",
+        "SEO_INDEXABLE": "false",
+        "R2_PRIVATE_BUCKET": "mall-documents-stage2",
+        "R2_ACCOUNT_ID": "4e577220abb44fa926f2a11b8cf10b55"
+      }
+    }
+  },
+  "minify": true
 }

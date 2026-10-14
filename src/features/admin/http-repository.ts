@@ -5,13 +5,14 @@ import { isFloorConfigurations, isSlotStatus } from "../../shared/admin/space-mo
 // Transport ready for a separately deployed authenticated backend. No database
 // connection or credentials belong here. Endpoint contracts are documented.
 export function createHttpRepository(baseUrl: string): AdminRepository {
+  const relative = baseUrl === "/api/admin";
   const base = new URL(baseUrl, "https://invalid.local");
-  if (base.hostname === "invalid.local" || (base.protocol !== "https:" && !(base.protocol === "http:" && ["localhost", "127.0.0.1"].includes(base.hostname))) || base.username || base.password || base.search || base.hash) {
-    throw new Error("Admin API URL phải là HTTPS tuyệt đối, không chứa credentials/query/hash.");
+  if ((!relative && base.hostname === "invalid.local") || (base.protocol !== "https:" && !(base.protocol === "http:" && ["localhost", "127.0.0.1"].includes(base.hostname))) || base.username || base.password || base.search || base.hash) {
+    throw new Error("Admin API URL phải là /api/admin hoặc HTTPS tuyệt đối không chứa credentials/query/hash.");
   }
   let revision: number | null = null;
   async function request(path: string, init?: RequestInit): Promise<AdminSnapshot> {
-    const response = await fetch(`${base.href.replace(/\/$/, "")}/${path}`, {
+    const response = await fetch(`${relative ? "/api/admin" : base.href.replace(/\/$/, "")}/${path}`, {
       ...init, credentials: "include", cache: "no-store",
     });
     if (!response.ok) {
@@ -22,7 +23,16 @@ export function createHttpRepository(baseUrl: string): AdminRepository {
         413: "Tệp vượt quá dung lượng cho phép.",
         507: "Không đủ dung lượng lưu trữ. Tải lại số liệu và chọn ít tệp hơn hoặc liên hệ quản trị viên.",
       };
-      throw new Error(messages[response.status] ?? `Không thể tải/lưu dữ liệu (${response.status}). Thử lại.`);
+      let message = messages[response.status] ?? `Không thể tải/lưu dữ liệu (${response.status}). Thử lại.`;
+      if (response.status >= 400 && response.status < 500 && response.status !== 401) {
+        const problem: unknown = await response.json().catch(() => null);
+        if (problem && typeof problem === "object" && "error" in problem) {
+          const error = problem.error;
+          if (typeof error === "string" && error.length <= 2000) message = error;
+          else if (error && typeof error === "object" && "message" in error && typeof error.message === "string" && error.message.length <= 2000) message = error.message;
+        }
+      }
+      throw new Error(message);
     }
     const value: unknown = await response.json();
     if (!value || typeof value !== "object" || !("revision" in value) || typeof value.revision !== "number" || !("slots" in value) || !Array.isArray(value.slots) || !("groups" in value) || !Array.isArray(value.groups) || !("leads" in value) || !Array.isArray(value.leads) || !("media" in value) || !Array.isArray(value.media)) {

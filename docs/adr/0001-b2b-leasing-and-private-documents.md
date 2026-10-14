@@ -1,27 +1,21 @@
 # Slot gốc, cam kết theo thời gian và tài liệu private
 
-Trạng thái: quyết định nghiệp vụ đã chốt; schema và hạ tầng chưa triển khai.
+Trạng thái 14/10/2026: quyết định đã triển khai trong phase2 relational backend. Baseline + migrations 001–004 đã áp dụng trên stage2, regression disposable và backend production với approved project seed/owner allowlist/logo, không customer/financial fixtures; frontend production/domain/DNS chưa cutover.
 
-Dùng slot gốc ổn định, phiên bản mặt bằng tham chiếu slot và phân bổ theo thời
-gian để hỗ trợ nhiều phương án ghép mà không cho cam kết trùng. Luồng khách là
-**gửi yêu cầu → chủ đầu tư duyệt → giữ chỗ có hạn**; lịch hẹn độc lập với giữ chỗ.
-Dữ liệu công khai được duyệt riêng, không công bố countdown hợp đồng/hold mặc định.
-Tài liệu hợp đồng đặt trong R2 private, xem qua Worker kiểm tra session và quyền
-trên mỗi tài liệu. Đây là ranh giới bền vững giúp giữ UI khi thay backend/storage.
+Dùng slot gốc ổn định, phiên bản mặt bằng tham chiếu slot và phân bổ theo thời gian để hỗ trợ phương án ghép mà không cho cam kết trùng. Luồng khách là **gửi yêu cầu → chủ đầu tư duyệt → giữ chỗ có hạn**; lịch hẹn độc lập. Public form chỉ tạo lead/intake, không booking. Public projection không công bố tenant/contact nội bộ hoặc countdown hợp đồng/hold.
+
+Workspace ghi quan hệ bằng transaction/property lock, revision CAS, idempotency receipt, audit và RLS; không opaque snapshot/IndexedDB fallback. Occupancy chỉ Trống/Đang thuê, selection là UI. Hold vẫn Trống nhưng chặn mutation xung đột. Không tạo tài chính/chữ ký giả.
+
+Tài liệu hợp đồng upload/quản lý/liên kết PDF có sẵn vào R2 private `mall-documents` (`mall-documents-stage2` ở stage2), xem qua same-origin `/api/admin/media/{id}/view` kiểm tra session/property mỗi GET/HEAD/Range. Quarantine cần **manual external review**, không antivirus-clean, không eSign hoặc xác nhận đã ký. Giữ nguyên bytes/hash, retention và liên kết chặn xóa.
 
 ## Trade-off
 
-- Nhiều quan hệ hơn draft admin v1; đổi lại kiểm soát chồng slot, lịch sử bản vẽ
-  và hợp đồng mà không sửa slot gốc khi khách chọn phương án khác.
-- Worker phải xử lý streaming/Range và authorization; đổi lại URL xem không cấp
-  quyền cho người nhận link. Presigned URL vẫn dùng được cho download có hạn khi
-  chính sách cho phép; người cầm link có quyền đến khi hết hạn.
-- Cấu hình nhãn trạng thái bằng dữ liệu. Thêm state có tác động đến cam kết cần
-  review workflow; đổi nhãn không thay quyền hay giải phóng slot.
+- Quan hệ nhiều hơn browser snapshot, đổi lại kiểm soát chồng slot, lịch sử bản vẽ và hồ sơ mà không thay slot gốc.
+- Authenticated streaming/Range phức tạp hơn public URL, nhưng không biến document URL thành bearer permission. Bytes đã tải không thể thu hồi.
+- Label không quyết định quyền hoặc giải phóng slot; thay lifecycle phải review command/invariant và migration.
 
-## Migration
+## Migration và deployment
 
-Baseline PostgreSQL duy nhất ở `database/schema.sql`, schema `leasing`.
-Đây là schema mới, chưa apply/migrate dữ liệu. Xác nhận bản vẽ, map ID,
-backfill và triển khai auth/commands/storage trước khi chuyển adapter HTTP.
-Kế hoạch và các điểm chưa chốt: [Thiết kế B2B](../b2b-leasing-design.md).
+Baseline `database/schema.sql`, numbered migrations ở `database/migrations/`; operator `db:migrate` dùng direct connection, không tự apply production khi build. Chuyển tài khoản cần schema+migrations, relational IDs và object keys/catalog + verified metadata/bytes, không opaque snapshots.
+
+Native Worker→Neon S3/Functions còn 403 HTML trước provider; local Node real-cloud proof không phải all-Worker readiness. Người dùng hoãn domain/DNS; chưa deploy/cutover frontend production. Xem [readiness](../backend-readiness.md), [private documents](../private-documents-r2.md), [thiết kế B2B](../b2b-leasing-design.md).

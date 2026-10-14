@@ -19,10 +19,10 @@ function ContactFormContent({ visitPhone, units }: { visitPhone: string; units: 
   const { submitting, ready, coolingDown, countdown } = submission;
   const field = { controlClassName: styles.control, labelClassName: styles.label, containerClassName: styles.field };
   return <div className={styles.frame} data-ui-scheme="light">
-    <SurveyForm submission={submission} className={styles.form} onSubmit={submit} noValidate aria-label={visit ? "Đăng ký tham quan thực tế" : "Yêu cầu tư vấn mặt bằng"} aria-describedby={visit ? "contact-demo-intro contact-visit-explanation" : "contact-demo-intro"}>
+    <SurveyForm submission={submission} feedback={{ successTitle: "Đã tiếp nhận yêu cầu", successMessage: "Đội ngũ Le Grande Centre sẽ liên hệ để tư vấn hoặc xác nhận thời gian tham quan." }} className={styles.form} onSubmit={submit} noValidate aria-label={visit ? "Đăng ký tham quan thực tế" : "Yêu cầu tư vấn mặt bằng"} aria-describedby={visit ? "contact-intro contact-visit-explanation" : "contact-intro"}>
       {visit && <h2 className={styles.visitHeading}>Đăng ký tham quan thực tế</h2>}
-      <p id="contact-demo-intro" className={styles.demoIntro}><strong>Form demo</strong>Thông tin không được gửi hoặc lưu. Để trao đổi thực tế, <a href={visitPhone}>gọi hotline cho thuê</a> hoặc dùng email ở phần liên hệ.</p>
-      {visit && <p id="contact-visit-explanation" className={styles.visitExplanation}>Chọn ngày và buổi bạn mong muốn; đây chưa phải lịch hẹn đã xác nhận. Trong quy trình đăng ký thực tế, đội ngũ Le Grande Centre sẽ liên hệ để xác nhận thời gian. Bản demo này không gửi yêu cầu cho đội ngũ.</p>}
+      <p id="contact-intro" className={styles.intro}><strong>Yêu cầu liên hệ</strong>Thông tin được gửi đến đội ngũ Le Grande Centre để tư vấn. Bạn cũng có thể <a href={visitPhone}>gọi hotline cho thuê</a>.</p>
+      {visit && <p id="contact-visit-explanation" className={styles.visitExplanation}>Chọn ngày và buổi bạn mong muốn; đây chưa phải lịch hẹn đã xác nhận. Đội ngũ Le Grande Centre sẽ liên hệ để xác nhận thời gian.</p>}
       {inquiry && <p className={styles.inquiry}>{visit ? "Mặt bằng muốn tham quan:" : "Mặt bằng đang quan tâm:"} <strong>{inquiry.id} · Tầng {inquiry.floorId} · {inquiry.area.toLocaleString("vi-VN")} m²</strong>. Bạn có thể chỉnh nhu cầu bên dưới.<br/>Hướng mặt ngoài (tham khảo): {inquiry.orientation}.
         {pair && <><br/><strong>Shophouse liên thông {pair[0].id} / {pair[1].id}</strong>: {pair[0].id} (Tầng 1) {pair[0].area.toLocaleString("vi-VN")} m² + {pair[1].id} (Tầng 2) {pair[1].area.toLocaleString("vi-VN")} m²; tổng diện tích theo brochure <strong>{(pair[0].area + pair[1].area).toLocaleString("vi-VN")} m²</strong>.<br/>Có thể thuê riêng từng mặt bằng hoặc thuê kết hợp cả cặp.</>}
       </p>}
@@ -44,8 +44,8 @@ function ContactFormContent({ visitPhone, units }: { visitPhone: string; units: 
       </div>
       <CheckboxField id="contact-consent" name="consent" required containerClassName={styles.consent} label="Tôi đồng ý để đội ngũ Le Grande Centre liên hệ tư vấn về nhu cầu mặt bằng." error={errors.consent}/>
       <div className={styles.actions}>
-        <Button type="submit" className={styles.submit} disabled={!ready || coolingDown} loading={submitting} loadingLabel={visit ? "Đang mô phỏng" : "Đang gửi"}>
-          {submitting ? visit ? "Đang mô phỏng…" : "Đang gửi…" : coolingDown ? `Gửi lại sau ${countdown}` : visit ? "Đăng ký tham quan thực tế" : "Gửi yêu cầu tư vấn"}
+        <Button type="submit" className={styles.submit} disabled={!ready || coolingDown} loading={submitting} loadingLabel="Đang gửi">
+          {submitting ? "Đang gửi…" : coolingDown ? `Gửi lại sau ${countdown}` : visit ? "Đăng ký tham quan thực tế" : "Gửi yêu cầu tư vấn"}
         </Button>
         <a className={styles.visit} href={visitPhone}>Đặt lịch tham quan <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10" stroke="currentColor" strokeWidth="1.5"/></svg></a>
       </div>

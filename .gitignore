@@ -1,7 +1,7 @@
 node_modules/
 next-env.d.ts
 dist/
-.next/
+.next*/
 out/
 coverage/
 *.tsbuildinfo
@@ -14,3 +14,6 @@ coverage/
 .neon
 skills-lock.json
 .wrangler/
+.open-next/
+.dev.vars*
+cloudflare-env.d.ts

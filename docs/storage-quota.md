@@ -1,85 +1,47 @@
-# Architecture Decision: R2 storage quota
+# Storage quota — phase 2
 
-## Decision
+## Chính sách
 
-Application quota: **8,500,000,000 bytes (8.5 decimal GB)** across media,
-private documents, thumbnails and retained versions within one controlled R2
-account storage scope. Reserve 1.5 GB below the referenced free storage
-allowance. Never grant each project a separate 8.5 GB budget within the same
-account. Other buckets/writers must be included or have separately allocated
-budgets within this ceiling.
+App cap **8,500,000,000 bytes (8.5 decimal GB)**. Đây là ngân sách ứng dụng bảo thủ, không phải quota vật lý/giới hạn thanh toán của R2 hay Neon và không cộng free tier hai provider thành một cam kết miễn phí.
 
-The meter uses `(usedBytes + reservedBytes) / 8,500,000,000`:
+Meter `(usedBytes + reservedBytes) / 8,500,000,000`:
 
-- ≤65%: normal, green.
-- >65% and ≤85%: warning, yellow.
-- >85%: critical, red.
-- ≥100%: block new uploads. Existing authorized reads remain available.
-- Missing usage: show unavailable state and block uploads until refreshed.
-- A batch may reach exactly 8.5 GB, but cannot exceed it. Reject the entire batch
-  before creating preview URLs if its total is larger than remaining capacity.
+- ≤65%: bình thường; >65% đến 85%: cảnh báo; >85%: nguy cấp.
+- Đạt 100%: chặn upload mới; vẫn cho authorized reads.
+- Thiếu usage/inventory hoặc ledger mismatch: unavailable, khóa upload.
+- Có thể đạt đúng cap, không vượt cap; không tin byte count/quota do browser gửi.
 
-The media demo uses existing `AdminPanel`, `ProgressBar`, `Badge`, `Select`,
-`Button` and system Toast. Sample state controls exist only in the demo
-repository, never in the HTTP adapter. Upload adds actual `File.size` to sample
-usage; selecting another sample scenario resets the aggregate sample usage.
-All sample storage data is ephemeral and is not measured from R2.
+Không còn quota scenario/demo/local IndexedDB accounting. UI dùng shared `AdminPanel`, `ProgressBar`, `Badge`, fields và Toast; enforcement thuộc server/DB.
 
-## API contract and migration
+## Phạm vi được tính
 
-`AdminSnapshot.storage` is either `null` (unknown/unavailable) or:
+`src/server/media/repository.ts` đối soát trước upload:
 
-```ts
-{ usedBytes: number; reservedBytes: number }
-```
+1. Liệt kê **toàn bộ public R2 `mall-assets`** qua `PUBLIC_ASSETS`, gồm ảnh/video/brochure và object public còn giữ dù không có trong filtered media list.
+2. Liệt kê private R2 `PRIVATE_DOCUMENTS`: `mall-documents` mặc định, `mall-documents-stage2` ở stage2. So sánh từng key/size, count và bytes với tracked active/reserved document versions.
+3. Cộng tracked upload bytes trong Neon `media` và private R2 ở trạng thái ready/quarantine, cùng durable reserved bytes.
+4. So sánh ledger với relational metadata. Inventory lỗi, untracked/missing/mismatched private object hoặc vượt cap đặt external usage unavailable và audit lý do; khóa upload đến khi operator xử lý/đối soát.
 
-Both values are non-negative safe integers in bytes. Counts include every
-physical object in the quota scope, not just the current media list or its
-filters. Every read/mutation response supplies fresh counts. Missing or malformed
-storage metadata fails the client contract; unknown usage disables upload. The
-UI can be reused unchanged when the authenticated API is connected.
+`usedBytes` trả UI = tracked used + verified public inventory bytes; `reservedBytes` trả riêng. Public project catalog là metadata chỉ đọc, **không dùng để giả đo dung lượng bucket**. Neon bytes hiện theo tracked metadata, không tuyên bố đã full-inventory Neon bucket hay mọi account/bucket bên ngoài. Writer/object không thuộc scope phải được kiểm soát và phân bổ ngân sách riêng; app cap không enforce toàn tài khoản provider. Public bucket đang dùng chung giữa môi trường không được tính như free budget riêng cho từng app.
 
-An upload quota rejection returns HTTP 507; per-file size rejection returns 413.
-Existing type allowlist and 10 MiB per-file restriction remain. The browser's
-`accept`, MIME and quota checks serve UX; production checks happen on the server.
+## Upload và cleanup thật
 
-## Security and enforcement before production
+- Session verified + active staff allowlist, origin và property/scope từ DB.
+- Bounded multipart: tối đa 4 files, 10 MiB/file, 20 MiB batch (+64 KiB multipart overhead). Raster PNG/JPEG/WebP kiểm signature/dimensions (4096px/4MP), decode/re-encode bằng Photon; PDF giữ nguyên bytes, quarantine.
+- Property lock + revision CAS/idempotency; reservation/keys tồn tại bền vững trước provider writes. Reserve tổng **bytes sau xử lý** chỉ khi used + public inventory + reserved + incoming ≤ cap.
+- Upload ảnh qua x-secret protected Neon origin; S3 write keys chỉ ở origin. PDF qua R2 private binding. Node dev dùng `remote: true`, không storage giả.
+- Finalize chuyển reserved → used sau writes; retry finalized receipt không tạo bản mới. PDF quarantine vẫn tính used; ảnh đã re-encode có thể ready.
+- Failure/expired reservation: xóa owned temporary objects trước release quota. Cleanup lỗi giữ reservation để retry; không fake release. Cleanup expired batches (>15 phút) chạy theo authorized upload flow, không tuyên bố có cron tự động.
+- Delete bị chặn khi file liên kết hợp đồng/bản vẽ/retention hoặc là selected logo; chỉ giảm ledger sau delete provider hoàn tất. Reconcile API `/api/admin/media/reconcile` yêu cầu quyền, CAS/idempotency và audit.
 
-The current static demo implements client/repository checks only. It does not
-configure R2 or implement the following authoritative backend flow:
+DB và object storage không có distributed atomic commit. Low-volume property lock/provider-call serialization là chủ đích hiện tại; durable reservations và đối soát fail-closed bảo vệ khi lỗi/uncertain commit. Không gọi đây là cleanup mọi orphan/provider writer trong tài khoản.
 
-1. Verify session, upload permission and tenant/property scope. Use private
-   Standard storage; never expose R2 keys or a public private-document bucket.
-2. In one DB transaction, lock the account quota row; atomically reserve total
-   batch bytes only when `used + reserved + incoming <= limit`. Store an
-   idempotent upload session with object keys, expected sizes and expiry.
-3. Upload through an authenticated Worker that enforces the reserved byte cap
-   while reading the body, rejects excess bytes and validates file content.
-   Do not rely on a browser-declared size or an unrestricted presigned PUT to
-   enforce this hard limit. Include temporary objects and multipart bytes in
-   accounting. The Worker keeps upload bodies out of Vercel function limits.
-4. Finalize actual sizes atomically, converting reservation to used bytes only
-   after successful storage. Repeated finalize is idempotent. Failed/expired
-   uploads delete/abort temporary objects before releasing their reservations.
-5. Deletion reduces used bytes only after storage deletion is confirmed. Honor
-   contract retention requirements and audit authorization. Reconcile ledger
-   against R2; block new uploads during unexplained mismatch. Only this service
-   can write to controlled buckets.
+`AdminSnapshot.storage` là `null` khi không biết hoặc `{ usedBytes: number; reservedBytes: number }` với nonnegative safe integer bytes. HTTP 413 cho size cap, 507 cho quota, 503 khi không xác nhận inventory; client checks chỉ UX.
 
-Threats: concurrent upload races, forged sizes, duplicate retries, abandoned
-multipart uploads, external bucket writers and cross-tenant file access.
-Transaction reservations, bounded ingress, idempotency, reconciliation and
-scoped private access address these threats. The trade-off is a durable ledger
-and cleanup/reconciliation jobs in exchange for a limit independent of a
-long-lived application server. A quota increase changes backend policy and
-client contract together; never trust a limit supplied by the client.
+## Evidence và deployment
 
-## Provider allowance is not a hard limit
+Local Node với Neon/R2 thật đã upload/read/delete PNG, private PDF quarantine→manual-review→Range. Không có antivirus-clean claim. Không có run quota/build/test mới trong lần chỉnh tài liệu này; [readiness](backend-readiness.md) ghi bằng chứng chính xác.
 
-Cloudflare currently includes **10 GB-month/month** for R2 Standard storage,
-plus separate Class A/B operation allowances. Storage billing averages daily
-peak usage across the billing period. An 8.5 GB storage cap does not guarantee
-zero operation charges, undo previous usage charges or impose a provider-wide
-spending cap.
+Worker native fetch tới Neon S3/Functions hiện 403 HTML trước provider; full Worker media readiness chưa chứng minh. Production frontend chưa deploy/cutover; domain/DNS đã hoãn, không dùng việc đổi domain như yêu cầu trong scope code.
 
-Source checked 2026-10-06: [Cloudflare R2 pricing](https://developers.cloudflare.com/r2/pricing/).
+R2 Standard pricing tham chiếu 06/10/2026 có 10 GB-month storage allowance và Class A/B riêng; vượt operation allowance vẫn có thể tính tiền dù app dưới 8.5 GB. Kiểm tra giá/account thực tại [R2 pricing](https://developers.cloudflare.com/r2/pricing/) và [Neon research](neon-free-tier-research.md) trước quyết định ngân sách.

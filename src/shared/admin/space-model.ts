@@ -5,7 +5,8 @@ export function isSlotStatus(value: unknown): value is SlotStatus { return value
 export type Floor = (typeof FLOORS)[number];
 export type Slot = {
   id: string; floor: Floor; code: string; order: number;
-  side: "west" | "east"; area: number; width: number; status: SlotStatus; tenant: string;
+  side: "west" | "east" | null; area: number; width: number; status: SlotStatus; tenant: string;
+  connectedSlotIds?: string[];
 };
 export type SpaceGroup = {
   id: string; floor: Floor; name: string; slotIds: string[]; status: SlotStatus;
@@ -34,8 +35,20 @@ export function mergeIssue(slots: Slot[], groups: SpaceGroup[], ids: string[], f
   if (members.some((slot) => !slot)) return "Có slot không tồn tại. Hãy chọn lại.";
   const valid = members.filter((slot): slot is Slot => !!slot).sort((a, b) => a.order - b.order);
   if (valid.some((slot) => slot.floor !== floor)) return "Chỉ ghép các slot trên cùng tầng đang xem.";
-  if (valid.some((slot) => slot.side !== valid[0].side)) return "Không thể ghép qua sảnh hoặc khoảng thông tầng.";
-  if (valid.some((slot, i) => i > 0 && slot.order !== valid[i - 1].order + 1)) return "Các slot phải liền kề. Chọn thêm slot ở giữa hoặc bỏ slot cách xa.";
+  if (valid.some(slot => slot.side === null)) {
+    const reached = new Set([valid[0].id]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const slot of valid) if (reached.has(slot.id)) for (const id of slot.connectedSlotIds ?? []) {
+        if (ids.includes(id) && !reached.has(id)) { reached.add(id); changed = true; }
+      }
+    }
+    if (reached.size !== valid.length) return "Chưa có cạnh nối được phê duyệt; không ghép theo số thứ tự slot.";
+  } else {
+    if (valid.some(slot => slot.side !== valid[0].side)) return "Không thể ghép qua sảnh hoặc khoảng thông tầng.";
+    if (valid.some((slot, i) => i > 0 && slot.order !== valid[i - 1].order + 1)) return "Các slot phải liền kề. Chọn thêm slot ở giữa hoặc bỏ slot cách xa.";
+  }
   if (groups.some((group) => group.slotIds.some((id) => ids.includes(id)))) return "Slot đã thuộc một mặt bằng ghép. Tách nhóm hiện có trước.";
   if (valid.some(slot => slot.tenant || slot.status !== "Trống")) return "Chỉ ghép slot Trống, chưa có đối tác. Rà soát trạng thái trước.";
   return null;

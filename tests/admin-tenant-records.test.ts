@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { tenantRecords } from "../src/features/admin/tenant-records";
+import { companyCategory, tenantRecords } from "../src/features/admin/tenant-records";
 import type { Company, Lease } from "../src/shared/admin/b2b-model";
 import type { Slot } from "../src/shared/admin/space-model";
 
@@ -18,8 +18,18 @@ test("tenant register uses lease identity, deduplicates slots and keeps manual o
   assert.equal(rows[0].leases, "lease-1, lease-2");
   assert.equal(rows[1].id, "manual:slot-2");
   assert.equal(rows[1].name, company.name);
-  assert.equal(rows[1].leases, "—");
-  assert.match(rows[1].label, /chưa có hồ sơ thuê/);
-  assert.equal(rows[2].name, "Chưa ghi tên bên thuê");
   assert.ok(rows.every(row => !row.slots.some(item => item.id === vacant.id)));
+});
+
+test("company category uses tenant identity and unexpired commitments with lease precedence", () => {
+  const now = Date.parse("2026-10-14T00:00:00Z");
+  const companyId = "company-1";
+  const request = { id: "request-1", companyId, floor: 1 as const, slotIds: ["slot-1"], area: 100, start: "2026-10-14", end: "2027-10-14", status: "reviewing" as const, note: "", received: "2026-10-13" };
+  const hold = { id: "hold-1", requestId: request.id, companyId, floor: 1 as const, slotIds: request.slotIds, area: 100, start: request.start, end: request.end, expiresAt: new Date(now + 1).toISOString(), status: "active" as const, note: "" };
+  const lease: Lease = { id: "lease-1", companyId, floor: 1, slotIds: request.slotIds, area: 100, start: request.start, end: request.end, status: "executed", rentNote: "", documentName: "recorded.pdf" };
+  assert.equal(companyCategory({ leases: [lease], reservations: [hold], requests: [request] }, companyId, now), "Đang thuê");
+  assert.equal(companyCategory({ leases: [], reservations: [hold], requests: [request] }, companyId, now), "Đang giữ chỗ");
+  assert.equal(companyCategory({ leases: [], reservations: [{ ...hold, expiresAt: new Date(now).toISOString() }], requests: [request] }, companyId, now), "Đang tư vấn");
+  assert.equal(companyCategory({ leases: [], reservations: [{ ...hold, status: "cancelled" }], requests: [{ ...request, status: "rejected" }] }, companyId, now), "Chưa thuê");
+  assert.equal(companyCategory({ leases: [lease], reservations: [hold], requests: [request] }, "different-company", now), "Chưa thuê");
 });

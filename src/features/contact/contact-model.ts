@@ -57,14 +57,14 @@ export function readContactValues(form: HTMLFormElement): ContactValues {
   };
 }
 
-export function validateContact(values: ContactValues, { visit = false, paired = false, now = new Date() } = {}): ContactErrors {
+export function validateContact(values: ContactValues, { visit = false, paired = false, callback = false, now = new Date(), today = localDateValue(now) } = {}): ContactErrors {
   const errors: ContactErrors = {};
   if (values.name.length < 2 || values.name.length > 100) errors.name = "Nhập họ tên từ 2 đến 100 ký tự.";
   if (values.company.length > 150) errors.company = "Tên doanh nghiệp tối đa 150 ký tự.";
   const digits = values.phone.replace(/\D/g, "");
   if (!/^[+0-9().\s-]+$/.test(values.phone) || digits.length < 9 || digits.length > 15 || values.phone.length > 32) errors.phone = "Nhập số điện thoại hợp lệ, từ 9 đến 15 chữ số.";
-  if (values.email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) errors.email = "Nhập địa chỉ email hợp lệ.";
-  if (!BUSINESS_OPTIONS.some(option => option.value === values.business)) errors.business = "Chọn loại hình kinh doanh.";
+  if (values.email.length > 254 || ((!callback || values.email) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email))) errors.email = "Nhập địa chỉ email hợp lệ.";
+  if ((!callback || values.business) && !BUSINESS_OPTIONS.some(option => option.value === values.business)) errors.business = "Chọn loại hình kinh doanh.";
   if (values.area && !AREA_OPTIONS.some(option => option.value === values.area)) errors.area = "Chọn diện tích trong danh sách.";
   if (values.timing && !TIMING_OPTIONS.some(option => option.value === values.timing)) errors.timing = "Chọn thời gian trong danh sách.";
   if (values.space.length > 150) errors.space = "Thông tin mặt bằng tối đa 150 ký tự.";
@@ -74,7 +74,7 @@ export function validateContact(values: ContactValues, { visit = false, paired =
     const date = values.visitDate ?? "";
     // Local noon avoids UTC shifts and DST transitions at midnight. Compare calendar dates, not instants.
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || localDateValue(new Date(`${date}T12:00:00`)) !== date) errors.visitDate = "Chọn ngày tham quan hợp lệ.";
-    else if (date < localDateValue(now)) errors.visitDate = "Chọn ngày tham quan từ hôm nay trở đi.";
+    else if (date < today) errors.visitDate = "Chọn ngày tham quan từ hôm nay trở đi.";
     if (!VISIT_TIME_OPTIONS.some(option => option.value === values.visitTime)) errors.visitTime = "Chọn buổi sáng hoặc buổi chiều để tham quan.";
   }
   if (!values.consent) errors.consent = "Vui lòng đồng ý để chúng tôi liên hệ tư vấn.";

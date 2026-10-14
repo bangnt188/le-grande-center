@@ -4,6 +4,8 @@ import "@mall/ui/styles";
 import "./globals.css";
 import { isIndexable, neonMediaUrl, siteUrl } from "@/config/site";
 import { WebsiteSettingsProvider } from "@/features/public/website-settings";
+import { readPublicWebsite } from "@/server/public";
+export const dynamic = "force-dynamic";
 
 const interfaceFont = Be_Vietnam_Pro({
   subsets: ["latin", "vietnamese"],
@@ -41,7 +43,7 @@ export const metadata: Metadata = {
     default: "Le Grande Centre | Trung tâm thương mại",
     template: "%s | Le Grande Centre",
   },
-  description: "Khám phá Le Grande Centre: shophouse, dịch vụ, văn phòng và không gian giải trí tại Sóc Trăng. Xem kiến trúc 3D và liên hệ tư vấn mặt bằng.",
+  description: "Khám phá Le Grande Centre: shophouse, dịch vụ, văn phòng và không gian giải trí tại Sóc Trăng. Xem thông tin dự án và liên hệ tư vấn mặt bằng.",
   robots: { index: isIndexable, follow: isIndexable },
   icons: { icon: neonMediaUrl("/client-reference/legacy/icon.png") },
 };
@@ -52,7 +54,8 @@ export const viewport: Viewport = {
   themeColor: "#002116",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const initial = await readPublicWebsite();
   return (
     <html lang="vi" data-ui-scroll="smooth" data-ui-motion-policy="respect">
       <body
@@ -62,7 +65,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         data-ui-scheme="dark"
       >
         <a className="skip-link" href="#main-content">Bỏ qua điều hướng</a>
-        <WebsiteSettingsProvider>{children}</WebsiteSettingsProvider>
+        <WebsiteSettingsProvider initial={initial}>{children}</WebsiteSettingsProvider>
       </body>
     </html>
   );
