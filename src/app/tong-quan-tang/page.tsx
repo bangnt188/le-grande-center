@@ -2,6 +2,7 @@ import { r2AssetBase } from "@/config/site";
 import { publicPageMetadata } from "@/features/public/seo-metadata";
 import { SitePage } from "@/features/public/site-page";
 import { BusinessSpaceScrollStory } from "@/features/public/business-space-scroll-story";
+import { BusinessSpaceShowcaseReel } from "@/features/public/business-space-showcase-reel";
 import styles from "@/features/public/site-shell.module.css";
 
 export const metadata = publicPageMetadata(
@@ -15,6 +16,7 @@ export default function FloorsPage() {
 
   return <SitePage active="/tong-quan-tang/" title="Sáu tầng. Nhiều cơ hội kinh doanh.">
     <p className={styles.intro}>Khám phá sáu tầng thương mại, dịch vụ và giải trí. Tìm không gian phù hợp cho thương hiệu của bạn.</p>
+    <BusinessSpaceShowcaseReel assetBase={assetBase} />
     <BusinessSpaceScrollStory assetBase={assetBase} />
   </SitePage>;
 }
