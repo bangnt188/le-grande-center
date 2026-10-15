@@ -5,12 +5,12 @@ import { isWebsiteSettings, type WebsiteSettings } from "./website-settings";
 
 export const LEAD_STATUSES = ["Mới", "Đang tư vấn", "Đã xử lý"] as const;
 export type Lead = {
-  id: string; name: string; initials: string; interest: string; floor: Floor;
+  id: string; version: number; name: string; initials: string; interest: string; floor: Floor;
   source: string; time: string; status: (typeof LEAD_STATUSES)[number]; note: string;
   companyId?: string; email?: string; phone?: string;
   contactDetails?: { intent: "consultation" | "visit" | "callback"; company: string; business: string; area: string; timing: string; space: string; scope?: string; visitDate?: string; visitTime?: string };
 };
-export type LeadInput = Omit<Lead, "id" | "initials" | "time" | "contactDetails">;
+export type LeadInput = Omit<Lead, "id" | "version" | "initials" | "time" | "contactDetails">;
 export type AdminSettings = { propertyName: string; contactEmail: string; contactPhone: string; defaultHoldHours: number; appointmentMinutes: number; appointmentLocation: string; website: WebsiteSettings };
 export function isAdminSettings(value: unknown): value is AdminSettings {
   if (!value || typeof value !== "object") return false;
@@ -38,6 +38,7 @@ export type AdminCommand = B2BCommand
   | { type: "update-slot"; slotId: string; status: SlotStatus; tenant: string; area?: number }
   | { type: "update-group"; groupId: string; name: string; status: SlotStatus }
   | { type: "save-lead"; leadId?: string; values: LeadInput }
+  | { type: "delete-lead"; leadId: string }
   | { type: "link-media"; mediaId: string; scope: string }
   | { type: "rename-media"; mediaId: string; name: string }
   | { type: "delete-media"; mediaId: string };

@@ -16,8 +16,8 @@ const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 export async function readStorageUsage(client:PoolClient,propertyId:string) {
   const {rows} = await client.query<{used_bytes:string;reserved_bytes:string;external_bytes:string|null}>("SELECT used_bytes,reserved_bytes,external_bytes FROM leasing.media_storage WHERE property_id=$1",[propertyId]);
   const row=rows[0];
-  if(!row||row.external_bytes===null)return null;
-  return {usedBytes:Number(row.used_bytes)+Number(row.external_bytes),reservedBytes:Number(row.reserved_bytes)};
+  if(!row)return null;
+  return {usedBytes:Number(row.used_bytes)+Number(row.external_bytes??0),reservedBytes:Number(row.reserved_bytes)};
 }
 export async function readMedia(client:PoolClient,propertyId:string):Promise<MediaItem[]> {
   const {rows} = await client.query<StoredMedia>(`SELECT v.*,d.title,d.media_scope,s.state FROM leasing.document_versions v JOIN leasing.documents d ON d.id=v.document_id JOIN leasing.media_object_state s ON s.document_version_id=v.id WHERE v.property_id=$1 AND s.state IN ('ready','quarantine') ORDER BY v.uploaded_at DESC`,[propertyId]);
@@ -160,7 +160,7 @@ export async function uploadMedia(identity:AdminIdentity,files:File[],scope:stri
     await client.query('INSERT INTO leasing.media_storage(property_id) VALUES($1) ON CONFLICT DO NOTHING',[identity.propertyId]);
     const usage=await readStorageUsage(client,identity.propertyId);
     if(!usage)throw new MediaError("Chưa đối soát dung lượng R2 công khai. Quản trị viên cần cập nhật kiểm kê trước khi tải thêm.",503);
-    const reserved=await client.query('UPDATE leasing.media_storage SET reserved_bytes=reserved_bytes+$2 WHERE property_id=$1 AND external_bytes IS NOT NULL AND used_bytes+reserved_bytes+external_bytes+$2<=$3 RETURNING property_id',[identity.propertyId,bytes,STORAGE_LIMIT_BYTES]);
+    const reserved=await client.query('UPDATE leasing.media_storage SET reserved_bytes=reserved_bytes+$2 WHERE property_id=$1 AND used_bytes+reserved_bytes+coalesce(external_bytes,0)+$2<=$3 RETURNING property_id',[identity.propertyId,bytes,STORAGE_LIMIT_BYTES]);
     if(!reserved.rows.length)throw new MediaError("Các tệp vượt giới hạn tài khoản 8,5 GB.",413);
     const batch=await client.query<{id:string}>("INSERT INTO leasing.media_batches(property_id,actor_user_id,request_key,request_sha256,expected_revision,state) VALUES($1,$2,$3,$4,$5,'reserved') RETURNING id",[identity.propertyId,identity.id,requestKey,requestHash,expectedRevision]);
     const objects:{id:string;location:MediaLocation}[]=[];

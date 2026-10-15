@@ -12,14 +12,14 @@ Collection scope phải áp dụng trước count/paging; object guard không t�
 
 ## Mall adapter hiện tại
 
-- `/admin/` và `/api/auth` dùng managed Neon Auth, fresh upstream session, expiry/emailVerified và issuer/subject binding. `/admin/workspace/` và mỗi API check độc lập; mutation check same origin.
-- `src/server/database.ts` resolve verified email qua DB admin allowlist rồi bind identity; signup không tự tạo quyền. Disabled user/revoked assignment/allowlist bị chặn, current identity/assignment được kiểm tra trong transaction.
-- Workspace hiện hỗ trợ **allowlisted administrator**. Năm role schema `administrator/leasing/legal/finance/operations` không có nghĩa đã mở đủ năm UI/field-policy workflows. Customer portal representative/viewer/document-grant UX chưa được triển khai; CRM contact không tự là user có quyền.
+- `/admin/` dùng email + mật khẩu qua Neon Auth, không Google OAuth. Admin/root cấp staff email và role Admin/Editor trong app; nhân viên tạo mật khẩu rồi xác minh email. Signup tự nó không cấp quyền.
+- `src/server/database.ts` ánh xạ email đã xác minh qua allowlist/assignment. Role Editor không quản lý tài khoản hoặc sửa cấu hình vận hành; admin/root quản lý staff trong `/admin/`. Root có toàn bộ quyền app, dùng allowlist riêng, bị ẩn khỏi projections/list nhân viên.
+- Migrations 005–006 tách và cấp root password-only. Migration 007 thêm Editor/staff management, hiện chỉ có trong source và cần migrate trước khi deploy. Root không phải operator của Neon/project; schema role `leasing/legal/finance/operations` không đồng nghĩa workflows đã triển khai.
 - Neon request-local Pool, `leasing_runtime`, actor context/RLS; command parser, property lock/CAS, receipt và audit gắn transaction. Public có projection riêng, không tenant/contact/hold/private documents.
 - Media resolve ownership/key DB; PDF quarantine/manual external review và GET/HEAD/Range cùng session guard. Không tự viết password hashing, JWT protocol, MFA hay gọi manual review là antivirus-clean/signature.
-- Không browser demo login, role switch hoặc IndexedDB fallback. Secrets chỉ server; static Pages không chạy admin/API.
+Không browser demo login, role switch hoặc IndexedDB fallback. Secrets chỉ server; static Pages không chạy admin/API.
 
-Baseline + migrations 001–004 đã áp dụng vào stage2, regression disposable và backend production. Production chỉ seed 6 tầng/81 approved brochure slots, configured owner allowlist và verified Neon logo; không fake customer/financial records. Production Auth OTP/require verification/signup-signin verification đã cấu hình, localhost:3000 thêm trusted origin; chưa chứng minh delivery/onboarding. Local sign-in/workspace/media/commands/intake đã quan sát; test identity emailVerified vẫn là fixture DB, không proof OTP hay Google/recovery. Frontend production chưa deploy/cutover.
+Baseline + migrations 001–006 đã áp dụng trên stage2 và production. Migration 007 chưa áp dụng; vì vậy UI/quyền quản lý tài khoản mới chưa có trên môi trường đang chạy. Root `root@legrandecentre.vn` được operator cấp/xác minh theo yêu cầu owner; root Google cũ đã thu hồi. Production không có dữ liệu khách hàng/tài chính giả. Local production-backed root password login → workspace 200 (6 tầng/81 slot), reload giữ session, logout → API 401 đã quan sát. Không phải proof email delivery hoặc Cloudflare deployment; frontend production/domain chưa cutover.
 
 ## Security và trade-off
 

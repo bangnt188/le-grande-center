@@ -5,7 +5,7 @@ import type { Company, Lease } from "../src/shared/admin/b2b-model";
 import type { Slot } from "../src/shared/admin/space-model";
 
 test("tenant register uses lease identity, deduplicates slots and keeps manual occupants unregistered", () => {
-  const company: Company = { id: "company-1", name: "Same name", initials: "SN", industry: "Retail", brand: "", contact: "", email: "", phone: "", owner: "", note: "" };
+  const company: Company = { id: "company-1", version: 1, name: "Same name", initials: "SN", industry: "Retail", brand: "", contact: "", email: "", phone: "", owner: "", note: "" };
   const slot: Slot = { id: "slot-1", floor: 1, code: "B1", order: 1, side: "west", area: 164, width: 1, status: "Đang thuê", tenant: "Same name" };
   const lease: Lease = { id: "lease-1", companyId: company.id, floor: 1, slotIds: [slot.id], area: slot.area, start: "2026-01-01", end: "2027-01-01", status: "executed", rentNote: "", documentName: "Contract.pdf" };
   const manual = { ...slot, id: "slot-2", code: "B2", order: 2 };

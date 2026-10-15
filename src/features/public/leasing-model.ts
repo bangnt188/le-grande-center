@@ -12,7 +12,7 @@ export type LeasingOrientation = Readonly<{
   front: string; rear: string; lakeSide: string; waterworksSide: string;
   sourceUrl: string;
 }>;
-export type LeasingAvailability = "available" | "leased";
+export type LeasingAvailability = "available" | "contact" | "leased";
 export type LeasingUnit = Readonly<{
   id: string; floorId: number; area: number; types: readonly string[];
   availability: LeasingAvailability; // Published occupancy from the server public projection.
@@ -22,6 +22,20 @@ export type LeasingUnit = Readonly<{
   plan: PlanShape;
 }>;
 export type AreaFilter = "" | "small" | "medium" | "large";
+export type StatusFilter = "" | LeasingAvailability;
+
+export const STATUS_CONFIG: Record<LeasingAvailability, { label: string; tone: "success" | "warning" | "error" }> = {
+  available: { label: "Còn trống", tone: "success" },
+  contact: { label: "Liên hệ", tone: "warning" },
+  leased: { label: "Đã thuê", tone: "error" },
+};
+
+export const STATUS_OPTIONS: readonly { value: StatusFilter; label: string }[] = [
+  { value: "", label: "Tất cả trạng thái" },
+  { value: "available", label: "Còn trống" },
+  { value: "contact", label: "Liên hệ" },
+  { value: "leased", label: "Đã thuê" },
+] as const;
 
 // Brochure pairs keep their individual identities and availability.
 export function getShophousePair(unit: LeasingUnit, inventory: readonly LeasingUnit[]): readonly [LeasingUnit, LeasingUnit] | null {
@@ -40,4 +54,9 @@ export function matchesArea(area: number, filter: AreaFilter) {
     case "large": return area > 150;
     default: return true;
   }
+}
+
+export function matchesStatus(availability: LeasingAvailability, filter: StatusFilter) {
+  if (!filter) return true;
+  return availability === filter;
 }

@@ -36,10 +36,11 @@
 }
 
 /* Storage uses system controls and semantic theme colors. */
-.legrande-admin .storage-panel { --mall-storage-warning: #d4af37; padding: 24px; margin-bottom: 16px; }
+.legrande-admin .storage-panel { --mall-storage-warning: #eab308; padding: 24px; margin-bottom: 16px; }
 .storage-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
 .storage-heading h2 { margin: 0; font-size: 17px; font-weight: 600; }
 .storage-meter { font-size: 13px; }
+.storage-meter [class*="indicator"] { background: var(--ui-color-action) !important; transition: width 0.3s ease, background-color 0.3s ease; }
 .storage-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 20px 0 0; }
 .storage-facts dt { color: var(--ui-color-text-secondary); font-size: 12px; }
 .storage-facts dd { margin: 6px 0 0; color: var(--ui-color-text-primary); font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }

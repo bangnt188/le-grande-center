@@ -1,23 +1,35 @@
 # Database PostgreSQL / Neon
 
 `schema.sql` remains the authoritative relational baseline; reviewed migrations
-`001-live-workspace.sql` through `004-recorded-document-financials.sql` evolve it.
+`001-live-workspace.sql` through `009-shared-backend-crud.sql` evolve it.
 There is no opaque stored workspace snapshot or browser persistence fallback.
 Runtime composition lives in `src/server/{database,workspace,public}.ts` and `media/`.
 
 ## Current state — 14/10/2026
 
-Baseline and migrations 001–004 have been applied to stage2, disposable regression
-branches and the production backend. Production initialization contains only six
-approved brochure floors/81 slots, the configured owner allowlist and the approved
-Neon logo verified by native authorized GET (25,230 bytes, SHA-256 checked).
-No customer companies, leads, requests, holds, leases, appointments or financial
-transactions were fabricated. The owner organization is not a customer; the disabled
-system import actor cannot sign in/administer the property.
+Production has migrations 001–006; stage2 has 001–009. The stage2-only
+migrations 007–009 add in-app Admin/Editor roles, normalize operational statuses,
+and add property-scoped shared-CRUD versions plus append-only access decisions.
 
-Production Neon Auth OTP/verification and signup/signin verification-send settings
-are configured; localhost:3000 was added as a trusted origin. Configuration and the
-stage2 fixture's verified-email login do not prove email delivery/owner onboarding.
+Migration 005 separated root from ordinary staff. Migration 006 revokes the old
+Google-root grant and provisions `root@legrandecentre.vn`. The root password is
+operator-issued with owner approval, stored in private gitignored files with mode
+0600; it is never included in a migration or bundle.
+
+Admin/root create a staff email and assign Admin or Editor inside `/admin/`.
+The employee then creates a password at `/admin/` and completes Neon Auth email
+verification. Signup alone never grants workspace access: a matching, active
+allowlist and role assignment are required. Root stays in its separate allowlist
+and is omitted from staff projections. Neon Auth is a backend service; staff do
+not use Neon Console.
+
+Local production-backed root password sign-in was observed entering the workspace,
+reading six floors/81 slots, surviving reload, and ending in API 401 after logout.
+This does not verify mail recovery, OAuth, or a frontend production deployment.
+
+Local production-backed password sign-in was observed entering the workspace,
+reading six floors/81 slots, surviving reload, and ending in API 401 after logout.
+This does not verify mail recovery, OAuth, or a frontend production deployment.
 **Production frontend is not deployed/cut over; customer-domain/DNS connection is
 explicitly deferred.** This is not a request to deploy or reconnect the domain.
 

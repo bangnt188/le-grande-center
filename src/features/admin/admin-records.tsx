@@ -12,6 +12,7 @@ import { useRecordDetail } from "./use-record-detail";
 import styles from "./admin-records.module.css";
 import { StorageUsagePanel } from "./storage-usage-panel";
 import { WebsiteSettingsPanel } from "./website-settings-panel";
+import { StaffAccountsPanel } from "./staff-accounts-panel";
 import { BUSINESS_OPTIONS, AREA_OPTIONS, TIMING_OPTIONS } from "@/features/contact/contact-model";
 
 type Props = { data: AdminData; onMessage: (message: string, tone?: ToastTone) => void };
@@ -68,6 +69,7 @@ export function MediaWorkspace({ data, onMessage, initialMediaId, initialScope }
   const protectedMedia = !!media?.projectAsset || !!media?.reference || selectedLogo || linkedLeases.length > 0;
   const isPdf = media?.mimeType === "application/pdf";
   return <div ref={details.scopeRef} className={styles.workspace}>
+    <StorageUsagePanel usage={data.storage} pending={data.pending} onReconcile={data.reconcileStorage}/>
     <p className="panel-note">{data.media.filter(item => item.projectAsset).length} asset có sẵn của dự án · {data.media.filter(item => item.hasUploadedFile).length} tệp sẵn sàng. Logo lưu trên Neon; tài liệu nội bộ lưu trong R2 riêng tư.</p>
     <div className={styles.toolbar}><p>PNG, JPG, WebP hoặc PDF · tối đa 10 MiB/tệp, 4 tệp/lần, tổng dưới 20 MiB. Ảnh tối đa 4 megapixel và 4096 px mỗi cạnh. Tải lên chỉ lưu tệp, không ký hoặc xác thực tài liệu.</p><Button disabled={data.pending || state.blocked} onClick={() => { setEditingMedia(null); setEditor("upload"); }}>Tải tệp lên</Button></div>
     <WorkspaceLayout className={`records-layout ${styles.layout}`} mobilePresentation="drilldown" detailOpen={details.open} onDetailOpenChange={details.setOpen} returnFocusRef={details.returnFocusRef} detailLabel="Chi tiết tệp" backLabel="Quay lại thư viện media" primary={<AdminPanel className="records-panel">
@@ -106,11 +108,10 @@ export function MediaWorkspace({ data, onMessage, initialMediaId, initialScope }
       void data.execute({ type: "delete-media", mediaId: deleting.id }).then(saved => { if (saved) { setDeleting(null); onMessage("Đã xóa tệp khỏi hệ thống."); } else onMessage("Chưa xóa được tệp. Kiểm tra lỗi và thử lại.", "error"); }).finally(() => { deletingRef.current = false; });
     }}/>{deleting && data.error && <Alert tone="error">{data.error}</Alert>}
     {reviewing && <AdminEditor data={data} title="Duyệt tài liệu cách ly" description="Tải tệp xuống và kiểm tra bằng công cụ bên ngoài trước khi duyệt. Đây là xác nhận thủ công, không phải kết quả quét virus tự động." saveLabel="Xác nhận duyệt tài liệu" onClose={() => setReviewing(null)} onSave={async form => { if (form.get("confirmed") !== "on") return false; const saved = await data.reviewMedia(reviewing.id, field(form, "note")); if (saved) { setReviewing(null); onMessage("Đã ghi nhận người duyệt và mở quyền sử dụng tài liệu."); } return saved; }}><label>Ghi chú kiểm tra bên ngoài<Textarea name="note" required minLength={10} maxLength={2000}/></label><label><input type="checkbox" name="confirmed" required/>Tôi đã kiểm tra tệp bên ngoài và chịu trách nhiệm duyệt tài liệu này.</label></AdminEditor>}
-    <details><summary>Dung lượng lưu trữ trên hệ thống</summary><StorageUsagePanel usage={data.storage} pending={data.pending} onReconcile={data.reconcileStorage}/></details>
   </div>;
 }
 
-export function AdminSettingsWorkspace({ data, onMessage }: Props) {
+export function AdminSettingsWorkspace({ data, onMessage, canManageAccounts }: Props & { canManageAccounts: boolean }) {
   const [editing, setEditing] = useState(false);
   const settings = data.settings;
   return <div className={styles.workspace}>
@@ -136,6 +137,7 @@ export function AdminSettingsWorkspace({ data, onMessage }: Props) {
         <label>Địa điểm lịch hẹn<Input name="appointmentLocation" required maxLength={160} defaultValue={settings.appointmentLocation}/></label>
       </AdminEditor>}
     </AdminPanel>
+    {canManageAccounts && <StaffAccountsPanel onMessage={onMessage}/>}
     <WebsiteSettingsPanel data={data} onMessage={onMessage}/>
   </div>;
 }

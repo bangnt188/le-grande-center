@@ -46,16 +46,17 @@ function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{iconPaths[name]}</svg>;
 }
 function Status({ value }: { value: Slot["status"] }) {
-  return <Badge className="slot-state-badge" data-slot-status={value} tone={value === "Trống" ? "success" : "action"}>{value}</Badge>;
+  const tone = value === "Còn trống" || value === "Trống" ? "success" : value === "Liên hệ" ? "warning" : "action";
+  return <Badge className="slot-state-badge" data-slot-status={value} tone={tone}>{value}</Badge>;
 }
 const fmt = (value: number) => new Intl.NumberFormat("vi-VN").format(value);
 const labels: Record<View, string> = { slot: "Hồ sơ slot", floors: "Tầng", tenants: "Khách đang thuê", customers: "Doanh nghiệp", requests: "Yêu cầu & giữ chỗ", leases: "Hợp đồng", appointments: "Lịch hẹn", spaces: "Căn / Mặt bằng", leads: "Khách tiềm năng", media: "Media", settings: "Cấu hình" };
 
 
-export default function AdminWorkspace() {
-  return <AdminNotificationsProvider><AdminWorkspaceContent/></AdminNotificationsProvider>;
+export default function AdminWorkspace({ canManageAccounts }: { canManageAccounts: boolean }) {
+  return <AdminNotificationsProvider><AdminWorkspaceContent canManageAccounts={canManageAccounts}/></AdminNotificationsProvider>;
 }
-function AdminWorkspaceContent() {
+function AdminWorkspaceContent({ canManageAccounts }: { canManageAccounts: boolean }) {
   const router = useRouter();
   const [view, setActiveView] = useState<View>("floors");
   const [leavingSession, setLeavingSession] = useState(false);
@@ -110,7 +111,7 @@ function AdminWorkspaceContent() {
         }
       } else {
         const next = state?.leasingView;
-        setActiveView(next && next !== "slot" && Object.hasOwn(labels, next) ? next : "spaces");
+        setActiveView(next && next !== "slot" && Object.hasOwn(labels, next) && (canManageAccounts || next !== "settings") ? next : "spaces");
       }
     };
     historyIndex.current = window.history.state?.leasingIndex ?? 0;
@@ -137,6 +138,7 @@ function AdminWorkspaceContent() {
     previousView.current = view;
   }, [view, slotId, loading, details.scopeRef]);
   function setView(next: View, entry?: SlotRecordEntry) {
+    if (next === "settings" && !canManageAccounts) return;
     if (next !== view) {
       window.history.replaceState({ ...window.history.state, leasingView: view, leasingFloor: floor, leasingRecord: recordEntry }, "");
       window.history.pushState({ ...window.history.state, leasingIndex: ++historyIndex.current, leasingView: next, leasingFloor: floor, leasingRecord: entry }, "", "#admin-workspace");
@@ -197,7 +199,7 @@ function AdminWorkspaceContent() {
     const status = String(fields.get("status") ?? "").trim();
     const tenant = String(fields.get("tenant") ?? "").trim();
     const name = String(fields.get("name") ?? "").trim();
-    if (!isSlotStatus(status) || (activeGroup && !name)) { setMessage("Chọn Trống hoặc Đang thuê và nhập tên mặt bằng.", "warning"); return; }
+    if (!isSlotStatus(status) || (activeGroup && !name)) { setMessage("Chọn Còn trống, Liên hệ hoặc Đã thuê và nhập tên mặt bằng.", "warning"); return; }
     const command = activeGroup
       ? { type: "update-group" as const, groupId: activeGroup.id, name, status }
       : { type: "update-slot" as const, slotId: selected[0], status, tenant, area: Number(fields.get("area")) };
@@ -209,7 +211,7 @@ function AdminWorkspaceContent() {
   });
   const slotPages = useAdminPagination(visibleSlots, `${floor}:${slotQuery}:${slotFilter}`);
 
-  const primaryViews: View[] = ["floors", "spaces", "customers", "leads", "requests", "appointments", "media", "settings"];
+  const primaryViews: View[] = ["floors", "spaces", "customers", "leads", "requests", "appointments", "media", ...(canManageAccounts ? ["settings" as const] : [])];
   const companyView = view === "customers" || view === "tenants" || view === "leases";
   function openSpace(nextFloor: Floor, slotId?: string) {
     notes.navigate(() => { changeFloor(nextFloor); if (slotId) setSelected([slotId]); setView("spaces"); });
@@ -260,7 +262,7 @@ function AdminWorkspaceContent() {
                   {BROCHURE_UNITS.filter(item => item.floorId === floor).map(unit => { const slot = floorSlots.find(item => item.code === unit.id); if (!slot) return null; return <button type="button" key={unit.id} className={planStyles.planSlot} data-slot-status={slot.status} style={planStyle(unit.plan)} aria-pressed={selected.includes(slot.id)} aria-label={`${unit.id}, ${fmt(slot.area)} mét vuông, ${slot.status}`} onClick={() => choose(slot)}><span className={planStyles.slotLabel} style={planLabelStyle(unit.plan)}><strong>{unit.id}</strong><span>{fmt(slot.area)} m²</span><span>{slot.status}</span></span></button>; })}
                 </div></div>
               </> : <div className="reference-view"><a href={r2AssetUrl(BROCHURE_PATH)} target="_blank" rel="noopener noreferrer">Mở brochure gốc · Trang {BROCHURE_FLOORS.find(item => item.id === floor)?.sourcePage}</a></div>}
-              <p className="plan-caption">Sơ đồ tham khảo theo brochure, không phải bản vẽ kỹ thuật. Trống là trạng thái chưa thuê; giữ chỗ được quản lý riêng và vẫn khóa các thao tác xung đột.</p>
+              <p className="plan-caption">Sơ đồ tham khảo theo brochure, không phải bản vẽ kỹ thuật. Còn trống là trạng thái chưa thuê; giữ chỗ được quản lý riêng và vẫn khóa các thao tác xung đột.</p>
             </AdminPanel>
             <aside className="space-inspector" aria-label="Chi tiết lựa chọn">
               <div className="inspector-title"><h3>{activeGroup ? "Mặt bằng đã ghép" : selected.length > 1 ? "Ghép mặt bằng" : "Chi tiết slot"}</h3>{selected.length > 0 && <Button variant="quiet" className="icon-button" aria-label="Bỏ chọn tất cả slot" onClick={() => notes.navigate(() => { setSpaceDirty(false); setSelected([]); })}><Icon name="close" size={17}/></Button>}</div>
@@ -305,7 +307,7 @@ function AdminWorkspaceContent() {
 
         {view === "leads" && !loading && <LeadsWorkspace data={admin} onMessage={setMessage} onFloor={next => openSpace(next)}/>}
         {view === "media" && !loading && <MediaWorkspace data={admin} onMessage={setMessage} initialMediaId={activeMedia} initialScope={uploadScope}/>}
-        {view === "settings" && !loading && <AdminSettingsWorkspace data={admin} onMessage={setMessage}/>}
+        {view === "settings" && canManageAccounts && !loading && <AdminSettingsWorkspace data={admin} onMessage={setMessage} canManageAccounts={canManageAccounts}/>}
         </div>
     </LeGrandeAdminShell>;
 }

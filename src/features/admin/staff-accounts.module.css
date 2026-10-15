@@ -1,0 +1,175 @@
+.panel {
+  display: grid;
+  gap: 24px;
+  padding: 24px;
+  min-width: 0;
+}
+
+.heading h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.heading p {
+  margin: 6px 0 0;
+  color: var(--ui-color-text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.form {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.5fr) minmax(180px, 1fr) auto;
+  align-items: end;
+  gap: 16px;
+  padding: 20px;
+  background: var(--ui-color-surface-raised, #f8f9fa);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-control, 8px);
+}
+
+.form label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ui-color-text);
+}
+
+.formAction {
+  display: flex;
+  align-items: flex-end;
+}
+
+.formAction button {
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.listSection {
+  display: grid;
+  gap: 12px;
+}
+
+.listHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.listHeader h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ui-color-text);
+}
+
+.loading {
+  margin: 0;
+  padding: 16px;
+  color: var(--ui-color-text-secondary);
+  font-size: 13px;
+}
+
+.empty {
+  padding: 28px 20px;
+  text-align: center;
+  background: var(--ui-color-surface-raised, #f8f9fa);
+  border: 1px dashed var(--ui-color-border);
+  border-radius: var(--ui-radius-control, 8px);
+}
+
+.empty p {
+  margin: 0;
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--ui-color-text);
+}
+
+.empty span {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--ui-color-text-secondary);
+}
+
+.list {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-control, 8px);
+  background: var(--ui-color-surface);
+  transition: border-color 0.15s ease;
+}
+
+.item:hover {
+  border-color: var(--ui-color-text-secondary);
+}
+
+.accountInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.accountEmail {
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .panel {
+    padding: 20px;
+    gap: 20px;
+  }
+
+  .form {
+    grid-template-columns: 1fr;
+    padding: 16px;
+    gap: 14px;
+  }
+
+  .formAction button {
+    width: 100%;
+  }
+
+  .item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

@@ -35,6 +35,13 @@
     "sizeBytes": 400823
   },
   {
+    "path": "/images/business-space/overview-infographic.png",
+    "name": "overview-infographic.png",
+    "kind": "Ảnh",
+    "mimeType": "image/png",
+    "sizeBytes": 250600
+  },
+  {
     "path": "/images/home-v2/architecture-detail.jpg",
     "name": "architecture-detail.jpg",
     "kind": "Ảnh",

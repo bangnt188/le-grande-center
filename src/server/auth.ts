@@ -22,17 +22,78 @@ export function assertSameOrigin(request: Request) {
   }
 }
 
-export async function requireAdmin(request?: Request) {
-  // The SDK proxy query bypasses its signed session cache and verifies the current managed session.
+export type VerifiedAuthSession = { issuer: string; subject: string; email: string; emailVerified: boolean; expiresAt: number };
+export async function verifyAuthSession(request?: Request): Promise<VerifiedAuthSession | null> {
   const url = new URL("/api/auth/get-session?disableCookieCache=true", request?.url ?? siteUrl);
   const response = await getAuth().handler().GET(new Request(url, { headers: request?.headers ?? await headers() }), { params: Promise.resolve({ path: ["get-session"] }) });
-  if (!response.ok) throw new AuthError("Vui lòng đăng nhập.", 401);
+  if (!response.ok) return null;
   const session: unknown = await response.json();
-  if (!session || typeof session !== "object" || !("user" in session) || !session.user || typeof session.user !== "object" || !("session" in session) || !session.session || typeof session.session !== "object") throw new AuthError("Vui lòng đăng nhập.", 401);
+  if (!session || typeof session !== "object" || !("user" in session) || !session.user || typeof session.user !== "object" || !("session" in session) || !session.session || typeof session.session !== "object") return null;
   const user = session.user;
-  if (!("id" in user) || typeof user.id !== "string" || !("email" in user) || typeof user.email !== "string" || !("expiresAt" in session.session) || typeof session.session.expiresAt !== "string" || !(Date.parse(session.session.expiresAt) > Date.now())) throw new AuthError("Phiên đăng nhập không hợp lệ.", 401);
-  if (!("emailVerified" in user) || user.emailVerified !== true) throw new AuthError("Xác minh email trước khi vào quản trị.", 403);
-  const identity = await resolveAdminIdentity({ issuer: process.env.NEON_AUTH_BASE_URL!, subject: user.id, email: user.email, emailVerified: true });
-  if (!identity) throw new AuthError("Tài khoản không có quyền quản trị.", 403);
-  return identity;
+  if (!("id" in user) || typeof user.id !== "string" || !("email" in user) || typeof user.email !== "string" || !("expiresAt" in session.session) || typeof session.session.expiresAt !== "string") return null;
+  const expiresAt=Date.parse(session.session.expiresAt);
+  if(!Number.isFinite(expiresAt)||expiresAt<=Date.now())return null;
+  return {issuer:process.env.NEON_AUTH_BASE_URL!,subject:user.id,email:user.email,emailVerified:"emailVerified" in user&&user.emailVerified===true,expiresAt};
 }
+export async function requireAdmin(request?: Request) {
+  const session=await verifyAuthSession(request);
+  if(!session)throw new AuthError("Vui lòng đăng nhập.",401);
+  if(!session.emailVerified)throw new AuthError("Xác minh email trước khi vào quản trị.",403);
+  const identity = await resolveAdminIdentity({ issuer: session.issuer, subject: session.subject, email: session.email, emailVerified: true });
+  if (!identity) throw new AuthError("Tài khoản không có quyền quản trị.", 403);
+  return { ...identity, verifiedSession: { issuer: session.issuer, subject: session.subject, expiresAt: session.expiresAt } };
+}
+
+export function getPasswordPrefix(): string {
+  return process.env.PASSWORD_PREFIX ?? process.env.AUTH_PASSWORD_PREFIX ?? "";
+}
+
+export function applyPasswordPrefix(password: string): string {
+  const prefix = getPasswordPrefix();
+  return prefix ? `${prefix}${password}` : password;
+}
+
+export async function transformPasswordRequest(request: Request): Promise<Request> {
+  const prefix = getPasswordPrefix();
+  if (!prefix) return request;
+
+  const contentType = request.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) return request;
+
+  try {
+    const rawBody = await request.clone().text();
+    if (!rawBody) return request;
+
+    const data = JSON.parse(rawBody);
+    if (data && typeof data === "object" && !Array.isArray(data)) {
+      let modified = false;
+      if (typeof data.password === "string") {
+        data.password = `${prefix}${data.password}`;
+        modified = true;
+      }
+      if (typeof data.newPassword === "string") {
+        data.newPassword = `${prefix}${data.newPassword}`;
+        modified = true;
+      }
+      if (typeof data.currentPassword === "string") {
+        data.currentPassword = `${prefix}${data.currentPassword}`;
+        modified = true;
+      }
+
+      if (modified) {
+        const headers = new Headers(request.headers);
+        headers.delete("content-length");
+        return new Request(request.url, {
+          method: request.method,
+          headers,
+          body: JSON.stringify(data),
+        });
+      }
+    }
+  } catch {
+    // If body parsing fails, fallback to passing original request
+  }
+
+  return request;
+}
+

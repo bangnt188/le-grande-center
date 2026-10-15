@@ -1,86 +1,193 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { Button, PasswordField, TextField } from "@mall/ui";
+import { Button, PasswordField, TextField, Toast, type ToastTone } from "@mall/ui";
 import { useWebsiteSettings } from "@/features/public/website-settings";
 import { authClient } from "./auth-client";
+import styles from "./admin-entry.module.css";
 
-type Mode = "login" | "signup" | "verify" | "forgot" | "reset";
-const titles: Record<Mode, string> = { login: "Đăng nhập quản trị", signup: "Tạo tài khoản", verify: "Xác minh email", forgot: "Khôi phục mật khẩu", reset: "Đặt mật khẩu mới" };
+type ToastState = {
+  id: number;
+  tone: ToastTone;
+  title?: string;
+  text: string;
+};
+
+
+function ArrowLeftIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M19 12H5M12 19l-7-7 7-7" />
+    </svg>
+  );
+}
+
 export default function AdminEntry() {
-  const router = useRouter();
   const params = useSearchParams();
-  const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState(params.get("denied") ? "Email chưa xác minh hoặc tài khoản chưa được cấp quyền quản trị." : "");
-  const [notice, setNotice] = useState("");
+  const [creatingAccount, setCreatingAccount] = useState(false);
   const { logoUrl } = useWebsiteSettings();
+
+  const [toast, setToast] = useState<ToastState | null>(() => {
+    if (params.get("denied")) {
+      return {
+        id: Date.now(),
+        tone: "error",
+        title: "Truy cập bị từ chối",
+        text: "Tài khoản chưa được cấp quyền quản trị.",
+      };
+    }
+    return null;
+  });
+
+  function showToast(tone: ToastTone, text: string, title?: string) {
+    setToast({
+      id: Date.now(),
+      tone,
+      title,
+      text,
+    });
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const password = String(form.get("password") ?? "");
-    setPending(true); setError(""); setNotice("");
+    setPending(true);
+    setToast(null);
     try {
-      if (mode === "login") {
-        const result = await authClient.signIn.email({ email, password });
-        if (result.error) throw new Error(result.error.message || "Đăng nhập thất bại.");
-        router.replace("/admin/workspace/"); router.refresh();
-      } else if (mode === "signup") {
+      if (creatingAccount) {
         const result = await authClient.signUp.email({ email, password, name: String(form.get("name") ?? "").trim() });
         if (result.error) throw new Error(result.error.message || "Không thể tạo tài khoản.");
-        const sent = await authClient.emailOtp.sendVerificationOtp({ email, type: "email-verification" });
-        if (sent.error) throw new Error(sent.error.message || "Không thể gửi mã xác minh.");
-        setMode("verify"); setNotice("Kiểm tra email để lấy mã xác minh. Tạo tài khoản không tự cấp quyền quản trị.");
-      } else if (mode === "verify") {
-        const result = await authClient.emailOtp.verifyEmail({ email, otp: String(form.get("otp") ?? "").trim() });
-        if (result.error) throw new Error(result.error.message || "Mã xác minh không hợp lệ.");
-        setMode("login"); setNotice("Email đã xác minh. Đăng nhập bằng mật khẩu của bạn.");
-      } else if (mode === "forgot") {
-        const result = await authClient.emailOtp.requestPasswordReset({ email });
-        if (result.error) throw new Error(result.error.message || "Không thể gửi yêu cầu khôi phục.");
-        setMode("reset"); setNotice("Nếu tài khoản tồn tại, mã khôi phục đã được gửi đến email.");
-      } else {
-        const result = await authClient.emailOtp.resetPassword({ email, otp: String(form.get("otp") ?? "").trim(), password });
-        if (result.error) throw new Error(result.error.message || "Mã khôi phục không hợp lệ hoặc đã hết hạn.");
-        setMode("login"); router.replace("/admin/"); setNotice("Mật khẩu đã cập nhật. Vui lòng đăng nhập.");
+        showToast("success", "Tài khoản đã tạo. Nếu Neon Auth yêu cầu xác minh email, hãy mở thư xác minh trước khi đăng nhập.", "Hoàn tất");
+        formElement.reset();
+        setEmail("");
+        setCreatingAccount(false);
+        return;
       }
-    } catch (issue) { setError(issue instanceof Error ? issue.message : "Không thể kết nối dịch vụ đăng nhập."); }
-    finally { setPending(false); }
+      const result = await authClient.signIn.email({ email, password });
+      if (result.error) throw new Error(result.error.message || "Đăng nhập thất bại.");
+      showToast("info", "Đang mở không gian quản trị...", "Đã xác thực tài khoản");
+      window.location.assign("/admin/workspace/");
+    } catch (issue) {
+      showToast("error", issue instanceof Error ? issue.message : "Không thể kết nối dịch vụ đăng nhập.", "Lỗi");
+    } finally {
+      setPending(false);
+    }
   }
-  async function sendCode() {
-    if (!email || pending) return;
-    setPending(true); setError("");
-    try {
-      const result = mode === "reset" ? await authClient.emailOtp.requestPasswordReset({ email }) : await authClient.emailOtp.sendVerificationOtp({ email, type: "email-verification" });
-      if (result.error) throw new Error(result.error.message || "Không thể gửi mã.");
-      if (mode !== "reset") setMode("verify"); setNotice("Mã đã được gửi đến email.");
-    } catch (issue) { setError(issue instanceof Error ? issue.message : "Không thể gửi mã."); }
-    finally { setPending(false); }
-  }
-  async function googleLogin() {
-    if (pending) return;
-    setPending(true); setError("");
-    try { const result = await authClient.signIn.social({ provider: "google", callbackURL: `${window.location.origin}/admin/workspace/` }); if (result.error) throw new Error(result.error.message || "Không thể đăng nhập Google."); }
-    catch (issue) { setError(issue instanceof Error ? issue.message : "Không thể đăng nhập Google."); setPending(false); }
-  }
-  return <main className="legrande-admin admin-login" data-ui-root data-ui-theme="shopping-mall" data-ui-scheme="light">
-    <section className="admin-login-brand" aria-label="Le Grande Centre">{logoUrl && <img src={logoUrl} alt="" width={72} height={72}/>}<div><h2>Le Grande Centre</h2><p>Không gian quản trị khai thác</p></div><p className="admin-login-intro">Mặt bằng, doanh nghiệp và hồ sơ thuê trong một không gian làm việc.</p><Link href="/">Về website</Link></section>
-    <section className="admin-login-panel" aria-labelledby="admin-login-title"><h1 id="admin-login-title">{titles[mode]}</h1><p>Dành cho nhân sự được cấp quyền Le Grande Centre.</p>
-      <form className="admin-login-form" onSubmit={submit}>
-        <TextField id="admin-email" name="email" type="email" label="Email" size="lg" autoComplete="email" autoCapitalize="none" spellCheck={false} required maxLength={254} value={email} onChange={event => setEmail(event.target.value.trim())}/>
-        {mode === "signup" && <TextField id="admin-name" name="name" label="Họ và tên" required maxLength={100} autoComplete="name"/>}
-        {(mode === "login" || mode === "signup" || mode === "reset") && <PasswordField id="admin-password" name="password" label={mode === "reset" ? "Mật khẩu mới" : "Mật khẩu"} size="lg" showLabel="Hiện mật khẩu" hideLabel="Ẩn mật khẩu" autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={mode === "login" ? 1 : 8} maxLength={128} required/>}
-        {(mode === "verify" || mode === "reset") && <TextField id="admin-otp" name="otp" label={mode === "reset" ? "Mã khôi phục mật khẩu" : "Mã xác minh email"} inputMode="numeric" autoComplete="one-time-code" required minLength={6} maxLength={8}/>}
-        <Button size="lg" type="submit" disabled={pending} loading={pending} loadingLabel="Đang xử lý">{titles[mode]}</Button>
-      </form>
-      {mode === "login" && <Button variant="secondary" disabled={pending} onClick={() => void googleLogin()}>Đăng nhập bằng Google</Button>}
-      {error && <p role="alert" className="admin-login-error">{error}</p>}{notice && <p role="status" className="admin-login-note">{notice}</p>}
-      <div className="admin-login-links">{mode !== "login" && <Button variant="quiet" disabled={pending} onClick={() => { setMode("login"); setError(""); }}>Trở lại đăng nhập</Button>}{mode === "login" && <><Button variant="quiet" disabled={pending} onClick={() => setMode("forgot")}>Quên mật khẩu</Button><Button variant="quiet" disabled={pending} onClick={() => setMode("signup")}>Chưa có tài khoản</Button></>}<Button variant="quiet" disabled={pending || !email} onClick={() => void sendCode()}>{mode === "reset" ? "Gửi lại mã khôi phục" : mode === "verify" ? "Gửi lại mã xác minh" : "Xác minh email"}</Button></div>
-      <p className="admin-login-note">Quyền truy cập được kiểm tra trên máy chủ theo email đã xác minh và hồ sơ nhân sự. Không có mật khẩu dùng thử hoặc quyền tự chọn.</p>
-    </section>
-  </main>;
+
+
+  return (
+    <main className={`legrande-admin ${styles.root}`} data-ui-root data-ui-theme="shopping-mall" data-ui-scheme="light">
+      {/* Toast Notification from component-ui */}
+      {toast && (
+        <div className={styles.toastRegion} role="region" aria-label="Thông báo hệ thống">
+          <Toast
+            key={toast.id}
+            tone={toast.tone}
+            title={toast.title}
+            text={toast.text}
+            closeLabel="Đóng thông báo"
+            onDismiss={() => setToast(null)}
+            duration={5000}
+          />
+        </div>
+      )}
+
+      {/* ================= Left Column: Brand Identity ================= */}
+      <section className={styles.brandSection} aria-label="Le Grande Centre">
+        <div className={styles.brandTop}>
+          <Link href="/" className={styles.backLink} aria-label="Về website Le Grande Centre">
+            <ArrowLeftIcon />
+            <span>Về website</span>
+          </Link>
+        </div>
+
+        <div className={styles.brandCenter}>
+          <div className={styles.brandEmblemWrapper}>
+            <div className={styles.brandEmblem}>
+              {logoUrl ? (
+                <img src={logoUrl} alt="Le Grande Centre" width={56} height={56} className={styles.brandLogoImg} />
+              ) : (
+                <span className={styles.brandMonogram} aria-hidden="true">LG</span>
+              )}
+            </div>
+          </div>
+          <h2 className={styles.brandTitle}>Le Grande Centre</h2>
+          <span className={styles.brandBadge}>Hệ thống quản trị</span>
+        </div>
+
+        <div className={styles.brandFooter}>
+          <span>Le Grande Centre</span>
+        </div>
+      </section>
+
+      {/* ================= Right Column: Authentication Card Desk ================= */}
+      <section className={styles.panelSection} aria-labelledby="admin-login-title">
+        <div className={styles.cardWrapper}>
+          <div className={styles.authCard}>
+            <header className={styles.cardHeader}>
+              <h1 id="admin-login-title" className={styles.cardTitle}>
+                {creatingAccount ? "Tạo tài khoản" : "Đăng nhập"}
+              </h1>
+            </header>
+
+            {/* Form */}
+            <form className={styles.authForm} onSubmit={submit}>
+              {creatingAccount && <TextField id="admin-name" name="name" label="Họ tên" size="lg" autoComplete="name" required maxLength={120}/>}
+              <TextField
+                id="admin-email"
+                name="email"
+                type="email"
+                label="Email"
+                size="lg"
+                autoComplete="email"
+                autoCapitalize="none"
+                spellCheck={false}
+                required
+                maxLength={254}
+                value={email}
+                onChange={event => setEmail(event.target.value.trim())}
+              />
+
+              <PasswordField
+                id="admin-password"
+                name="password"
+                label="Mật khẩu"
+                size="lg"
+                showLabel="Hiện mật khẩu"
+                hideLabel="Ẩn mật khẩu"
+                autoComplete={creatingAccount ? "new-password" : "current-password"}
+                minLength={creatingAccount ? 8 : 1}
+                maxLength={128}
+                required
+              />
+
+              {/* Submit Button using component-ui Button */}
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                loading={pending}
+                loadingLabel="Đang xử lý..."
+                className={styles.submitBtn}
+              >
+                {creatingAccount ? "Tạo tài khoản" : "Đăng nhập"}
+              </Button>
+            </form>
+
+            <Button type="button" variant="quiet" disabled={pending} onClick={() => setCreatingAccount(value => !value)}>
+              {creatingAccount ? "Đã có tài khoản? Đăng nhập" : "Đã được cấp quyền? Tạo tài khoản"}
+            </Button>
+            <p className={styles.cardSubtitle}>{creatingAccount ? "Chỉ email đã được quản trị viên cấp Admin hoặc Editor mới vào được hệ thống. Sau khi tạo tài khoản, xác minh email nếu được yêu cầu." : "Quản trị viên thêm email và vai trò của bạn trong mục Cấu hình. Bạn tạo mật khẩu tại đây."}</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
 }

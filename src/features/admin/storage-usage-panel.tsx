@@ -1,7 +1,7 @@
 "use client";
 
 import { AdminPanel, Badge, ProgressBar, Button } from "@mall/ui";
-import { useId, useState, type CSSProperties } from "react";
+import type { CSSProperties } from "react";
 import { formatStorageBytes, storageState, type StorageUsage } from "../../shared/admin/storage-policy";
 
 export function StorageUsagePanel({ usage, pending, onReconcile }: {
@@ -10,27 +10,57 @@ export function StorageUsagePanel({ usage, pending, onReconcile }: {
   onReconcile: () => Promise<boolean>;
 }) {
   const state = storageState(usage);
-  const [expanded, setExpanded] = useState(false);
-  const detailsId = useId();
-  const status = !usage ? "Chưa có số liệu" : state.blocked ? "Đã đạt giới hạn" : state.tone === "error" ? "Sắp đầy" : state.tone === "warning" ? "Cần theo dõi" : "Còn dung lượng";
-  const color = state.tone === "warning" ? "var(--mall-storage-warning)" : state.tone === "error" ? "var(--ui-color-error)" : "var(--ui-color-success)";
+
+  const percent = state.percent ?? 0;
+  const isRed = percent >= 85 || state.blocked;
+  const isYellow = !isRed && percent >= 65;
+  const barColor = isRed ? "#dc2626" : isYellow ? "#eab308" : "#16a34a";
+  const badgeTone = !usage ? "neutral" as const : isRed ? "error" as const : isYellow ? "warning" as const : "success" as const;
+
+  const status = !usage
+    ? "Đang cập nhật"
+    : state.blocked
+    ? "Đã đạt giới hạn 8,5 GB"
+    : isRed
+    ? "Sắp đầy (≥ 85%)"
+    : isYellow
+    ? "Cần theo dõi (≥ 65%)"
+    : "Còn dung lượng (< 65%)";
+
+  const usedFormatted = usage ? formatStorageBytes(usage.usedBytes) : "0 MB";
+  const remainingFormatted = usage ? formatStorageBytes(state.remainingBytes) : "8,5 GB";
+  const percentText = `${percent.toFixed(2).replace(".", ",")}%`;
+
   return <AdminPanel className="storage-panel" aria-busy={pending}>
-    <div className="storage-heading"><h2>Dung lượng lưu trữ</h2><Badge tone={state.tone}>{status}</Badge></div>
-    <div className="storage-meter" style={{ "--ui-color-action": color, "--ui-color-surface": "var(--ui-color-border)" } as CSSProperties}>
-      <ProgressBar label="Hạn mức sử dụng · 8,5 GB" value={state.percent === null ? null : Math.min(100, state.percent)} locale="vi-VN" format={{ style: "unit", unit: "percent", maximumFractionDigits: 2, roundingMode: "trunc" }} pendingLabel="Chưa xác định dung lượng"/>
+    <div className="storage-heading">
+      <h2>Dung lượng lưu trữ</h2>
+      <Badge tone={badgeTone}>{status}</Badge>
     </div>
-    <p className="storage-summary" aria-live="polite">{!usage ? "Tải lên tạm khóa · Chưa có số liệu dung lượng" : state.blocked ? "Tải lên đã khóa · Đã đạt hạn mức 8,5 GB" : `Còn ${formatStorageBytes(state.remainingBytes)} theo hạn mức nghiệp vụ`}</p>
-    <Button variant="quiet" className="storage-details-toggle" aria-expanded={expanded} aria-controls={detailsId} onClick={() => setExpanded(!expanded)}>{expanded ? "Thu gọn dung lượng" : "Chi tiết dung lượng"}</Button>
-    <Button variant="secondary" disabled={pending} loading={pending} loadingLabel="Đang đối soát dung lượng" onClick={() => void onReconcile()}>Đối soát dung lượng thực tế</Button>
-    <div id={detailsId} className="storage-details" data-expanded={expanded || undefined}>
+    <div className="storage-meter" style={{ "--ui-color-action": barColor, "--ui-color-surface": "var(--ui-color-border, #e5e7eb)" } as CSSProperties}>
+      <ProgressBar
+        label={`Thực tế đã dùng: ${usedFormatted} / 8,5 GB`}
+        value={Math.min(100, Math.max(0, percent))}
+        min={0}
+        max={100}
+        locale="vi-VN"
+        format={{ style: "unit", unit: "percent", maximumFractionDigits: 2, roundingMode: "trunc" }}
+        pendingLabel="Đang kiểm tra dung lượng"
+      />
+    </div>
+    <p className="storage-summary" aria-live="polite">
+      {!usage
+        ? "Đang tải dữ liệu dung lượng thực tế..."
+        : state.blocked
+        ? "Tải lên đã khóa · Đã đạt giới hạn tối đa 8,5 GB"
+        : `Đã sử dụng ${usedFormatted} / 8,5 GB (${percentText}) · Còn trống ${remainingFormatted}`}
+    </p>
+    <div style={{ display: "flex", gap: "12px", alignItems: "center", marginTop: "16px", marginBottom: "8px" }}>
+      <Button variant="secondary" disabled={pending} loading={pending} loadingLabel="Đang đối soát dung lượng" onClick={() => void onReconcile()}>Đối soát dung lượng thực tế</Button>
+    </div>
     <dl className="storage-facts">
-      <div><dt>Đã lưu</dt><dd>{usage ? formatStorageBytes(usage.usedBytes) : "—"}</dd></div>
-      <div><dt>Còn có thể tải lên</dt><dd>{usage ? formatStorageBytes(state.remainingBytes) : "—"}</dd></div>
-      <div><dt>Phạm vi số liệu</dt><dd>R2 mall-assets công khai, mall-documents riêng tư và media Neon được theo dõi</dd></div>
+      <div><dt>Đã lưu thực tế</dt><dd>{usedFormatted}</dd></div>
+      <div><dt>Còn có thể tải lên</dt><dd>{remainingFormatted}</dd></div>
+      <div><dt>Giới hạn hệ thống</dt><dd>8,5 GB</dd></div>
     </dl>
-    <p className="storage-note">{!usage ? "Upload tạm khóa đến khi tải được số liệu dung lượng." : state.blocked ? "Upload đã khóa. Giải phóng dung lượng hoặc liên hệ quản trị viên để tiếp tục." : state.tone === "error" ? "Dung lượng trên 85%. Ưu tiên rà soát tệp không còn sử dụng trước khi tải thêm." : state.tone === "warning" ? "Dung lượng trên 65%. Theo dõi và sắp xếp lại các tệp không còn sử dụng." : "Hình ảnh và tài liệu dùng chung hạn mức. Hệ thống kiểm tra tổng dung lượng trước khi nhận tệp."}</p>
-    {!!usage?.reservedBytes && <p className="storage-note">Đang dành chỗ cho upload: {formatStorageBytes(usage.reservedBytes)} · đã tính trong thanh dung lượng.</p>}
-    <p className="storage-note">Hạn mức 8,5 GB là giới hạn nghiệp vụ tổng hợp, không phải cam kết free tier của R2 hoặc Neon. Đối soát liệt kê object thực tế trên R2; số liệu chưa xác định hoặc không khớp ledger sẽ khóa tải lên. Media Neon được tính riêng vào tổng theo byte đã ghi nhận.</p>
-    </div>
   </AdminPanel>;
 }

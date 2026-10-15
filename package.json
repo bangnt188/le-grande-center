@@ -30,6 +30,7 @@
     "test:database": "node --conditions=react-server --import tsx scripts/test-live-database.mjs",
     "db:migrate": "node --conditions=react-server --import tsx scripts/migrate-database.ts",
     "media:catalog": "node scripts/generate-admin-media.mjs",
+    "auth:set-password": "node --env-file-if-exists=.env.local --env-file-if-exists=.env.root-admin.local scripts/set-root-password.mjs",
     "build:backend": "npm run build --workspace=@shared/backend",
     "typecheck:backend": "npm run typecheck --workspace=@shared/backend",
     "test:backend": "npm run test --workspace=@shared/backend",
@@ -48,6 +49,7 @@
     "next": "^16.3.8",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "lucide-react": "^0.555.0",
     "server-only": "0.0.1"
   },
   "devDependencies": {

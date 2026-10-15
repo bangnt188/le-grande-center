@@ -42,7 +42,7 @@ export function createHttpRepository(baseUrl: string): AdminRepository {
       if (!(key in value) || !Array.isArray((value as Record<string, unknown>)[key])) throw new Error("Backend chưa hỗ trợ dữ liệu B2B. Cập nhật workspace contract trước khi kết nối.");
     }
     if (!("storage" in value) || (value.storage !== null && !isStorageUsage(value.storage))) throw new Error("Backend chưa cung cấp số liệu dung lượng hợp lệ. Upload đã khóa.");
-    if (value.slots.some(item => !item || typeof item !== "object" || !isSlotStatus(item.status)) || value.groups.some(item => !item || typeof item !== "object" || !isSlotStatus(item.status))) throw new Error("Backend phải trả trạng thái slot Trống hoặc Đang thuê.");
+    if (value.slots.some(item => !item || typeof item !== "object" || !isSlotStatus(item.status)) || value.groups.some(item => !item || typeof item !== "object" || !isSlotStatus(item.status))) throw new Error("Backend phải trả trạng thái slot Còn trống, Liên hệ hoặc Đã thuê.");
     if (!("floors" in value) || !isFloorConfigurations(value.floors) || !("settings" in value) || !isAdminSettings(value.settings)) throw new Error("Backend chưa cung cấp cấu hình tầng và vận hành hợp lệ.");
     if (value.media.some(item => !item || typeof item !== "object" || typeof item.hasUploadedFile !== "boolean")) throw new Error("Backend chưa cung cấp trạng thái tệp đã upload hợp lệ.");
     revision = value.revision;

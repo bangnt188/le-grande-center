@@ -1,7 +1,9 @@
 export const FLOORS = [1, 2, 3, 4, 5, 6] as const;
-export const SLOT_STATUSES = ["Trống", "Đang thuê"] as const;
-export type SlotStatus = (typeof SLOT_STATUSES)[number];
-export function isSlotStatus(value: unknown): value is SlotStatus { return value === "Trống" || value === "Đang thuê"; }
+export const SLOT_STATUSES = ["Còn trống", "Liên hệ", "Đã thuê"] as const;
+export type SlotStatus = (typeof SLOT_STATUSES)[number] | "Trống" | "Đang thuê";
+export function isSlotStatus(value: unknown): value is SlotStatus {
+  return value === "Còn trống" || value === "Liên hệ" || value === "Đã thuê" || value === "Trống" || value === "Đang thuê";
+}
 export type Floor = (typeof FLOORS)[number];
 export type Slot = {
   id: string; floor: Floor; code: string; order: number;
@@ -50,7 +52,7 @@ export function mergeIssue(slots: Slot[], groups: SpaceGroup[], ids: string[], f
     if (valid.some((slot, i) => i > 0 && slot.order !== valid[i - 1].order + 1)) return "Các slot phải liền kề. Chọn thêm slot ở giữa hoặc bỏ slot cách xa.";
   }
   if (groups.some((group) => group.slotIds.some((id) => ids.includes(id)))) return "Slot đã thuộc một mặt bằng ghép. Tách nhóm hiện có trước.";
-  if (valid.some(slot => slot.tenant || slot.status !== "Trống")) return "Chỉ ghép slot Trống, chưa có đối tác. Rà soát trạng thái trước.";
+  if (valid.some(slot => slot.tenant || (slot.status !== "Còn trống" && slot.status !== "Trống"))) return "Chỉ ghép slot Còn trống, chưa có đối tác. Rà soát trạng thái trước.";
   return null;
 }
 

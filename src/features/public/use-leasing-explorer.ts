@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { matchesArea, type AreaFilter, type LeasingFloor, type LeasingUnit } from "./leasing-model";
+import { matchesArea, matchesStatus, type AreaFilter, type StatusFilter, type LeasingFloor, type LeasingUnit } from "./leasing-model";
 
 export function useLeasingExplorer(floors: readonly LeasingFloor[], inventory: readonly LeasingUnit[]) {
   const floorGroups = useMemo<{ id: number; title: string; label: string; floors: readonly LeasingFloor[] }[]>(
@@ -14,10 +14,11 @@ export function useLeasingExplorer(floors: readonly LeasingFloor[], inventory: r
   const [floorId, setFloorId] = useState(floors[0]?.id ?? 1);
   const [type, updateType] = useState("");
   const [area, updateArea] = useState<AreaFilter>("");
+  const [status, updateStatus] = useState<StatusFilter>("");
   const [selectedId, updateSelectedId] = useState("");
   const group = floorGroups.find(item => item.floors.some(floor => floor.id === floorId));
   const units = inventory.filter(unit => group?.floors.some(floor => floor.id === unit.floorId));
-  const visible = units.filter(unit => (!type || unit.types.includes(type)) && matchesArea(unit.area, area));
+  const visible = units.filter(unit => (!type || unit.types.includes(type)) && matchesArea(unit.area, area) && matchesStatus(unit.availability, status));
   const selected = visible.find(unit => unit.id === selectedId) ?? null;
 
   useEffect(() => {
@@ -32,6 +33,7 @@ export function useLeasingExplorer(floors: readonly LeasingFloor[], inventory: r
       setFloorId(id);
       updateType("");
       updateArea("");
+      updateStatus("");
       updateSelectedId(requestedUnit && requestedGroup?.floors.some(floor => floor.id === requestedUnit.floorId) ? requestedUnit.id : "");
     }
     syncFloor();
@@ -48,6 +50,7 @@ export function useLeasingExplorer(floors: readonly LeasingFloor[], inventory: r
     setFloorId(id);
     updateType("");
     updateArea("");
+    updateStatus("");
     updateSelectedId("");
     const url = new URL(window.location.href);
     url.searchParams.delete("unit");
@@ -72,8 +75,9 @@ export function useLeasingExplorer(floors: readonly LeasingFloor[], inventory: r
   }
   function setType(value: string) { updateType(value); clearSelection(); }
   function setArea(value: AreaFilter) { updateArea(value); clearSelection(); }
-  function clearFilters() { updateType(""); updateArea(""); clearSelection(); }
-  return { floor: floors.find(item => item.id === floorId), group, floorGroups, units, visible, selected, type, area,
+  function setStatus(value: StatusFilter) { updateStatus(value); clearSelection(); }
+  function clearFilters() { updateType(""); updateArea(""); updateStatus(""); clearSelection(); }
+  return { floor: floors.find(item => item.id === floorId), group, floorGroups, units, visible, selected, type, area, status,
     unitTypes: [...new Set(units.flatMap(unit => [...unit.types]))],
-    setType, setArea, setSelectedId, chooseFloor, clearFilters, clearSelection };
+    setType, setArea, setStatus, setSelectedId, chooseFloor, clearFilters, clearSelection };
 }

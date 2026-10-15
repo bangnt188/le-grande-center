@@ -4,7 +4,11 @@
 
 ## Platform
 
-web — Next.js SSR/standalone + OpenNext, same-origin admin/API/public.
+web
+
+## Runtime
+
+Next.js SSR/standalone + OpenNext, same-origin admin/API/public.
 
 ## Users
 

@@ -128,4 +128,4 @@ Reload/đăng xuất giữ dữ liệu đã lưu trên cùng origin/browser; đ�
 
 **Ranh giới bảo mật:** username/password chỉ trình diễn form, không gửi/lưu; sessionStorage chỉ giữ marker, không phải auth. Chỉ dùng dữ liệu thử nghiệm; bản Pages/IndexedDB không có phân quyền, intake website, private cloud hoặc API production. Production cần DTO theo quyền, verified session/membership, Origin/CSRF/CORS, transactions/revision/idempotency, upload scan/private delivery và chính sách hồ sơ được duyệt. Không dùng UI filter hoặc việc nhận PDF làm authorization/chứng nhận tài liệu.
 
-Chạy tại local: `NEXT_PUBLIC_SITE_URL=http://localhost:3106/ npm run dev -- --port 3106`, mở `/admin-preview/`. URL này đặt base path local thay cho prefix GitHub Pages.
+Chạy tại local: `NEXT_PUBLIC_SITE_URL=http://localhost:3106/ npm run dev -- --port 3106`, mở `/admin-preview/`. URL này đặt origin metadata local; mặc định domain production `https://legrandecentre.vn/` cũng không có base path.

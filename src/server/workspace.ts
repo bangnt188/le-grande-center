@@ -3,9 +3,17 @@ import type { AdminCommand, AdminSnapshot, AdminSettings } from "../shared/admin
 import type { Slot, FloorConfiguration } from "../shared/admin/space-model";
 import type { WebsiteSettings } from "../shared/admin/website-settings";
 import { parseAdminCommand } from "../shared/admin/parse-command";
-import { initials, record, AdminValidationError } from "../shared/admin/validation";
+import { record, AdminValidationError } from "../shared/admin/validation";
 import { assertAdmin, withTransaction, WorkspaceError, type AdminIdentity, type PoolClient } from "./database";
+import { createAdminCrudServices, listAll } from "./admin-crud";
 import { readMedia, readStorageUsage, deleteMedia, renameMedia, linkMedia } from "./media/repository";
+import { AccessError, BackendError } from "@shared/backend";
+function mapCrudError(error:unknown): WorkspaceError | null {
+ if(error instanceof AccessError)return new WorkspaceError(error.code==="UNAUTHENTICATED"?"Vui lòng đăng nhập.":error.code==="FORBIDDEN"?"Không có quyền thao tác.":"Dịch vụ phân quyền tạm thời không khả dụng.",error.status);
+ if(error instanceof BackendError)return new WorkspaceError(error.code==="INVALID_INPUT"?"Thông tin không hợp lệ.":error.code==="NOT_FOUND"?"Bản ghi không còn tồn tại.":error.code==="CONFLICT"?"Dữ liệu đã thay đổi hoặc vi phạm ràng buộc nghiệp vụ.":"Dịch vụ CRUD tạm thời không khả dụng.",error.status);
+ return null;
+}
+function rethrowCrudError(error:unknown):never {const mapped=mapCrudError(error);if(mapped)throw mapped;throw error;}
 
 export async function readSettings(client:PoolClient,propertyId:string):Promise<{revision:number;settings:AdminSettings}> {
  const {rows}=await client.query(`SELECT p.workspace_revision,p.name,p.contact_email,p.contact_phone,p.default_hold_hours,p.appointment_minutes,p.appointment_location,w.* FROM leasing.properties p JOIN leasing.website_settings w ON w.property_id=p.id WHERE p.id=$1`,[propertyId]);
@@ -16,33 +24,34 @@ export async function readSettings(client:PoolClient,propertyId:string):Promise<
 export async function readFloors(client:PoolClient,propertyId:string):Promise<FloorConfiguration[]> {
  return (await client.query(`SELECT floor_number AS number,purpose,public_title AS "publicTitle",public_description AS "publicDescription" FROM leasing.floors WHERE property_id=$1 ORDER BY floor_number`,[propertyId])).rows;
 }
-export async function readSlots(client:PoolClient,propertyId:string):Promise<Slot[]> {
- return (await client.query(`SELECT s.id,f.floor_number AS floor,s.code,s.display_order AS "order",s.core_zone AS side, m.area_m2::float8 AS area,coalesce(fr.width_m,0)::float8 AS width,
- CASE WHEN l.id IS NOT NULL THEN 'Đang thuê' ELSE s.operational_status END AS status,coalesce(o.legal_name,s.tenant_label) AS tenant, ARRAY(SELECT CASE WHEN c.slot_a_id=s.id THEN c.slot_b_id ELSE c.slot_a_id END FROM leasing.slot_connections c WHERE c.property_id=s.property_id AND c.approval_state='approved' AND (c.slot_a_id=s.id OR c.slot_b_id=s.id)) AS "connectedSlotIds"
- FROM leasing.slots s JOIN leasing.floors f ON f.id=s.floor_id
- JOIN LATERAL(SELECT * FROM leasing.slot_versions WHERE slot_id=s.id ORDER BY version_number DESC LIMIT 1) v ON true
- JOIN leasing.slot_measurements m ON m.slot_version_id=v.id AND m.area_kind='commercial_reference'
- LEFT JOIN LATERAL(SELECT width_m FROM leasing.slot_frontages WHERE slot_version_id=v.id AND frontage_kind='external' LIMIT 1) fr ON true
- LEFT JOIN leasing.slot_allocations a ON a.slot_id=s.id AND a.lease_id IS NOT NULL AND a.released_at IS NULL
- LEFT JOIN leasing.leases l ON l.id=a.lease_id AND l.status='executed' LEFT JOIN leasing.organizations o ON o.id=l.organization_id
- WHERE s.property_id=$1 AND s.retired_at IS NULL ORDER BY f.floor_number,s.display_order`,[propertyId])).rows;
-}
-export async function readWorkspaceInTransaction(client:PoolClient,identity:AdminIdentity):Promise<AdminSnapshot> {
- await assertAdmin(client,identity);const p=identity.propertyId;
- const {revision,settings}=await readSettings(client,p),floors=await readFloors(client,p),slots=await readSlots(client,p);
- const companies=(await client.query(`SELECT o.id,o.legal_name AS name,o.industry,coalesce(b.name,'') AS brand,coalesce(c.display_name,'') AS contact,coalesce(c.email,'') AS email,coalesce(c.phone,'') AS phone,o.account_owner AS owner,o.internal_note AS note,o.registration_number AS "taxId",o.registered_address AS address FROM leasing.organizations o JOIN leasing.property_customers pc ON pc.organization_id=o.id LEFT JOIN LATERAL(SELECT * FROM leasing.brands WHERE organization_id=o.id ORDER BY created_at LIMIT 1)b ON true LEFT JOIN LATERAL(SELECT * FROM leasing.contacts WHERE organization_id=o.id ORDER BY created_at LIMIT 1)c ON true WHERE pc.property_id=$1 ORDER BY o.created_at`,[p])).rows.map(c=>({...c,initials:initials(c.name)}));
- const groups=(await client.query(`SELECT s.id,f.floor_number AS floor,s.display_name AS name,array_agg(m.slot_id ORDER BY sl.display_order) AS "slotIds" FROM leasing.spaces s JOIN leasing.floors f ON f.id=s.floor_id JOIN LATERAL(SELECT id FROM leasing.space_versions WHERE space_id=s.id ORDER BY version_number DESC LIMIT 1)v ON true JOIN leasing.space_members m ON m.space_version_id=v.id JOIN leasing.slots sl ON sl.id=m.slot_id WHERE s.property_id=$1 AND s.is_admin_group AND s.retired_at IS NULL GROUP BY s.id,f.floor_number`,[p])).rows.map(g=>({...g,status:slots.some(s=>g.slotIds.includes(s.id)&&s.status==='Đang thuê')?'Đang thuê' as const:'Trống' as const}));
+ export async function readSlots(client:PoolClient,propertyId:string):Promise<Slot[]> {
+  return (await client.query(`SELECT s.id,f.floor_number AS floor,s.code,s.display_order AS "order",s.core_zone AS side, m.area_m2::float8 AS area,coalesce(fr.width_m,0)::float8 AS width,
+  CASE WHEN l.id IS NOT NULL THEN 'Đã thuê' WHEN s.operational_status='Đang thuê' THEN 'Đã thuê' WHEN s.operational_status='Trống' THEN 'Còn trống' ELSE s.operational_status END AS status,coalesce(o.legal_name,s.tenant_label) AS tenant, ARRAY(SELECT CASE WHEN c.slot_a_id=s.id THEN c.slot_b_id ELSE c.slot_a_id END FROM leasing.slot_connections c WHERE c.property_id=s.property_id AND c.approval_state='approved' AND (c.slot_a_id=s.id OR c.slot_b_id=s.id)) AS "connectedSlotIds"
+  FROM leasing.slots s JOIN leasing.floors f ON f.id=s.floor_id
+  JOIN LATERAL(SELECT * FROM leasing.slot_versions WHERE slot_id=s.id ORDER BY version_number DESC LIMIT 1) v ON true
+  JOIN leasing.slot_measurements m ON m.slot_version_id=v.id AND m.area_kind='commercial_reference'
+  LEFT JOIN LATERAL(SELECT width_m FROM leasing.slot_frontages WHERE slot_version_id=v.id AND frontage_kind='external' LIMIT 1) fr ON true
+  LEFT JOIN leasing.slot_allocations a ON a.slot_id=s.id AND a.lease_id IS NOT NULL AND a.released_at IS NULL
+  LEFT JOIN leasing.leases l ON l.id=a.lease_id AND l.status='executed' LEFT JOIN leasing.organizations o ON o.id=l.organization_id
+  WHERE s.property_id=$1 AND s.retired_at IS NULL ORDER BY f.floor_number,s.display_order`,[propertyId])).rows;
+ }
+export async function readWorkspaceInTransaction(client:PoolClient,identity:AdminIdentity,request?:Request,crud=createAdminCrudServices(identity,client,request)):Promise<AdminSnapshot> {
+  await assertAdmin(client,identity);const p=identity.propertyId;
+  const {revision,settings}=await readSettings(client,p),floors=await readFloors(client,p),slots=await readSlots(client,p);
+  let companies:AdminSnapshot["companies"];
+  try { companies=await listAll(crud.companies,crud.request); } catch(error) { rethrowCrudError(error); }
+  const groups=(await client.query(`SELECT s.id,f.floor_number AS floor,s.display_name AS name,array_agg(m.slot_id ORDER BY sl.display_order) AS "slotIds" FROM leasing.spaces s JOIN leasing.floors f ON f.id=s.floor_id JOIN LATERAL(SELECT id FROM leasing.space_versions WHERE space_id=s.id ORDER BY version_number DESC LIMIT 1)v ON true JOIN leasing.space_members m ON m.space_version_id=v.id JOIN leasing.slots sl ON sl.id=m.slot_id WHERE s.property_id=$1 AND s.is_admin_group AND s.retired_at IS NULL GROUP BY s.id,f.floor_number`,[p])).rows.map(g=>({...g,status:slots.some(s=>g.slotIds.includes(s.id)&&(s.status==='Đã thuê'||s.status==='Đang thuê'))?'Đã thuê' as const:slots.some(s=>g.slotIds.includes(s.id)&&s.status==='Liên hệ')?'Liên hệ' as const:'Còn trống' as const}));
  const requests=(await client.query(`SELECT q.id,q.organization_id AS "companyId",f.floor_number AS floor,array_agg(m.slot_id ORDER BY sl.display_order) AS "slotIds",v.area_m2::float8 AS area,lower(q.requested_period)::text AS start,(upper(q.requested_period)-1)::text AS "end",CASE q.status WHEN 'under_review' THEN 'reviewing' ELSE q.status END AS status,q.customer_note AS note,q.submitted_at::text AS received FROM leasing.leasing_requests q JOIN leasing.request_spaces rs ON rs.request_id=q.id JOIN leasing.space_versions v ON v.id=rs.space_version_id JOIN leasing.floors f ON f.id=v.floor_id JOIN leasing.space_members m ON m.space_version_id=v.id JOIN leasing.slots sl ON sl.id=m.slot_id WHERE q.property_id=$1 GROUP BY q.id,f.floor_number,v.area_m2`,[p])).rows;
  const reservations=(await client.query(`SELECT r.id,r.request_id AS "requestId",r.organization_id AS "companyId",f.floor_number AS floor,array_agg(m.slot_id ORDER BY sl.display_order) AS "slotIds",v.area_m2::float8 AS area,lower(r.occupancy_period)::text AS start,(upper(r.occupancy_period)-1)::text AS "end",r.expires_at::text AS "expiresAt",CASE r.status WHEN 'expired' THEN 'cancelled' ELSE r.status END AS status,r.internal_note AS note FROM leasing.reservations r JOIN leasing.request_spaces rs ON rs.id=r.request_space_id JOIN leasing.space_versions v ON v.id=rs.space_version_id JOIN leasing.floors f ON f.id=v.floor_id JOIN leasing.space_members m ON m.space_version_id=v.id JOIN leasing.slots sl ON sl.id=m.slot_id WHERE r.property_id=$1 GROUP BY r.id,f.floor_number,v.area_m2`,[p])).rows;
  const leases=(await client.query(`SELECT l.id,l.organization_id AS "companyId",l.reservation_id AS "reservationId",f.floor_number AS floor,array_agg(m.slot_id ORDER BY sl.display_order) AS "slotIds",v.area_m2::float8 AS area,lower(l.occupancy_period)::text AS start,(upper(l.occupancy_period)-1)::text AS "end",l.status,lv.rent_note AS "rentNote",d.title AS "documentName",dv.id AS "documentMediaId" FROM leasing.leases l JOIN leasing.space_versions v ON v.id=l.space_version_id JOIN leasing.floors f ON f.id=v.floor_id JOIN leasing.space_members m ON m.space_version_id=v.id JOIN leasing.slots sl ON sl.id=m.slot_id JOIN LATERAL(SELECT * FROM leasing.lease_versions WHERE lease_id=l.id ORDER BY version_number DESC LIMIT 1) lv ON true JOIN leasing.lease_documents ld ON ld.lease_version_id=lv.id AND ld.purpose='recorded_original' JOIN leasing.document_versions dv ON dv.id=ld.document_version_id JOIN leasing.documents d ON d.id=dv.document_id WHERE l.property_id=$1 AND l.status='executed' GROUP BY l.id,f.floor_number,v.area_m2,lv.rent_note,d.title,dv.id`,[p])).rows;
- const appointments=(await client.query(`SELECT id,organization_id AS "companyId",purpose,lower(scheduled_period)::text AS "startsAt",status,meeting_location AS location,(extract(epoch FROM upper(scheduled_period)-lower(scheduled_period))/60)::integer AS "durationMinutes" FROM leasing.appointments WHERE property_id=$1 ORDER BY lower(scheduled_period)`,[p])).rows;
- const leads=(await client.query(`SELECT l.id,l.name,l.interest,l.floor_number AS floor,l.source,l.created_at::text AS time,l.status,l.note,l.organization_id AS "companyId",l.email,l.phone,CASE WHEN ci.id IS NULL THEN NULL ELSE jsonb_strip_nulls(jsonb_build_object('intent',ci.intent,'company',ci.company_name,'business',ci.business,'area',ci.area_preference,'timing',ci.timing,'space',ci.space_code,'scope',ci.scope,'visitDate',ci.visit_date::text,'visitTime',ci.visit_time)) END AS "contactDetails" FROM leasing.leads l LEFT JOIN leasing.contact_intake ci ON ci.lead_id=l.id WHERE l.property_id=$1 ORDER BY l.created_at DESC`,[p])).rows.map(l=>({...l,companyId:l.companyId??undefined,contactDetails:l.contactDetails??undefined,initials:initials(l.name)}));
+ let appointments:AdminSnapshot["appointments"],leads:AdminSnapshot["leads"];
+ try { appointments=await listAll(crud.appointments,crud.request);leads=await listAll(crud.leads,crud.request); } catch(error) { rethrowCrudError(error); }
  return {revision,settings,floors,slots,companies,groups,requests,reservations,leases,appointments,leads,media:await readMedia(client,p),storage:await readStorageUsage(client,p)};
 }
-export async function readWorkspace(identity:AdminIdentity) {return withTransaction(identity.id,async client=>{await client.query('SELECT id FROM leasing.properties WHERE id=$1 FOR SHARE',[identity.propertyId]);return readWorkspaceInTransaction(client,identity);});}
+export async function readWorkspace(identity:AdminIdentity,request?:Request) {return withTransaction(identity.id,async client=>{await client.query('SELECT id FROM leasing.properties WHERE id=$1 FOR SHARE',[identity.propertyId]);return readWorkspaceInTransaction(client,identity,request);});}
 
 async function assertVacant(client:PoolClient,p:string,ids:string[]) {
- const {rows}=await client.query(`SELECT s.id FROM leasing.slots s WHERE s.property_id=$1 AND s.id=ANY($2::uuid[]) AND (s.operational_status<>'Trống' OR s.tenant_label<>'' OR EXISTS(SELECT 1 FROM leasing.slot_allocations a WHERE a.slot_id=s.id AND a.released_at IS NULL))`,[p,ids]);
+ const {rows}=await client.query(`SELECT s.id FROM leasing.slots s WHERE s.property_id=$1 AND s.id=ANY($2::uuid[]) AND (s.operational_status NOT IN ('Trống','Còn trống') OR s.tenant_label<>'' OR EXISTS(SELECT 1 FROM leasing.slot_allocations a WHERE a.slot_id=s.id AND a.released_at IS NULL))`,[p,ids]);
  if(rows.length)throw new WorkspaceError('Mặt bằng đang có cam kết hoặc đang thuê.',409);
 }
 async function expireHolds(client:PoolClient,p:string) {
@@ -83,7 +92,7 @@ async function recordDocument(client:PoolClient,identity:AdminIdentity,leaseId:s
  await client.query("INSERT INTO leasing.lease_documents(lease_version_id,document_version_id,property_id,purpose) VALUES($1,$2,$3,'recorded_original')",[version,mediaId,p]);
  await client.query('UPDATE leasing.lease_versions SET recorded_at=now(),recorded_by=$2 WHERE id=$1',[version,identity.id]);
 }
-async function applyCommand(client:PoolClient,identity:AdminIdentity,c:AdminCommand,data:AdminSnapshot):Promise<string> {
+async function applyCommand(client:PoolClient,identity:AdminIdentity,c:AdminCommand,data:AdminSnapshot,crud:ReturnType<typeof createAdminCrudServices>):Promise<string> {
  const p=identity.propertyId;
  switch(c.type) {
  case 'update-floor':await client.query('UPDATE leasing.floors SET purpose=$3,public_title=$4,public_description=$5 WHERE property_id=$1 AND floor_number=$2',[p,c.floor,c.purpose,c.publicTitle,c.publicDescription]);return p;
@@ -100,10 +109,10 @@ async function applyCommand(client:PoolClient,identity:AdminIdentity,c:AdminComm
   await client.query('UPDATE leasing.spaces SET retired_at=now(),revision=revision+1 WHERE id=$1 AND property_id=$2',[g.id,p]);
   await client.query("UPDATE leasing.documents SET media_scope=$1 WHERE property_id=$2 AND media_scope=$3",['Tầng '+g.floor,p,'group:'+g.id]);return g.id;
  }
- case 'update-slot':{
+  case 'update-slot':{
   const s=record(data.slots,c.slotId);await assertUncommitted(client,p,[s.id]);
   if(data.groups.some(g=>g.slotIds.includes(s.id)))throw new WorkspaceError('Cập nhật nhóm thay vì slot thành viên.');
-  await client.query('UPDATE leasing.slots SET operational_status=$3,tenant_label=$4,revision=revision+1 WHERE id=$1 AND property_id=$2',[s.id,p,c.status,c.status==='Trống'?'':c.tenant]);
+  await client.query('UPDATE leasing.slots SET operational_status=$3,tenant_label=$4,revision=revision+1 WHERE id=$1 AND property_id=$2',[s.id,p,c.status,(c.status==='Trống'||c.status==='Còn trống')?'':c.tenant]);
   if(c.area!==undefined&&c.area!==s.area) {
    const v=(await client.query('SELECT * FROM leasing.slot_versions WHERE slot_id=$1 ORDER BY version_number DESC LIMIT 1',[s.id])).rows[0],id=crypto.randomUUID();
    await client.query('INSERT INTO leasing.slot_versions(id,property_id,floor_id,slot_id,plan_version_id,version_number,geometry,technical_spec) VALUES($1,$2,$3,$4,$5,$6,NULL,$7)',[id,p,v.floor_id,s.id,v.plan_version_id,v.version_number+1,v.technical_spec]);
@@ -120,22 +129,26 @@ async function applyCommand(client:PoolClient,identity:AdminIdentity,c:AdminComm
  case 'update-group':{
   const g=record(data.groups,c.groupId);await assertUncommitted(client,p,g.slotIds);
   await client.query('UPDATE leasing.spaces SET display_name=$2,revision=revision+1 WHERE id=$1',[g.id,c.name]);
-  await client.query("UPDATE leasing.slots SET operational_status=$2,tenant_label=CASE WHEN $2='Trống' THEN '' ELSE tenant_label END,revision=revision+1 WHERE id=ANY($1::uuid[])",[g.slotIds,c.status]);return g.id;
+  await client.query("UPDATE leasing.slots SET operational_status=$2,tenant_label=CASE WHEN $2 IN ('Trống','Còn trống') THEN '' ELSE tenant_label END,revision=revision+1 WHERE id=ANY($1::uuid[])",[g.slotIds,c.status]);return g.id;
  }
- case 'save-company':record(data.companies,c.companyId);await client.query('UPDATE leasing.organizations SET internal_note=$2 WHERE id=$1',[c.companyId,c.note]);return c.companyId;
+ case 'save-company':{
+  const company=record(data.companies,c.companyId);
+  return (await crud.companies.update(crud.request,c.companyId,company.version,{note:c.note})).id;
+ }
  case 'upsert-company':{
-  const v=c.values,id=c.companyId??crypto.randomUUID();if(c.companyId)record(data.companies,c.companyId);
-  if(c.companyId)await client.query('UPDATE leasing.organizations SET legal_name=$2,industry=$3,account_owner=$4,internal_note=$5,registration_number=$6,registered_address=$7 WHERE id=$1',[id,v.name,v.industry,v.owner,v.note,v.taxId||null,v.address||null]);
-  else {await client.query('INSERT INTO leasing.organizations(id,legal_name,industry,account_owner,internal_note,registration_number,registered_address) VALUES($1,$2,$3,$4,$5,$6,$7)',[id,v.name,v.industry,v.owner,v.note,v.taxId||null,v.address||null]);await client.query('INSERT INTO leasing.property_customers(property_id,organization_id) VALUES($1,$2)',[p,id]);}
-  const brand=(await client.query('SELECT id FROM leasing.brands WHERE organization_id=$1 ORDER BY created_at LIMIT 1',[id])).rows[0];
-  if(brand)await client.query('UPDATE leasing.brands SET name=$2 WHERE id=$1',[brand.id,v.brand]);else await client.query('INSERT INTO leasing.brands(organization_id,name) VALUES($1,$2)',[id,v.brand]);
-  const contact=(await client.query('SELECT id FROM leasing.contacts WHERE organization_id=$1 ORDER BY created_at LIMIT 1',[id])).rows[0];
-  if(contact)await client.query('UPDATE leasing.contacts SET display_name=$2,email=$3,phone=$4 WHERE id=$1',[contact.id,v.contact,v.email,v.phone]);else await client.query('INSERT INTO leasing.contacts(organization_id,display_name,email,phone) VALUES($1,$2,$3,$4)',[id,v.contact,v.email,v.phone]);return id;
+  if(c.companyId){const company=record(data.companies,c.companyId);return (await crud.companies.update(crud.request,c.companyId,company.version,c.values)).id;}
+  return (await crud.companies.create(crud.request,c.values)).id;
+ }
+ case 'delete-company':{
+  const company=record(data.companies,c.companyId);await crud.companies.delete(crud.request,c.companyId,company.version);return c.companyId;
  }
  case 'save-lead':{
-  const v=c.values,id=c.leadId??crypto.randomUUID();if(c.leadId)record(data.leads,id);if(v.companyId)record(data.companies,v.companyId);
-  if(c.leadId)await client.query('UPDATE leasing.leads SET organization_id=$3,name=$4,interest=$5,floor_number=$6,source=$7,status=$8,note=$9,email=$10,phone=$11 WHERE id=$1 AND property_id=$2',[id,p,v.companyId||null,v.name,v.interest,v.floor,v.source,v.status,v.note,v.email??'',v.phone??'']);
-  else await client.query('INSERT INTO leasing.leads(id,property_id,organization_id,name,interest,floor_number,source,status,note,email,phone) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',[id,p,v.companyId||null,v.name,v.interest,v.floor,v.source,v.status,v.note,v.email??'',v.phone??'']);return id;
+  const id=c.leadId??undefined;if(id)record(data.leads,id);if(c.values.companyId)record(data.companies,c.values.companyId);
+  if(id){const lead=record(data.leads,id);return (await crud.leads.update(crud.request,id,lead.version,c.values)).id;}
+  return (await crud.leads.create(crud.request,c.values)).id;
+ }
+ case 'delete-lead':{
+  const lead=record(data.leads,c.leadId);await crud.leads.delete(crud.request,c.leadId,lead.version);return c.leadId;
  }
  case 'save-request':{
   const v=c.values,id=c.requestId??crypto.randomUUID();record(data.companies,v.companyId);
@@ -174,11 +187,12 @@ async function applyCommand(client:PoolClient,identity:AdminIdentity,c:AdminComm
  }
  case 'attach-lease-document':record(data.leases,c.leaseId);await recordDocument(client,identity,c.leaseId,c.mediaId);return c.leaseId;
  case 'save-appointment':{
-  const v=c.values,id=c.appointmentId??crypto.randomUUID();record(data.companies,v.companyId);if(c.appointmentId&&record(data.appointments,id).status==='cancelled')throw new WorkspaceError('Không sửa lịch đã hủy.');
-  if(Date.parse(v.startsAt)<=Date.now())throw new WorkspaceError('Chọn lịch trong tương lai.');
-  if((await client.query("SELECT 1 FROM leasing.appointments WHERE property_id=$1 AND id<>$2 AND status<>'cancelled' AND scheduled_period&&tstzrange($3::timestamptz,$3::timestamptz+$4*interval '1 minute','[)')",[p,id,v.startsAt,v.durationMinutes])).rows.length)throw new WorkspaceError('Khung giờ đã có lịch.',409);
-  if(c.appointmentId)await client.query("UPDATE leasing.appointments SET organization_id=$2,purpose=$3,scheduled_period=tstzrange($4::timestamptz,$4::timestamptz+$5*interval '1 minute','[)'),meeting_location=$6,revision=revision+1 WHERE id=$1",[id,v.companyId,v.purpose,v.startsAt,v.durationMinutes,v.location]);
-  else await client.query("INSERT INTO leasing.appointments(id,property_id,organization_id,purpose,scheduled_period,meeting_location) VALUES($1,$2,$3,$4,tstzrange($5::timestamptz,$5::timestamptz+$6*interval '1 minute','[)'),$7)",[id,p,v.companyId,v.purpose,v.startsAt,v.durationMinutes,v.location]);return id;
+  const v=c.values;record(data.companies,v.companyId);
+  if(c.appointmentId){const appointment=record(data.appointments,c.appointmentId);if(appointment.status==='cancelled')throw new WorkspaceError('Không sửa lịch đã hủy.');return (await crud.appointments.update(crud.request,c.appointmentId,appointment.version,v)).id;}
+  return (await crud.appointments.create(crud.request,v)).id;
+ }
+ case 'delete-appointment':{
+  const appointment=record(data.appointments,c.appointmentId);await crud.appointments.delete(crud.request,c.appointmentId,appointment.version);return c.appointmentId;
  }
  case 'confirm-appointment':{
   const a=record(data.appointments,c.appointmentId);if(a.status!=='requested'||Date.parse(a.startsAt)<=Date.now())throw new WorkspaceError('Chỉ xác nhận lịch chờ trong tương lai.');await client.query("UPDATE leasing.appointments SET status='confirmed',revision=revision+1 WHERE id=$1",[a.id]);return a.id;
@@ -194,23 +208,25 @@ async function applyCommand(client:PoolClient,identity:AdminIdentity,c:AdminComm
 async function assertUncommitted(client:PoolClient,p:string,ids:string[]) {
  if((await client.query('SELECT 1 FROM leasing.slot_allocations WHERE property_id=$1 AND slot_id=ANY($2::uuid[]) AND released_at IS NULL',[p,ids])).rows.length)throw new WorkspaceError('Slot đang có cam kết.',409);
 }
-export async function executeCommand(identity:AdminIdentity,input:{command:unknown;expectedRevision:number;idempotencyKey:string}):Promise<AdminSnapshot> {
+export async function executeCommand(identity:AdminIdentity,input:{command:unknown;expectedRevision:number;idempotencyKey:string},request?:Request):Promise<AdminSnapshot> {
  if(!Number.isSafeInteger(input.expectedRevision)||input.expectedRevision<0||typeof input.idempotencyKey!=='string'||!/^[A-Za-z0-9_-]{16,100}$/.test(input.idempotencyKey))throw new WorkspaceError('Invalid revision or idempotency key');
  let command:AdminCommand;try{command=parseAdminCommand(input.command);}catch(error){throw new WorkspaceError(error instanceof Error?error.message:'Invalid command');}
  const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify({command,expectedRevision:input.expectedRevision}))),hash=Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');
  return withTransaction(identity.id,async client=>{
   await assertAdmin(client,identity);
+  if(identity.role==="editor"&&command.type==="update-settings")throw new WorkspaceError("Editor không có quyền thay đổi cấu hình vận hành.",403);
+  const crud=createAdminCrudServices(identity,client,request);
   const property=(await client.query('SELECT workspace_revision FROM leasing.properties WHERE id=$1 FOR UPDATE',[identity.propertyId])).rows[0];
   const receipt=(await client.query('SELECT request_sha256 FROM leasing.command_receipts WHERE property_id=$1 AND actor_user_id=$2 AND idempotency_key=$3',[identity.propertyId,identity.id,input.idempotencyKey])).rows[0];
-  if(receipt){if(receipt.request_sha256!==hash)throw new WorkspaceError('Idempotency key reused with different command',409);return readWorkspaceInTransaction(client,identity);}
+  if(receipt){if(receipt.request_sha256!==hash)throw new WorkspaceError('Idempotency key reused with different command',409);return readWorkspaceInTransaction(client,identity,request,crud);}
   if(!property||Number(property.workspace_revision)!==input.expectedRevision)throw new WorkspaceError('Workspace revision conflict',409);
   await expireHolds(client,identity.propertyId);
-  const snapshot=await readWorkspaceInTransaction(client,identity);let entity:string;
-  try{entity=await applyCommand(client,identity,command,snapshot);}catch(error){if(error instanceof AdminValidationError)throw new WorkspaceError(error.message);throw error;}
+  const snapshot=await readWorkspaceInTransaction(client,identity,request,crud);let entity:string;
+  try{entity=await applyCommand(client,identity,command,snapshot,crud);}catch(error){if(error instanceof AdminValidationError)throw new WorkspaceError(error.message);rethrowCrudError(error);}
   await client.query('UPDATE leasing.properties SET workspace_revision=workspace_revision+1 WHERE id=$1',[identity.propertyId]);
   await client.query('INSERT INTO leasing.command_receipts(property_id,actor_user_id,idempotency_key,request_sha256,command_code,result_entity_id,result_revision) VALUES($1,$2,$3,$4,$5,$6,$7)',[identity.propertyId,identity.id,input.idempotencyKey,hash,command.type,entity,input.expectedRevision+1]);
   await client.query("INSERT INTO leasing.audit_events(property_id,actor_user_id,action_code,entity_type,entity_id,metadata) VALUES($1,$2,$3,'workspace',$4,$5::jsonb)",[identity.propertyId,identity.id,command.type,entity,JSON.stringify({revision:input.expectedRevision+1})]);
-  return readWorkspaceInTransaction(client,identity);
+  return readWorkspaceInTransaction(client,identity,request,crud);
  });
 }
 

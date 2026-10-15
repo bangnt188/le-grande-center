@@ -33,7 +33,13 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    ".next-google-auth-smoke/types/**/*.ts",
+    ".next-google-auth-smoke/dev/types/**/*.ts",
+    ".next-google-auth-popup-smoke/types/**/*.ts",
+    ".next-google-auth-popup-smoke/dev/types/**/*.ts",
+    ".next-password-root-smoke/types/**/*.ts",
+    ".next-password-root-smoke/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

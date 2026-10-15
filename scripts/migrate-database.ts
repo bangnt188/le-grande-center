@@ -26,7 +26,7 @@ export async function migrateDatabase(connectionString:string) {
   }
   const p=property.id,w=DEFAULT_WEBSITE_SETTINGS;
   await client.query('INSERT INTO leasing.website_settings(property_id,email,hotline,secondary_phone,management_phone,address,zalo_url) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(property_id) DO NOTHING',[p,w.email,w.hotline,w.secondaryPhone,w.managementPhone,w.address,w.zaloUrl]);
-  await client.query("INSERT INTO leasing.admin_allowlist(property_id,email) VALUES($1,'nguyenbang.skyone@gmail.com') ON CONFLICT DO NOTHING",[p]);
+  await client.query("INSERT INTO leasing.root_allowlist(property_id,email) VALUES($1,'root@legrandecentre.vn') ON CONFLICT DO NOTHING",[p]);
   await client.query("INSERT INTO leasing.users(auth_issuer,auth_subject,disabled_at) VALUES('system:asset-import','approved-project-assets',now()) ON CONFLICT(auth_issuer,auth_subject) DO NOTHING");
   const importer=(await client.query("SELECT id FROM leasing.users WHERE auth_issuer='system:asset-import' AND auth_subject='approved-project-assets'")).rows[0];
   for(const content of DEFAULT_FLOOR_CONTENT) {

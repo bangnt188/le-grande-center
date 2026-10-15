@@ -17,7 +17,7 @@ export function storageState(usage: StorageUsage | null) {
     percent,
     remainingBytes: total === null ? 0 : Math.max(0, STORAGE_LIMIT_BYTES - total),
     blocked: total === null || total >= STORAGE_LIMIT_BYTES,
-    tone: percent === null ? "neutral" as const : percent > 85 ? "error" as const : percent > 65 ? "warning" as const : "success" as const,
+    tone: percent === null ? "neutral" as const : percent >= 85 ? "error" as const : percent >= 65 ? "warning" as const : "success" as const,
   };
 }
 

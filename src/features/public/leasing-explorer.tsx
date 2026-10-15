@@ -2,9 +2,9 @@
 
 import { useMemo, useRef, useState, type MouseEvent } from "react";
 import Link from "next/link";
-import { Modal } from "@mall/ui";
+import { Badge, Modal } from "@mall/ui";
 import { r2AssetBase } from "@/config/site";
-import type { AreaFilter, LeasingFloor, LeasingOrientation, LeasingUnit } from "./leasing-model";
+import { STATUS_CONFIG, STATUS_OPTIONS, type AreaFilter, type StatusFilter, type LeasingFloor, type LeasingOrientation, type LeasingUnit, getShophousePair } from "./leasing-model";
 import { planStyle, planLabelStyle } from "./leasing-plan-style";
 import { useLeasingExplorer } from "./use-leasing-explorer";
 import { LeasingSuggestion } from "./leasing-suggestion";
@@ -12,7 +12,6 @@ import planStyles from "./canva-pages.module.css";
 import { getLeasingProjectCover } from "./leasing-unit-gallery";
 import { LeasingAvailabilityBadge } from "./leasing-availability-badge";
 import styles from "./leasing-explorer.module.css";
-import { getShophousePair } from "./leasing-model";
 import { LeasingConsultation } from "./leasing-consultation";
 import { useWebsiteSettings } from "./website-settings";
 
@@ -32,7 +31,7 @@ export function LeasingExplorer({ floors, units: inventory, orientation, sourceD
     const content = floorContent.find(item => item.number === floor.id)!;
     return { ...floor, label: content.publicTitle, description: content.publicDescription };
   }), [floors, floorContent]);
-  const { group, floorGroups, units, visible, selected, type, area, unitTypes, setType, setArea, setSelectedId, chooseFloor, clearFilters, clearSelection } = useLeasingExplorer(publicFloors, inventory);
+  const { group, floorGroups, units, visible, selected, type, area, status, unitTypes, setType, setArea, setStatus, setSelectedId, chooseFloor, clearFilters, clearSelection } = useLeasingExplorer(publicFloors, inventory);
   const [view, setView] = useState<"map" | "list">("map");
   const portal = useRef<HTMLDivElement>(null);
   const [consulting, setConsulting] = useState<LeasingUnit | null>(null);
@@ -59,9 +58,11 @@ export function LeasingExplorer({ floors, units: inventory, orientation, sourceD
       </nav>
       <div className={styles.toolbar}>
         <div className={styles.filters}>
-          <label>Loại hình<select aria-label="Lọc loại hình" value={type} onChange={event => setType(event.target.value)}><option value="">Tất cả loại hình</option>{unitTypes.map(value => <option key={value}>{value}</option>)}</select></label>
+          <label>Tầng<select aria-label="Lọc tầng" value={group.id} onChange={event => chooseFloor(Number(event.target.value))}>{floorGroups.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
           <label>Diện tích<select aria-label="Lọc diện tích" value={area} onChange={event => setArea(event.target.value as AreaFilter)}><option value="">Mọi diện tích</option><option value="small">Dưới 100 m²</option><option value="medium">100–150 m²</option><option value="large">Trên 150 m²</option></select></label>
-          {(type || area) && <button type="button" className={styles.clearFilters} onClick={clearFilters}>Xóa bộ lọc</button>}
+          <label>Trạng thái công khai<select aria-label="Lọc trạng thái công khai" value={status} onChange={event => setStatus(event.target.value as StatusFilter)}>{STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</select></label>
+          <label>Loại hình<select aria-label="Lọc loại hình" value={type} onChange={event => setType(event.target.value)}><option value="">Tất cả loại hình</option>{unitTypes.map(value => <option key={value}>{value}</option>)}</select></label>
+          {(type || area || status) && <button type="button" className={styles.clearFilters} onClick={clearFilters}>Xóa bộ lọc</button>}
         </div>
         <div className={styles.viewToggle} role="group" aria-label="Kiểu xem mặt bằng">
           <button type="button" aria-label="Xem sơ đồ (Map)" aria-pressed={view === "map"} aria-controls="leasing-floor-content" onClick={() => setView("map")}><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true"><path d="m2 5 5-2 6 2 5-2v12l-5 2-6-2-5 2zM7 3v12m6-10v12"/></svg>Map</button>
@@ -71,21 +72,24 @@ export function LeasingExplorer({ floors, units: inventory, orientation, sourceD
       <p className={styles.resultCount} role="status">{group.title} <span>· {listUnits.length} {group.id === 1 ? "cặp shophouse liên thông theo brochure" : "mặt bằng theo brochure"}</span></p>
       {group.id === 1 && <p className={styles.floorDescription}>11 cặp A.1–B.1 đến A.11–B.11. Có thể thuê riêng từng căn hoặc kết hợp hai tầng; bộ lọc diện tích áp dụng cho từng căn.</p>}
       <div id="leasing-floor-content" data-view={view} className={styles.content}>
-        {!visible.length ? <div className={styles.empty}><h3>Không có mặt bằng phù hợp</h3><p>Thử đổi loại hình hoặc diện tích trong {group.title.toLowerCase()}.</p><button type="button" onClick={clearFilters}>Xóa bộ lọc</button></div> : view === "map" ? <div className={styles.maps}>
+        {!visible.length ? <div className={styles.empty}><h3>Không có mặt bằng phù hợp</h3><p>Thử đổi trạng thái, diện tích hoặc loại hình trong {group.title.toLowerCase()}.</p><button type="button" onClick={clearFilters}>Xóa bộ lọc</button></div> : view === "map" ? <div className={styles.maps}>
           {group.floors.map(floor => <article className={styles.planPanel} key={floor.id} aria-label={`Sơ đồ tầng ${floor.id}`}>
             <div className={styles.planHeading}><h3>Tầng {floor.id} <span>· {floor.label}</span></h3><a href={`${assetBase}${sourceDocument}#page=${floor.sourcePage}`} target="_blank" rel="noopener noreferrer">Brochure · trang {floor.sourcePage}<Arrow/></a></div>
             <p className={styles.floorDescription}>{floor.description}</p>
             <div className={`${planStyles.planScroll} ${styles.planScroll}`} tabIndex={0} role="region" aria-label={`Sơ đồ tầng ${floor.id}, cuộn ngang để xem đầy đủ`}>
               <div className={`${planStyles.plan} ${styles.planCanvas}`}>
                 {floor.sharedAreas.map((space, index) => <div key={index} className={planStyles.sharedArea} style={planStyle(space)}>{space.label}</div>)}
-                {units.filter(unit => unit.floorId === floor.id).map(unit => <button id={`leasing-plan-${unit.id}`} className={planStyles.planSlot} style={planStyle(unit.plan)} key={unit.id} type="button" disabled={!visibleIds.has(unit.id)} aria-pressed={selected?.id === unit.id} aria-haspopup="dialog" aria-label={`${unit.id}, tầng ${unit.floorId}, ${number(unit.area)} mét vuông`} onClick={event => openUnit(unit, event)}>
-                  <span className={planStyles.slotLabel} style={planLabelStyle(unit.plan)}><strong>{unit.id}</strong><span>{number(unit.area)} m²</span></span>
-                </button>)}
+                {units.filter(unit => unit.floorId === floor.id).map(unit => {
+                  const statusConfig = STATUS_CONFIG[unit.availability];
+                  return <button id={`leasing-plan-${unit.id}`} className={planStyles.planSlot} data-slot-status={unit.availability} style={planStyle(unit.plan)} key={unit.id} type="button" disabled={!visibleIds.has(unit.id)} aria-pressed={selected?.id === unit.id} aria-haspopup="dialog" aria-label={`${unit.id}, tầng ${unit.floorId}, ${number(unit.area)} mét vuông, ${statusConfig?.label ?? unit.availability}`} onClick={event => openUnit(unit, event)}>
+                    <span className={planStyles.slotLabel} style={planLabelStyle(unit.plan)}><strong>{unit.id}</strong><span>{number(unit.area)} m²</span><span className={styles.slotStatus} data-status={unit.availability}>{statusConfig?.label ?? unit.availability}</span></span>
+                  </button>;
+                })}
               </div>
             </div>
           </article>)}
         </div> : <ul className={styles.unitList} aria-label="Danh sách mặt bằng">
-          {listUnits.map(unit => { const pair = getShophousePair(unit, inventory); return <li key={unit.id}><button id={`leasing-list-${unit.id}`} type="button" className={styles.unit} aria-haspopup="dialog" aria-pressed={selected?.id === unit.id} onClick={event => openUnit(unit, event)}><strong>{pair ? `${pair[0].id} – ${pair[1].id}` : unit.id}</strong><span className={styles.unitFloor}>{pair ? `Tầng 1: ${number(pair[0].area)} m² · Tầng 2: ${number(pair[1].area)} m²` : `Tầng ${unit.floorId}`}</span><span className={styles.unitArea}>{number(pair ? pair[0].area + pair[1].area : unit.area)} m²{pair && <small> tổng diện tích</small>}</span><span className={styles.unitType}>{pair ? "Thuê riêng từng căn hoặc kết hợp" : unit.types.join(" · ") || "Tư vấn công năng"}</span><Arrow/></button></li>; })}
+          {listUnits.map(unit => { const pair = getShophousePair(unit, inventory); const statusConfig = STATUS_CONFIG[unit.availability]; return <li key={unit.id}><button id={`leasing-list-${unit.id}`} type="button" className={styles.unit} aria-haspopup="dialog" aria-pressed={selected?.id === unit.id} onClick={event => openUnit(unit, event)}><strong>{pair ? `${pair[0].id} – ${pair[1].id}` : unit.id}</strong><span className={styles.unitFloor}>{pair ? `Tầng 1: ${number(pair[0].area)} m² · Tầng 2: ${number(pair[1].area)} m²` : `Tầng ${unit.floorId}`}</span><span className={styles.unitArea}>{number(pair ? pair[0].area + pair[1].area : unit.area)} m²{pair && <small> tổng diện tích</small>}</span><span className={styles.unitStatus}><Badge tone={statusConfig.tone}>{statusConfig.label}</Badge></span><span className={styles.unitType}>{pair ? "Thuê riêng từng căn hoặc kết hợp" : unit.types.join(" · ") || "Tư vấn công năng"}</span><Arrow/></button></li>; })}
         </ul>}
       </div>
       <details className={styles.planNotes}><summary>Hướng và nguồn sơ đồ</summary>

@@ -4,8 +4,8 @@ Cập nhật 14/10/2026. Project `wispy-sunset-10596642` (tên hiển thị `mal
 
 ## Thành phần hiện tại
 
-- Neon PostgreSQL: dữ liệu quan hệ, staff allowlist, workspace CAS/idempotency/audit, public projection và form intake. Baseline + migrations 001–004 đã áp dụng vào stage2, regression disposable và backend production. Production chỉ khởi tạo 6 tầng/81 căn approved brochure, configured owner allowlist và logo Neon approved đã xác minh (25.230 bytes), không fake customer/financial transactions.
-- Neon Auth: `/api/auth` managed proxy, verified email và issuer/subject binding với staff allowlist/assignment active. Signup không tự cấp quyền; không có demo login.
+- Neon PostgreSQL: dữ liệu quan hệ, staff assignment/allowlist, CAS/idempotency/audit, public projection và intake. Migrations 001–006 đã áp dụng trên stage2 và production; migration 007 thêm tài khoản nhân viên Admin/Editor và phải áp dụng trước khi deploy app mới.
+- Neon Auth: `/admin/` dùng email + mật khẩu, không Google OAuth. Admin/root cấp email và vai trò Admin/Editor trong app; nhân viên tự tạo mật khẩu tại `/admin/` và xác minh email theo cấu hình provider. Signup không tự cấp quyền. Neon Auth chỉ là dịch vụ backend; nhân viên không cần vào Neon Console. Root `root@legrandecentre.vn` nằm trong allowlist riêng, bị ẩn khỏi danh sách nhân viên. App kiểm tra session mới, issuer/subject và quyền DB trên từng request.
 - `neon.ts`: bucket `media` `public_read`; function `media` source `src/server/media/neon-function.ts`. Không lưu tài liệu nội bộ vào bucket public-read.
 - Function media là **trusted server origin**: `x-secret: MEDIA_ORIGIN_SECRET` (ít nhất 64 ký tự), constant-time auth trước body/storage, chỉ known branding UUID keys và key logo approved, PUT ảnh PNG/JPEG/WebP bounded 10 MiB với signature/dimension checks. Không có anonymous write/arbitrary key endpoint. Node app phải kiểm tra session/quota/ownership và reserve trước gọi origin.
 - AWS S3 credentials chỉ ở Neon origin; ứng dụng gọi `NEON_MEDIA_FUNCTION_URL`, không chuyển AWS write keys vào Worker/browser. Public URL ảnh không phải quyền ghi.

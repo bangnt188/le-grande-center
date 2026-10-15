@@ -46,6 +46,6 @@ IndexedDB giữ dữ liệu/tệp sau reload trong cùng origin/browser; không 
 
 ## Cách mở demo và giới hạn validation
 
-`npm run dev -- --port 3106`, sau đó mở `http://localhost:3106/le-grande-center/admin-preview/` với cấu hình base path mặc định. Nếu `NEXT_PUBLIC_SITE_URL` có path khác, dùng path đó.
+`npm run dev -- --port 3106`, sau đó mở `http://localhost:3106/admin-preview/` với cấu hình mặc định không có base path. Nếu `NEXT_PUBLIC_SITE_URL` có path khác, dùng path đó.
 
 Kiểm tra trình duyệt tại 1440, 768, 390 và 320 px; bảng và sơ đồ cuộn trong container ở màn hình nhỏ. Domain checks bao gồm valid merge, duplicate/missing IDs, khác tầng, qua sảnh, không liền kề, nhóm trùng và slot có đối tác. Browser kiểm tra ghép/tách, trạng thái text mới, lead, media, reload, ảnh tham chiếu và reduced motion. Kết quả chi tiết ở `.impeccable/review/checks.json`. Không chứng nhận bảo mật/hiệu năng của hệ thống production chưa triển khai.

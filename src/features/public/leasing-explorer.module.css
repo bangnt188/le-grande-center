@@ -31,12 +31,17 @@
 .planCanvas button { cursor: pointer; }
 .planCanvas button:disabled { cursor: not-allowed; }
 .unitList { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--reference-line); }
-.unitList li { border-bottom: 1px solid var(--reference-line); }
-.unit { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(120px, 1fr) 110px minmax(140px, 1fr) 18px; align-items: center; gap: 16px; width: 100%; min-height: 80px; padding: 18px 16px; border: 0; background: transparent; color: var(--reference-green); text-align: left; font: inherit; cursor: pointer; font-variant-numeric: tabular-nums; }
+.unit { display: grid; grid-template-columns: minmax(130px, 1.2fr) minmax(110px, 1fr) 100px 105px minmax(130px, 1.2fr) 18px; align-items: center; gap: 16px; width: 100%; min-height: 80px; padding: 18px 16px; border: 0; background: transparent; color: var(--reference-green); text-align: left; font: inherit; cursor: pointer; font-variant-numeric: tabular-nums; }
 .unit:hover { background: #edf0e8; }
 .unit strong { font-family: var(--font-charis-sil), Georgia, serif; font-size: 26px; font-weight: 400; }
 .unitFloor, .unitType { font-size: 13px; line-height: 1.7; color: var(--reference-muted); }
 .unitArea { font-size: 17px; }
+.unitStatus { display: inline-flex; align-items: center; }
+.slotStatus { display: inline-block; padding: 1px 4px; border-radius: 3px; font-size: 10px; line-height: 1.3; font-weight: 500; }
+.slotStatus[data-status="available"] { background: #eaf3eb; color: #1f6b39; }
+.slotStatus[data-status="contact"] { background: #fdf3df; color: #8c6008; }
+.slotStatus[data-status="leased"] { background: #fbeae8; color: #a12b2b; }
+.planCanvas button[aria-pressed="true"] .slotStatus { background: rgba(252, 249, 243, 0.2); color: #fcf9f3; }
 .planNotes { margin-top: 24px; color: var(--reference-muted); font-size: 13px; }
 .planNotes summary { min-height: 44px; padding-block: 12px; cursor: pointer; color: var(--reference-green); }
 .planNotes p { max-width: 75ch; line-height: 1.8; }
@@ -101,6 +106,7 @@
   .unitArea { grid-column: 2; grid-row: 1; }
   .unit > svg { grid-column: 3; grid-row: 1; }
   .unitFloor { grid-column: 1; grid-row: 2; }
+  .unitStatus { grid-column: 2; grid-row: 2; justify-self: end; }
   .unitType { grid-column: 1 / -1; grid-row: 3; }
   .popupHost [role="dialog"] { padding: 22px 22px 32px; }
   .popupHost [role="dialog"] h2 { font-size: 30px; }

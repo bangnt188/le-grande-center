@@ -6,13 +6,15 @@ Ngày quyết định 07/10/2026; cập nhật 14/10/2026: Mall đã có adapter
 
 Repo `lib-ts-be` duy trì `@shared/backend`; Mall và Solar dùng submodule `packages/backend`, mỗi app ghim commit đã review. Core không dependency runtime hoặc cache quyền xuyên request; giữ operation authorization, query selection, SQL parameterization, validation, transport và crypto. App giữ schema, session/staff mapping, B2B transitions, audit và deploy.
 
-Mall dùng `src/server/{auth,database,workspace,public}.ts` và `src/server/media/`, bind cùng-origin Next route handlers. `AdminSnapshot`/commands là HTTP contracts; dữ liệu lưu quan hệ, property lock + CAS/idempotency/audit/RLS, không stored snapshot/IndexedDB fallback. Auth verified email + DB active administrator allowlist; không tự cấp role sau signup. Public projection riêng và intake tạo lead, không booking. PDF là upload/manage + manual external review, không eSign/antivirus-clean.
+Mall dùng `createCrud`/`createPostgresRepository` của shared BE cho list/create/update/delete của doanh nghiệp, lead và lịch hẹn. `src/server/admin-crud.ts` ghép scope theo property, quyền theo role đã xác minh, row-version CAS và soft-delete; adapter doanh nghiệp giữ quan hệ organization/brand/contact, adapter lịch hẹn giữ kiểm tra trùng khung giờ. Xóa doanh nghiệp/lead có lịch sử tham chiếu và lịch hẹn đã xác nhận/hoàn tất/không đến bị từ chối; public intake vẫn ghi lead trong một giao dịch domain riêng. Snapshot/command envelope vẫn nguyên vẹn; merge/split/lease/hold/media và xác nhận/hủy lịch tiếp tục là domain commands.
 
 Solar có adapter/schema riêng; fixedScope chỉ phù hợp DB đơn tenant đã kiểm chứng. Không copy Solar tenant mapping/keyring hoặc giả định app khác tự có Mall policy. Mọi key/credential tách ứng dụng và môi trường.
 
 ## Security và trade-off
 
-Threats gồm forged scope, cross-tenant/property/record reads, leaked count/fields, stale policy/write, lost audit và shared secrets. Scope phải áp dụng trước count/paging; session và assignment/state được kiểm tra đúng transaction boundary, command outcome audit cùng commit. Generic CRUD không thay lease/hold/media invariants.
+Threats gồm forged scope, cross-tenant/property/record reads, leaked count/fields, stale policy/write, lost audit và shared secrets. Scope áp dụng trước count/paging; Neon Auth session và active assignment được kiểm tra lại trong operation, assignment khóa tới commit. Policy-decision audit commit độc lập; outcome audit cùng transaction nghiệp vụ. CRUD CAS/tombstone không thay lease/hold/media invariants.
+
+Migration `009-shared-backend-crud.sql` bổ sung row version cho company-property, lead và appointment cùng append-only policy-decision audit. Chưa áp dụng lên stage2/production; mọi deploy phải chạy migration trước khi workspace đọc CRUD services.
 
 Adapter nhiều cấu hình hơn browser demo nhưng giữ business contract và portability. Gitlink/checksum chống drift; không update nhánh tự động trong build. Shared library fixtures/tests không là fallback runtime trong Mall.
 

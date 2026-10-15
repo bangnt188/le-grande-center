@@ -22,7 +22,7 @@ export default async function SpacesPage() {
       <div className={styles.content}>
         <p className={styles.label}>KHÁM PHÁ MẶT BẰNG</p>
         <h1 id="leasing-title" className={styles.title}>Mặt bằng<br/>cho thuê</h1>
-        <p className={styles.description}>Chọn một tầng để bắt đầu, hoặc lọc theo loại hình và diện tích bạn cần.</p>
+        <p className={styles.description}>Chọn tầng để bắt đầu, hoặc lọc theo diện tích, trạng thái công khai và loại hình bạn cần.</p>
       </div>
     </section>
     <LeasingExplorer floors={floors} units={units} orientation={BROCHURE_ORIENTATION} sourceDocument={BROCHURE_PATH}/>

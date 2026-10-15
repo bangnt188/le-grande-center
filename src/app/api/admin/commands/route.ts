@@ -13,7 +13,7 @@ export async function POST(request:Request) {
   const bytes=new Uint8Array(total);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
   let body:unknown;try{body=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));}catch{throw new WorkspaceError('Invalid JSON');}
   if(!body||typeof body!=='object'||Array.isArray(body)||Object.keys(body).some(key=>key!=='command'&&key!=='expectedRevision')||!('command' in body)||!('expectedRevision' in body)||typeof body.expectedRevision!=='number')throw new WorkspaceError('Invalid command envelope');
-  return Response.json(await executeCommand(identity,{command:body.command,expectedRevision:body.expectedRevision,idempotencyKey:request.headers.get('idempotency-key')??''}),{headers:{'Cache-Control':'private, no-store'}});
+  return Response.json(await executeCommand(identity,{command:body.command,expectedRevision:body.expectedRevision,idempotencyKey:request.headers.get('idempotency-key')??''},request),{headers:{'Cache-Control':'private, no-store'}});
  } catch (error) {
   const known = error instanceof AuthError || error instanceof WorkspaceError || error instanceof MediaError;
   const status = known ? error.status : 500;
