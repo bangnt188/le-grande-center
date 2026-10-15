@@ -15,7 +15,7 @@ export function PublicPageLayout({ active, children, variant = "editorial", cont
   return <div className={[variant === "project" ? project.page : shell.page, className].filter(Boolean).join(" ")} data-ui-theme={colorScheme ? "shopping-mall" : undefined} data-ui-scheme={colorScheme}>
     <ScrollMotion refreshKey={active} revealSelector="#main-content > section:not([data-showcase-reel-gallery]), #main-content > div > section:not([data-showcase-reel-gallery]), #main-content > div > h1, #main-content > div > p" />
     <SiteHeader active={active}/>
-    <main id="main-content" className={contentClassName}>{children}</main>
+    <main id="main-content" tabIndex={-1} className={contentClassName}>{children}</main>
     <SiteFooter/>
   </div>;
 }
