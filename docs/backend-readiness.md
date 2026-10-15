@@ -38,15 +38,17 @@ Các kết quả sau được ghi nhận ở localhost:3100 chạy Node Next v�
 - Local localhost:3101 dùng backend production đã seed sạch: public API/homepage 200, 6 tầng/81 căn đều Trống, logo Neon đúng branch, không tenant fields; admin chưa đăng nhập 401. Domain/DNS và frontend production không đổi.
 - Artifact standalone: npm start chạy server.js không cảnh báo next-start/standalone; năm trang public, /mat-bang/A.1/ và JS asset trả 200, admin chưa đăng nhập 401.
 
-Regression riêng đã chạy: `npm run test:database` **2/2 pass, không skip**, tạo child từ empty `test-template`, apply baseline+migrations+approved seed hai lần, verify logo bytes/hash và xóa đúng child trong `finally`. `test:admin` **30 pass/1 deliberate live skip**; shared backend **101/101 pass**, UI **63/63 pass**. Typecheck và OpenNext Worker build pass. Những kiểm tra này chưa phải bằng chứng Worker media origin hoạt động: native Worker→Neon S3/Functions từng trả 403 HTML trước provider.
+Regression riêng đã chạy: `npm run test:database` **2/2 pass, không skip**, tạo child từ empty `test-template`, apply baseline+migrations+approved seed hai lần, verify logo bytes/hash và xóa đúng child trong `finally`. `test:admin` **30 pass/1 deliberate live skip**; shared backend **101/101 pass**, UI **63/63 pass**. Typecheck và OpenNext Worker build pass. CI run `38691562845` passed.
 
-Root password account production/stage2 được operator cấp và xác minh theo yêu cầu owner; không phải proof mailbox ownership/delivery. Local `:3108` đã đăng nhập root vào workspace, đọc 6 tầng/81 căn, reload giữ session, logout → API 401. Nhánh test riêng từ empty template cũng chạy password login, từ chối mật khẩu sai và phục hồi session sau reload. Không suy các path này thành OTP/mail recovery/OAuth/Cloudflare deployment đã hoạt động.
+Cloudflare stage2 Worker đã deploy tại `https://le-grande-centre-stage2.nguyenbang-skyone.workers.dev` (version `d6bc1c5f-69cf-48e5-9ceb-1a4b77fe247c`). Chromium smoke: homepage, `/tong-quan-tang/`, `/admin/` trả nội dung đúng, không có browser errors; `/api/public/website` trả 200, unauthenticated `/api/admin/workspace` trả 401. Public logo URL trả 200 PNG qua request trực tiếp tới Neon object origin. Đây là stage2/dev Worker, không phải production hoặc custom-domain cutover.
+Root password account production/stage2 được operator cấp và xác minh theo yêu cầu owner; không phải proof mailbox ownership/delivery. Local `:3108` đã đăng nhập root vào workspace, đọc 6 tầng/81 căn, reload giữ session, logout → API 401. Nhánh test riêng từ empty template cũng chạy password login, từ chối mật khẩu sai và phục hồi session sau reload. Không suy các path này thành OTP/mail recovery/OAuth đã hoạt động.
+
 
 ## Giới hạn còn thật
 
-**Native Cloudflare Worker fetch tới Neon S3 và Neon Functions trả 403 HTML trước provider**, gồm anonymous GET. Node native request thành công và Worker tới Neon Auth được. Protected origin đã có code nhưng chưa chứng minh vượt cross-zone denial; không tuyên bố full Worker media ready hoặc đã sửa lỗi provider network. Local Node với R2 remote không phải full Worker proof.
+Các probe trước đây ghi nhận native Worker → Neon S3/Functions trả 403 HTML. Smoke Worker hiện tại không kiểm tra server-to-server private media/origin flow; request logo 200 đi thẳng từ browser tới public Neon object URL, không chứng minh đường Worker → origin. Không tuyên bố private media path đã sẵn sàng.
 
-Production backend đã được chuẩn bị như trên; Neon Auth production đã bật email OTP, require verification và gửi verification khi signup/signin, thêm trusted origin localhost:3000. Cấu hình không chứng minh email delivery hoặc owner onboarding. Production frontend **chưa deploy/cutover**; không dùng stage2 fixture làm owner production. Người dùng đã **hoãn kết nối `legrandecentre.vn`/DNS**; không đòi DNS/custom-domain task để hoàn tất code, không deploy hoặc đổi domain trong scope này.
+Production backend đã được chuẩn bị như trên; Neon Auth production đã bật email OTP, require verification và gửi verification khi signup/signin, thêm trusted origin localhost:3000. Cấu hình không chứng minh email delivery hoặc owner onboarding. Production frontend **chưa deploy/cutover**; không dùng stage2 fixture làm owner production. Người dùng đã **hoãn kết nối `legrandecentre.vn`/DNS**; custom-domain/DNS vẫn không thay đổi.
 
 ## Lệnh và CI
 

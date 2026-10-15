@@ -23,15 +23,15 @@ allowlist and role assignment are required. Root stays in its separate allowlist
 and is omitted from staff projections. Neon Auth is a backend service; staff do
 not use Neon Console.
 
-Local production-backed root password sign-in was observed entering the workspace,
-reading six floors/81 slots, surviving reload, and ending in API 401 after logout.
-This does not verify mail recovery, OAuth, or a frontend production deployment.
-
 Local production-backed password sign-in was observed entering the workspace,
 reading six floors/81 slots, surviving reload, and ending in API 401 after logout.
 This does not verify mail recovery, OAuth, or a frontend production deployment.
-**Production frontend is not deployed/cut over; customer-domain/DNS connection is
-explicitly deferred.** This is not a request to deploy or reconnect the domain.
+
+Cloudflare stage2 Worker `https://le-grande-centre-stage2.nguyenbang-skyone.workers.dev`
+is deployed (version `d6bc1c5f-69cf-48e5-9ceb-1a4b77fe247c`). Browser smoke
+observed homepage, `/tong-quan-tang/`, and `/admin/`; public website API returned
+200 and unauthenticated admin workspace returned 401. Stage2 is not production;
+custom-domain/DNS connection remains deferred.
 
 ## Bootstrap (operator only)
 
@@ -110,9 +110,11 @@ Do not run `tests/live-workspace.test.ts` manually against a live workspace.
 
 Observed: isolated command **2/2 passed, no skips**, repeated initialization validated
 checksums/idempotency and the owned child was deleted; production-parent override
-was refused before connection retrieval/DB query. Latest pure `test:admin` **23
-passed / 1 deliberate live skip**, including category precedence/time-boundary test.
-Main also reported typecheck, shared backend integrity/tests and OpenNext build pass.
-These checks do not prove OTP delivery, antivirus or all-Worker media readiness:
-native Worker→Neon S3/Functions still returns 403 HTML before provider. See
-[readiness](../docs/backend-readiness.md). No checks rerun for this documentation edit.
+was refused before connection retrieval/DB query. Latest pure `test:admin` **30
+passed / 1 deliberate live skip**. Shared backend **101/101**, UI **63/63**,
+typecheck, and OpenNext Worker build passed. Stage2 database is at migrations
+001–009; production remains at 001–006. Cloudflare stage2 deployment is documented
+above. These checks do not prove OTP delivery or server-to-server private media
+origin access; earlier Worker→Neon S3/Functions probes returned 403 HTML, and the
+current browser smoke did not exercise that path. See
+[readiness](../docs/backend-readiness.md).
