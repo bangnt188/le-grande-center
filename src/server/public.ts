@@ -1,6 +1,8 @@
 import "server-only";
 import { cache } from "react";
 import { unstable_cache, revalidateTag } from "next/cache";
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
+import { parsePublicWebsite } from "../shared/public/parse-website";
 import d1NextTagCache from "@opennextjs/cloudflare/overrides/tag-cache/d1-next-tag-cache";
 import type { PublicWebsite, ContactSubmission } from "../shared/public/contracts";
 import { withTransaction, WorkspaceError } from "./database";
@@ -20,13 +22,21 @@ export async function invalidatePublicWebsite(): Promise<void> {
 }
 
 const readCachedWebsite = unstable_cache(
- async (_databaseScope: string): Promise<PublicWebsite> => readPublicWebsiteData(),
+ async (_databaseScope: string): Promise<PublicWebsite> => {
+  if (process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD) {
+   const snapshot = process.env.LE_GRANDE_BUILD_PUBLIC_WEBSITE;
+   if (!snapshot) throw new Error("Public prerender data is missing. Build through npm run build:cloudflare.");
+   return parsePublicWebsite(JSON.parse(snapshot));
+  }
+  return readPublicWebsiteData();
+ },
  ["public-website-v2"],
  { tags: [PUBLIC_WEBSITE_CACHE_TAG], revalidate: 60 },
 );
 
 // Share one projection across layout, metadata and page; never key cache by credentials.
 export const readPublicWebsite = cache(async (): Promise<PublicWebsite> => {
+ if (process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD) return readCachedWebsite(`build:${process.env.LE_GRANDE_BUILD_PUBLIC_WEBSITE_KEY}`);
  const connectionString = process.env.DATABASE_URL;
  if (!connectionString) throw new Error("DATABASE_URL is required");
  const database = new URL(connectionString);

@@ -1,6 +1,6 @@
 # Backend readiness — phase 2
 
-Cập nhật 15/10/2026. Đây là trạng thái ứng dụng thật, không phải checklist folder-only hoặc demo Pages.
+Cập nhật 16/10/2026. Đây là trạng thái ứng dụng thật, không phải checklist folder-only hoặc demo Pages. Phần cache HTML/RSC ngày 16/10 là source đã kiểm chứng local, **chưa deploy**; các bằng chứng Worker trước đó giữ nguyên phạm vi của từng lần phát hành.
 
 ## Đã triển khai
 
@@ -26,6 +26,22 @@ Cập nhật 15/10/2026. Đây là trạng thái ứng dụng thật, không ph�
 Private cache R2 `le-grande-centre-stage2-next-cache` và D1 `le-grande-centre-stage2-next-tags` không nằm trong public `mall-assets`. Chúng cùng Worker `https://le-grande-centre-stage2.nguyenbang-skyone.workers.dev` giữ tên hosting/cache lịch sử `stage2`, **không phải database branch thứ hai**. Chỉ có một Wrangler root config và `npm run deploy`: build OpenNext, populate cache rồi deploy cùng artifact. Worker dùng production DB/Auth, giữ noindex; custom-domain/DNS không đổi.
 
 Server cache TTL dùng stale-while-revalidate, không bảo đảm dữ liệu luôn mới đúng 60 giây khi DB lỗi. `invalidatePublicWebsite()` chỉ chạy sau committed mutation, gọi `revalidateTag` và trên Worker đợi chính D1 adapter ghi expiration trước response; không chỉ phụ thuộc pending `waitUntil` của Next route handler. Regional cache luôn kiểm D1 tags, không lazy-renew timestamp của bản cũ. Browser full-prefetch chỉ cho căn trước/sau, cache client giới hạn 60 giây; sơ đồ/danh sách không prefetch hàng loạt. Không tự refresh tab/layout đang mở. Form intake và authorization luôn đọc authoritative DB/provider.
+
+## Cache public HTML/RSC — 16/10/2026 (chưa deploy)
+
+- Root `revalidate=60`, năm trang public cố định được prerender; `generateStaticParams: []` cho căn để fill cache theo yêu cầu, không prerender 81 căn. OpenNext interception dùng R2/regional cache và D1 tags hiện có, giữ HTML/RSC/segment-prefetch variants. Admin/auth/private APIs không vào full-route cache; auth HTTP response bổ sung `private, no-store`.
+- Build standalone/Cloudflare cùng bootstrap một lần từ public API của Worker hiện có (`PUBLIC_BUILD_ORIGIN` có thể đổi nguồn). DTO whitelist bỏ mọi trường private, hash nội dung tách cache build; thiếu nguồn hoặc DTO sai làm build thất bại. Snapshot chỉ dùng lúc build, không phải runtime fallback. Scan artifact cuối: **1.687 files, 13 credential candidates, 0 matches**; `.env.local` được khôi phục.
+- [`public/_headers`](https://developers.cloudflare.com/workers/static-assets/headers/) đặt một năm/immutable chỉ cho `/_next/static/*` fingerprinted. Không dùng Pages `_routes.json`, không thêm Worker/Neon branch/native Workers Cache, không đổi billing/CPU quota.
+- Kiểm chứng: typecheck, application tests **35 pass/1 deliberate live skip**, OpenNext build; actual Workerd HTML/RSC `HIT`, private routes `no-store`/API admin thiếu session **401**, static JS immutable. D1 hard expiration thực: **HIT → MISS → HIT** cho HTML và RSC; TTL thực **62 giây → STALE → queue cùng Worker tái tạo → HIT**. Auth provider thật + PostgreSQL disposable có attestation: committed website update → cả sáu public routes và RSC thấy marker ngay → restore xác nhận; không mutation production DB.
+- Chrome **1440/390px**: HTML cache hydrate, sơ đồ đủ **23 links**, Escape trả focus, C.5 → C.6 → visit form đúng query C.6, **0 document reload/0 overflow/0 runtime errors**; browser nhận **14 cached RSC responses**.
+
+| Local Workerd C.5, một lượt smoke | Wall time |
+| --- | ---: |
+| First document MISS, có render | 700 ms |
+| Warm document HIT | 17,1 ms |
+| Warm RSC HIT | 7,5 ms |
+
+Đây không phải CPU ms, p95 hay benchmark production. HIT bỏ React SSR nhưng vẫn chạy routing/R2/D1; cold miss, revalidation, admin và auth vẫn dùng CPU. Cache TTL có thể giữ bản thành công cũ khi DB lỗi; không bảo đảm Error1102 biến mất hoặc refresh tab/layout đã mở. Mutation trong lúc build/deploy cũng không phải giao dịch đồng bộ với public snapshot build; availability khi ghi luôn được kiểm bằng DB.
 
 ## Hợp nhất production và reset — trạng thái hiện tại 15/10/2026
 

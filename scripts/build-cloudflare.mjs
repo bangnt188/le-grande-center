@@ -2,6 +2,9 @@ import { existsSync, mkdtempSync, renameSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
+import { publicBuildEnv } from "./public-build-env.mjs";
+
+const buildEnv = await publicBuildEnv();
 
 // OpenNext embeds standard .env files in its Worker bundle. Runtime credentials
 // belong to Wrangler secrets, never to a portable build artifact.
@@ -17,7 +20,7 @@ try {
     renameSync(source, destination);
     moved.push([source, destination]);
   }
-  result = spawnSync("npm", ["exec", "--", "opennextjs-cloudflare", "build"], { stdio: "inherit", env: process.env });
+  result = spawnSync("npm", ["exec", "--", "opennextjs-cloudflare", "build"], { stdio: "inherit", env: buildEnv });
   if (result.error) throw result.error;
 } finally {
   for (const [source, destination] of moved) renameSync(destination, source);

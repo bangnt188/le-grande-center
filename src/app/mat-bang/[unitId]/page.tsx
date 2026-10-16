@@ -9,6 +9,9 @@ import styles from "@/features/public/leasing-unit-detail.module.css";
 
 type Props = { params: Promise<{ unitId: string }> };
 
+// Fill the route cache on demand without reading inventory or secrets during build.
+export async function generateStaticParams() { return []; }
+
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { unitId } = await params;

@@ -13,5 +13,5 @@ export default defineCloudflareConfig({
   }),
   queue: doQueue,
   tagCache: d1NextTagCache,
-  enableCacheInterception: false,
+  enableCacheInterception: true,
 });

@@ -5,7 +5,7 @@ import "./globals.css";
 import { isIndexable, neonMediaUrl, siteUrl } from "@/config/site";
 import { WebsiteSettingsProvider } from "@/features/public/website-settings";
 import { readPublicWebsite } from "@/server/public";
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 const interfaceFont = Be_Vietnam_Pro({
   subsets: ["latin", "vietnamese"],
