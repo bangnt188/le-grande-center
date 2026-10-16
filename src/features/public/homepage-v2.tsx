@@ -20,6 +20,25 @@ const reasons = [
   { title: "Thông tin minh bạch", description: "Tìm hiểu mặt bằng qua brochure dự án, hồ sơ hiện có và trao đổi trực tiếp với đội ngũ tư vấn." },
 ];
 
+const locationHighlights = [
+  {
+    title: "Vị trí trung tâm",
+    description: "Bên vòng xoay Tượng đài 3 Cô Gái, kết nối trục đường thương mại Hùng Vương - Nguyễn Chí Thanh",
+  },
+  {
+    title: "Thương mại",
+    description: "Cách Chợ Sóc Trăng 2.7km",
+  },
+  {
+    title: "Giáo dục",
+    description: "Trường Tiểu học Sóc Trăng và Trường THPT Chuyên Nguyễn Thị Minh Khai.",
+  },
+  {
+    title: "Văn hóa và không gian xanh",
+    description: "Khu văn hóa Hồ Nước Ngọt, Trung tâm Văn Hóa - Thể Thao Sóc Trăng",
+  },
+];
+
 export default async function HomePageV2() {
   const { units } = await readPublicLeasing();
   const featuredUnits = [1, 2, 3, 4].flatMap(floor => { const unit = units.find(item => item.floorId === floor); return unit ? [unit] : []; });
@@ -59,18 +78,38 @@ export default async function HomePageV2() {
       </section>
 
       <section className={`${styles.section} ${styles.location}`} aria-labelledby="location-title">
-        <h2 id="location-title" {...reveal({ preset: "lift-in", duration: 1500, intensity: "subtle" })}><em>Vị Trí <span>Chiến Lược</span></em></h2>
-        <div className={styles.locationGrid} {...revealGroup({ stagger: 120, delayCap: 240 })}>
-          <div>
-            <p className={styles.locationLead} {...reveal({ preset: "slide-left", duration: 1500, intensity: "subtle" })}>Sóc Trăng đang bước vào một nhịp phát triển mới. Tại điểm giao của thương mại, dịch vụ và đời sống đô thị, một địa điểm thuận tiện tạo nên khác biệt.</p>
-            <HomeStrategicMap revealProps={reveal({ preset: "slide-left", duration: 1500, intensity: "subtle" })} />
+        <div className={styles.locationHeader} {...revealGroup({ stagger: 100 })}>
+          <div className={styles.locationHeaderLeft} {...reveal({ preset: "fade-up", duration: 1200 })}>
+            <span className={styles.locationEyebrow}>VỊ TRÍ</span>
+            <h2 id="location-title" className={styles.locationTitle}>
+              Vị Trí Chiến Lược
+            </h2>
           </div>
-          <div className={styles.locationInformation} {...reveal({ preset: "slide-right", duration: 1500, intensity: "subtle" })}>
-            <img {...responsiveImageProps("/images/le-grande-aerial-context.webp", assetBase, "(max-width:720px) 88vw, 44vw")} alt="Công trình và vòng xoay Tượng đài 3 Cô Gái trong bối cảnh đô thị Sóc Trăng" loading="lazy" decoding="async"/>
-            <h3>Một địa điểm.<br/>Nhiều kết nối.</h3>
-            <p>Le Grande Centre kết nối vòng xoay Tượng đài 3 Cô Gái, khu vực Hồ Nước Ngọt và các trục giao thông của đô thị Sóc Trăng.</p>
-            <img className={styles.locationSmallImage} {...responsiveImageProps("/images/le-grande-aerial-close.webp", assetBase, "(max-width:720px) 88vw, 44vw")} alt="Le Grande Centre và không gian xanh phía sau công trình" loading="lazy" decoding="async"/>
-          </div>
+          <p className={styles.locationHeaderDesc} {...reveal({ preset: "fade-up", duration: 1200, delay: 100 })}>
+            Bên vòng xoay Tượng đài 3 Cô Gái, Le Grande Centre kết nối các điểm đến thương mại, giáo dục và văn hóa trong khu vực.
+          </p>
+        </div>
+
+        <HomeStrategicMap revealProps={reveal({ preset: "zoom-in", duration: 1400 })} />
+
+        <blockquote className={styles.locationQuote} {...reveal({ preset: "fade-up", duration: 1200 })}>
+          Sóc Trăng đang bước vào giai đoạn phát triển hạ tầng đồng bộ và hoàn thiện, vị trí trung tâm sẽ trở thành tài sản khan hiếm không thể tái tạo.
+        </blockquote>
+
+        <div className={styles.locationFeaturesGrid} {...revealGroup({ stagger: 90 })}>
+          {locationHighlights.map(item => (
+            <div key={item.title} className={styles.locationFeatureCard} {...reveal({ preset: "fade-up", duration: 1000 })}>
+              <div className={styles.locationFeatureHeader}>
+                <div className={styles.locationFeatureIcon} aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2 C12 7.5 16.5 12 22 12 C16.5 12 12 16.5 12 22 C12 16.5 7.5 12 2 12 C7.5 12 12 7.5 12 2 Z" />
+                  </svg>
+                </div>
+                <h3>{item.title}</h3>
+              </div>
+              <p>{item.description}</p>
+            </div>
+          ))}
         </div>
       </section>
 

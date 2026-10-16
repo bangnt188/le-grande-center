@@ -140,6 +140,13 @@
     "sizeBytes": 5144
   },
   {
+    "path": "/images/home-v2/strategic-map.png",
+    "name": "strategic-map.png",
+    "kind": "Ảnh",
+    "mimeType": "image/png",
+    "sizeBytes": 618068
+  },
+  {
     "path": "/images/home-v2/strategic-map.webp",
     "name": "strategic-map.webp",
     "kind": "Ảnh",
