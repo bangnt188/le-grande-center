@@ -13,11 +13,12 @@ export function useAdminPagination<T>(items: readonly T[], resetKey: string, ini
   return { rows: items.slice(start, start + pageSize), page, pageCount, pageSize, total: items.length, start, setPage,
     setPageSize: (size: number) => { setPageSize(size); setPage(1); } };
 }
-export type AdminPaginationState = { page: number; pageCount: number; pageSize: number; total: number; start: number; setPage: (page: number) => void; setPageSize: (size: number) => void };
+export type AdminPaginationState = { page: number; pageCount: number; pageSize: number; total: number; start: number; setPage: (page: number) => void; setPageSize?: (size: number) => void };
 export function AdminPagination({ state, label }: { state: AdminPaginationState; label: string }) {
+  const sizes = Array.from(new Set([2, 5, 10, 20, 24, 48, state.pageSize])).sort((a, b) => a - b);
   return <div className="admin-pagination">
     <span className="admin-pagination-summary" aria-live="polite">{state.total ? `${state.start + 1}–${Math.min(state.start + state.pageSize, state.total)}` : "0"} / {state.total} bản ghi</span>
-    <label className="admin-page-size"><span>Số dòng</span><Select size="sm" aria-label={`Số dòng ${label}`} value={state.pageSize} onChange={event => state.setPageSize(Number(event.target.value))}>{[2, 5, 10, 20].map(size => <option key={size} value={size}>{size}</option>)}</Select></label>
+    {state.setPageSize && <label className="admin-page-size"><span>Số dòng</span><Select size="sm" aria-label={`Số dòng ${label}`} value={state.pageSize} onChange={event => state.setPageSize?.(Number(event.target.value))}>{sizes.map(size => <option key={size} value={size}>{size}</option>)}</Select></label>}
     <Pagination label={`Phân trang ${label}`} page={state.page} pageCount={state.pageCount} onPageChange={state.setPage} previousLabel="Trước" nextLabel="Sau"/>
   </div>;
 }

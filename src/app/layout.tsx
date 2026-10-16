@@ -1,11 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Be_Vietnam_Pro, Charis_SIL, Cormorant_Garamond, Playfair_Display } from "next/font/google";
+import { Be_Vietnam_Pro } from "next/font/google";
 import "@mall/ui/styles";
 import "./globals.css";
 import { isIndexable, neonMediaUrl, siteUrl } from "@/config/site";
-import { WebsiteSettingsProvider } from "@/features/public/website-settings";
-import { readPublicWebsite } from "@/server/public";
-export const revalidate = 60;
 
 const interfaceFont = Be_Vietnam_Pro({
   subsets: ["latin", "vietnamese"],
@@ -14,30 +11,6 @@ const interfaceFont = Be_Vietnam_Pro({
   display: "swap",
 });
 
-const displayFont = Playfair_Display({
-  subsets: ["latin", "vietnamese"],
-  style: ["normal", "italic"],
-  variable: "--font-playfair-display",
-  display: "swap",
-  // Secondary editorial/legacy typography loads on use, not on every route.
-  preload: false,
-});
-
-const publicDisplayFont = Charis_SIL({
-  subsets: ["latin", "vietnamese"],
-  weight: "400",
-  style: ["normal", "italic"],
-  variable: "--font-charis-sil",
-  display: "swap",
-});
-
-const editorialFont = Cormorant_Garamond({
-  subsets: ["latin", "vietnamese"],
-  style: ["normal", "italic"],
-  variable: "--font-cormorant-garamond",
-  display: "swap",
-  preload: false,
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -56,18 +29,17 @@ export const viewport: Viewport = {
   themeColor: "#002116",
 };
 
-export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const initial = await readPublicWebsite();
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="vi" data-ui-scroll="smooth" data-ui-motion-policy="respect">
       <body
-        className={[interfaceFont.variable, displayFont.variable, publicDisplayFont.variable, editorialFont.variable].join(" ")}
+        className={interfaceFont.variable}
         data-ui-root
         data-ui-theme="shopping-mall"
         data-ui-scheme="dark"
       >
         <a className="skip-link" href="#main-content">Bỏ qua điều hướng</a>
-        <WebsiteSettingsProvider initial={{ website: initial.website, logoUrl: initial.logoUrl, floors: initial.floors }}>{children}</WebsiteSettingsProvider>
+        {children}
       </body>
     </html>
   );

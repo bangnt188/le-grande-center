@@ -27,8 +27,8 @@ export function StorageUsagePanel({ usage, pending, onReconcile }: {
     ? "Cần theo dõi (≥ 65%)"
     : "Còn dung lượng (< 65%)";
 
-  const usedFormatted = usage ? formatStorageBytes(usage.usedBytes) : "0 MB";
-  const remainingFormatted = usage ? formatStorageBytes(state.remainingBytes) : "8,5 GB";
+  const usedFormatted = usage ? formatStorageBytes(usage.usedBytes) : "Chưa xác định";
+  const remainingFormatted = usage ? formatStorageBytes(state.remainingBytes) : "Chưa xác định";
   const percentText = `${percent.toFixed(2).replace(".", ",")}%`;
 
   return <AdminPanel className="storage-panel" aria-busy={pending}>
@@ -36,7 +36,7 @@ export function StorageUsagePanel({ usage, pending, onReconcile }: {
       <h2>Dung lượng lưu trữ</h2>
       <Badge tone={badgeTone}>{status}</Badge>
     </div>
-    <div className="storage-meter" style={{ "--ui-color-action": barColor, "--ui-color-surface": "var(--ui-color-border, #e5e7eb)" } as CSSProperties}>
+    {usage && <div className="storage-meter" style={{ "--ui-color-action": barColor, "--ui-color-surface": "var(--ui-color-border, #e5e7eb)" } as CSSProperties}>
       <ProgressBar
         label={`Thực tế đã dùng: ${usedFormatted} / 8,5 GB`}
         value={Math.min(100, Math.max(0, percent))}
@@ -46,7 +46,7 @@ export function StorageUsagePanel({ usage, pending, onReconcile }: {
         format={{ style: "unit", unit: "percent", maximumFractionDigits: 2, roundingMode: "trunc" }}
         pendingLabel="Đang kiểm tra dung lượng"
       />
-    </div>
+    </div>}
     <p className="storage-summary" aria-live="polite">
       {!usage
         ? "Đang tải dữ liệu dung lượng thực tế..."
@@ -55,7 +55,7 @@ export function StorageUsagePanel({ usage, pending, onReconcile }: {
         : `Đã sử dụng ${usedFormatted} / 8,5 GB (${percentText}) · Còn trống ${remainingFormatted}`}
     </p>
     <div style={{ display: "flex", gap: "12px", alignItems: "center", marginTop: "16px", marginBottom: "8px" }}>
-      <Button variant="secondary" disabled={pending} loading={pending} loadingLabel="Đang đối soát dung lượng" onClick={() => void onReconcile()}>Đối soát dung lượng thực tế</Button>
+      <Button variant="secondary" disabled={pending || !usage} loading={pending} loadingLabel="Đang đối soát dung lượng" onClick={() => void onReconcile()}>Đối soát dung lượng thực tế</Button>
     </div>
     <dl className="storage-facts">
       <div><dt>Đã lưu thực tế</dt><dd>{usedFormatted}</dd></div>

@@ -1,8 +1,8 @@
 import "server-only";
 import type { AdminCollectionName, AdminCollectionQuery, AdminCollectionItems, AdminCollectionPage, AdminCollectionDetail } from "../shared/admin/collection-contracts";
-import { AccessError, BackendError } from "@shared/backend";
-import { withTransaction, WorkspaceError, type AdminIdentity } from "./database";
-import { withAdminCrudOperation } from "./admin-crud";
+import { BackendError } from "@shared/backend";
+import { withAdminTransaction, WorkspaceError, type AdminIdentity } from "./database";
+import { createAdminCrudServices } from "./admin-crud";
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const statuses: Record<AdminCollectionName, readonly string[]> = { companies: [], leads: ["Mới", "Đang tư vấn", "Đã xử lý"], appointments: ["requested", "confirmed", "completed", "cancelled", "no_show"] };
@@ -49,27 +49,25 @@ export function parseCollectionQuery(collection: AdminCollectionName, params: UR
   return result;
 }
 function collectionError(error: unknown): never {
-  if (error instanceof AccessError || error instanceof BackendError) throw new WorkspaceError(error.message, error.status);
+  if (error instanceof BackendError) throw new WorkspaceError(error.message, error.status);
   throw error;
 }
 export async function readAdminCollection<C extends AdminCollectionName>(identity: AdminIdentity, collection: C, query: AdminCollectionQuery, request?: Request): Promise<AdminCollectionPage<AdminCollectionItems[C]>> {
-  return withTransaction(identity.id, async client => {
-    await client.query("SELECT id FROM leasing.properties WHERE id=$1 FOR SHARE", [identity.propertyId]);
-    return withAdminCrudOperation(identity, client, request, async crud => {
-      const result = await crud[collection].list(crud.request, query);
-      const revision = Number((await client.query("SELECT workspace_revision FROM leasing.properties WHERE id=$1", [identity.propertyId])).rows[0].workspace_revision);
-      return { ...result, revision } as AdminCollectionPage<AdminCollectionItems[C]>;
-    }, query);
+  return withAdminTransaction(identity, async client => {
+    const revision = (await client.query("SELECT workspace_revision FROM leasing.properties WHERE id=$1 FOR SHARE", [identity.propertyId])).rows[0];
+    if (!revision) throw new WorkspaceError("Property not found", 404);
+    const crud = createAdminCrudServices(identity, client, request, { query });
+    const result = await crud[collection].list(crud.request, query);
+    return { ...result, revision: Number(revision.workspace_revision) } as AdminCollectionPage<AdminCollectionItems[C]>;
   }).catch(collectionError);
 }
 export async function readAdminCollectionItem<C extends AdminCollectionName>(identity: AdminIdentity, collection: C, id: string, request?: Request): Promise<AdminCollectionDetail<AdminCollectionItems[C]>> {
   parseCollectionId(id);
-  return withTransaction(identity.id, async client => {
-    await client.query("SELECT id FROM leasing.properties WHERE id=$1 FOR SHARE", [identity.propertyId]);
-    return withAdminCrudOperation(identity, client, request, async crud => {
-      const item = await crud[collection].get(crud.request, id);
-      const revision = Number((await client.query("SELECT workspace_revision FROM leasing.properties WHERE id=$1", [identity.propertyId])).rows[0].workspace_revision);
-      return { item, revision } as AdminCollectionDetail<AdminCollectionItems[C]>;
-    });
+  return withAdminTransaction(identity, async client => {
+    const revision = (await client.query("SELECT workspace_revision FROM leasing.properties WHERE id=$1 FOR SHARE", [identity.propertyId])).rows[0];
+    if (!revision) throw new WorkspaceError("Property not found", 404);
+    const crud = createAdminCrudServices(identity, client, request);
+    const item = await crud[collection].get(crud.request, id);
+    return { item, revision: Number(revision.workspace_revision) } as AdminCollectionDetail<AdminCollectionItems[C]>;
   }).catch(collectionError);
 }

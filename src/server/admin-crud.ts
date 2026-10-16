@@ -1,15 +1,12 @@
 import "server-only";
-import {
-  AccessError, BackendError, createAccessBackend, createCrud, createPostgresRepository,
-  type AccessAdapters, type AccessBackend, type AccessOperation, type CrudService, type CrudRepository, type CrudRow, type CrudUnit, type PgQuery, type PostgresOptions,
-} from "@shared/backend";
+import { BackendError, createPostgresRepository, type CrudService, type CrudRepository, type CrudRow, type PgQuery, type PostgresOptions } from "@shared/backend";
 import type { Company, CompanyInput, Appointment, AppointmentInput } from "../shared/admin/b2b-model";
 import type { Lead, LeadInput } from "../shared/admin/contracts";
 import type { AdminCollectionName, AdminCollectionQuery } from "../shared/admin/collection-contracts";
 import { parseAppointmentInput, parseCompanyInput, parseCompanyPatch, parseLeadInput } from "../shared/admin/parse-command";
 import { initials } from "../shared/admin/validation";
-import { assertAdmin, withTransaction, type AdminIdentity, type PoolClient } from "./database";
-import { verifyAuthSession } from "./auth";
+import { type AdminIdentity, type PoolClient } from "./database";
+import { assertSessionActive } from "./admin-session";
 import { siteUrl } from "../config/site";
 
 type DbRow = Record<string, unknown>;
@@ -37,40 +34,6 @@ const clientQuery = (client: PoolClient): PgQuery => async (statement, values) =
   return { rows: result.rows };
 };
 
-function accessFor(identity: AdminIdentity, client: PoolClient, reverifySession: boolean) {
-  const session = identity.verifiedSession;
-  if (!session || !session.issuer || !session.subject || session.expiresAt <= Date.now()) throw new AccessError("UNAUTHENTICATED");
-  const permissions = ["companies", "leads", "appointments"].flatMap(type => ["view", "create", "update", "delete"].map(action => ({
-    permission: `${type}:${action}`, effect: "allow" as const, scope: { tenantId: identity.propertyId },
-  })));
-  permissions.push({ permission: "workspace:write", effect: "allow", scope: { tenantId: identity.propertyId } });
-  if (identity.role !== "editor") permissions.push({ permission: "workspace:configure", effect: "allow", scope: { tenantId: identity.propertyId } });
-  const recordDecisions: NonNullable<AccessAdapters["recordDecisions"]> = async events => {
-    try {
-      await withTransaction(identity.id, async auditClient => {
-        await auditClient.query(`INSERT INTO leasing.backend_access_decisions
-          (property_id,actor_user_id,policy_version,permission,resource_type,resource_id,allowed,reason,recorded_at)
-          SELECT $1,e."actorId"::uuid,coalesce(e."policyVersion",'unresolved'),e.permission,e.resource->>'type',nullif(e.resource->>'id','')::uuid,e.allowed,e.reason,to_timestamp(e.at / 1000.0)
-          FROM jsonb_to_recordset($2::jsonb) AS e("actorId" text,"policyVersion" text,permission text,resource jsonb,allowed boolean,reason text,at double precision)`, [identity.propertyId,JSON.stringify(events)]);
-      });
-    } catch { throw new AccessError("UNAVAILABLE"); }
-  };
-  return createAccessBackend({
-    verifySession: async request => {
-      if(!reverifySession)return session.expiresAt>Date.now()?session:null;
-      try { const current=await verifyAuthSession(request);if(!current?.emailVerified||current.issuer!==session.issuer||current.subject!==session.subject)return null;return {issuer:current.issuer,subject:current.subject,expiresAt:current.expiresAt}; }
-      catch { throw new AccessError("UNAVAILABLE"); }
-    },
-    loadPrincipal: async verified => {
-      if (verified.issuer !== session.issuer || verified.subject !== session.subject) return null;
-      try { await assertAdmin(client, identity); } catch { return null; }
-      return { actorId: identity.id, issuer: session.issuer, subject: session.subject, disabled: false,
-        policyVersion: `mall-admin:${identity.propertyId}:${identity.role}`, grants: permissions };
-    },
-    recordDecision: async event => recordDecisions([event]),
-    recordDecisions,
-  });
-}
 
 function collectionFilter(collection: AdminCollectionName, filter: AdminCollectionQuery): NonNullable<PostgresOptions<CrudRow>["listFilter"]> {
   return (_scope, bind) => {
@@ -101,7 +64,13 @@ async function loadCompanies(client: PoolClient, scopeId: string, ids: string[])
   const rows = (await client.query(`SELECT pc.organization_id AS id,pc.revision AS version,pc.property_id AS tenant_id,
       o.legal_name AS name,o.industry,coalesce(b.name,'') AS brand,coalesce(c.display_name,'') AS contact,
       coalesce(c.email,'') AS email,coalesce(c.phone,'') AS phone,o.account_owner AS owner,o.internal_note AS note,
-      o.registration_number AS tax_id,o.registered_address AS address
+      o.registration_number AS tax_id,o.registered_address AS address,
+      (SELECT count(*)::int FROM leasing.leasing_requests q WHERE q.property_id=pc.property_id AND q.organization_id=o.id) AS request_count,
+      (SELECT count(*)::int FROM leasing.leases l WHERE l.property_id=pc.property_id AND l.organization_id=o.id AND l.status='executed') AS lease_count,
+      CASE WHEN EXISTS(SELECT 1 FROM leasing.leases l WHERE l.property_id=pc.property_id AND l.organization_id=o.id AND l.status='executed') THEN 'Đang thuê'
+       WHEN EXISTS(SELECT 1 FROM leasing.reservations r WHERE r.property_id=pc.property_id AND r.organization_id=o.id AND r.status='active' AND r.expires_at>now()) THEN 'Đang giữ chỗ'
+       WHEN EXISTS(SELECT 1 FROM leasing.leasing_requests q WHERE q.property_id=pc.property_id AND q.organization_id=o.id AND q.status IN ('submitted','under_review')) THEN 'Đang tư vấn'
+       ELSE 'Chưa thuê' END AS category
     FROM leasing.property_customers pc JOIN leasing.organizations o ON o.id=pc.organization_id
     LEFT JOIN LATERAL(SELECT name FROM leasing.brands WHERE organization_id=o.id ORDER BY created_at LIMIT 1)b ON true
     LEFT JOIN LATERAL(SELECT display_name,email,phone FROM leasing.contacts WHERE organization_id=o.id ORDER BY created_at LIMIT 1)c ON true
@@ -110,7 +79,8 @@ async function loadCompanies(client: PoolClient, scopeId: string, ids: string[])
     const row=dbRow(input),name=text(row.name);
     return { id:text(row.id),version:integer(row.version,1),tenantId:text(row.tenant_id),name,initials:initials(name),
       industry:text(row.industry),brand:text(row.brand),contact:text(row.contact),email:text(row.email),phone:text(row.phone),
-      owner:text(row.owner),note:text(row.note),taxId:nullableText(row.tax_id),address:nullableText(row.address) };
+      owner:text(row.owner),note:text(row.note),taxId:nullableText(row.tax_id),address:nullableText(row.address),
+      category:text(row.category) as Company["category"],requestCount:integer(row.request_count),leaseCount:integer(row.lease_count) };
   });
 }
 function companyRepository(client: PoolClient, filter: AdminCollectionQuery): CrudRepository<CompanyRow, CompanyInput, Partial<CompanyInput>> {
@@ -234,10 +204,6 @@ function appointmentRepository(client:PoolClient,filter:AdminCollectionQuery):Cr
 }
 
 export interface AdminCrudServices { request:Request; companies:CrudService<Company>; leads:CrudService<Lead>; appointments:CrudService<Appointment> }
-type CrudOptions = { operation?: AccessOperation; access?: AccessBackend; query?: AdminCollectionQuery };
-function transactionFor<Row extends CrudRow,Create,Update>(scope:{tenantId:string},access:AccessBackend,repository:CrudRepository<Row,Create,Update>,operation?:AccessOperation) {
-  return async <Result>(_request:Request,work:(unit:CrudUnit<Row,Create,Update>)=>Promise<Result>)=>work({scope,access,repository,operation});
-}
 async function projectLeads(client:PoolClient,propertyId:string,rows:readonly LeadRow[]):Promise<Lead[]> {
   if (!rows.length) return [];
   const intake=(await client.query(`SELECT DISTINCT ON (lead_id) lead_id,jsonb_strip_nulls(jsonb_build_object('intent',intent,'company',company_name,'business',business,'area',area_preference,'timing',timing,'space',space_code,'scope',scope,'visitDate',visit_date::text,'visitTime',visit_time)) AS details
@@ -248,19 +214,51 @@ async function projectLeads(client:PoolClient,propertyId:string,rows:readonly Le
     return {...lead,...(details.has(row.id)?{contactDetails:details.get(row.id)!}:{})};
   });
 }
-export function createAdminCrudServices(identity: AdminIdentity, client: PoolClient, request?:Request, options:CrudOptions={}):AdminCrudServices {
-  const scope={tenantId:identity.propertyId},filter=options.query??{};
-  const access=options.access??accessFor(identity,client,!!request);
-  const companies=createCrud<CompanyRow,CompanyInput,Partial<CompanyInput>,Company>({type:"companies",transaction:transactionFor(scope,access,companyRepository(client,filter),options.operation),parseCreate:parseCompanyInput,parseUpdate:parseCompanyPatch,project:row=>{const {tenantId:_,...company}=row;return company;}});
-  const leads=createCrud<LeadRow,LeadInput,LeadInput,Lead>({type:"leads",transaction:transactionFor(scope,access,leadRepository(client,filter),options.operation),parseCreate:parseLeadInput,parseUpdate:parseLeadInput,project:async row=>(await projectLeads(client,identity.propertyId,[row]))[0]!,projectMany:rows=>projectLeads(client,identity.propertyId,rows)});
-  const appointments=createCrud<AppointmentRow,AppointmentInput,AppointmentInput,Appointment>({type:"appointments",transaction:transactionFor(scope,access,appointmentRepository(client,filter),options.operation),parseCreate:parseAppointmentInput,parseUpdate:parseAppointmentInput,project:row=>{const {tenantId:_,propertyId:__,organizationId:___,ownerId:____,dimensions:_____,...appointment}=row;return appointment;}});
-  return {request:request??new Request(siteUrl),companies,leads,appointments};
-}
-export async function withAdminCrudOperation<T>(identity:AdminIdentity,client:PoolClient,request:Request|undefined,work:(crud:AdminCrudServices)=>Promise<T>,query?:AdminCollectionQuery,permission:"companies:view"|"workspace:write"|"workspace:configure"="companies:view"):Promise<T> {
-  const access=accessFor(identity,client,!!request),operationRequest=request??new Request(siteUrl);
-  const initial={permission,resource:{kind:"collection" as const,type:permission.startsWith("workspace:")?"workspace":"companies",tenantId:identity.propertyId}};
-  return access.withOperation(operationRequest,initial,async operation=>{
-    await operation.requireAccess(initial);
-    return work(createAdminCrudServices(identity,client,request,{access,operation,query}));
-  });
+export function createAdminCrudServices(identity: AdminIdentity, client: PoolClient, request?: Request, options: { query?: AdminCollectionQuery } = {}): AdminCrudServices {
+  assertSessionActive(identity);
+  const scope = { tenantId: identity.propertyId }, filter = options.query ?? {};
+  function service<Row extends CrudRow, Create, Update, DTO>(repository: CrudRepository<Row, Create, Update>, parseCreate: (input: unknown) => Create, parseUpdate: (input: unknown) => Update, project: (rows: Row[]) => DTO[] | Promise<DTO[]>): CrudService<DTO> {
+    const check = () => assertSessionActive(identity);
+    const found = async (id: string) => {
+      check();
+      const row = await repository.find(id, scope);
+      if (!row || row.tenantId !== identity.propertyId) throw new BackendError("NOT_FOUND");
+      return row;
+    };
+    return {
+      async list(_request, pagination = {}) {
+        check();
+        const page = pagination.page ?? 1, pageSize = pagination.pageSize ?? 20;
+        if (!Number.isSafeInteger(page) || page < 1 || !Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 100 || !Number.isSafeInteger((page - 1) * pageSize)) throw new BackendError("INVALID_INPUT");
+        const result = await repository.list(scope, { offset: (page - 1) * pageSize, limit: pageSize });
+        if (result.items.some(row => row.tenantId !== identity.propertyId)) throw new BackendError("UNAVAILABLE");
+        return { items: await project(result.items), page, pageSize, totalItems: result.totalItems, totalPages: Math.max(1, Math.ceil(result.totalItems / pageSize)) };
+      },
+      async get(_request, id) { return (await project([await found(id)]))[0]!; },
+      async create(_request, input) {
+        check();
+        let data: Create;
+        try { data = parseCreate(input); } catch { throw new BackendError("INVALID_INPUT"); }
+        return (await project([await repository.insert(data, scope)]))[0]!;
+      },
+      async update(_request, id, expectedVersion, input) {
+        await found(id);
+        if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 1) throw new BackendError("INVALID_INPUT");
+        let data: Update;
+        try { data = parseUpdate(input); } catch { throw new BackendError("INVALID_INPUT"); }
+        const row = await repository.update(id, data, expectedVersion, scope);
+        if (!row) throw new BackendError("CONFLICT");
+        return (await project([row]))[0]!;
+      },
+      async delete(_request, id, expectedVersion) {
+        await found(id);
+        if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 1) throw new BackendError("INVALID_INPUT");
+        if (!await repository.delete(id, expectedVersion, scope)) throw new BackendError("CONFLICT");
+      },
+    };
+  }
+  const companies = service(companyRepository(client, filter), parseCompanyInput, parseCompanyPatch, rows => rows.map(({ tenantId: _, ...row }) => row));
+  const leads = service(leadRepository(client, filter), parseLeadInput, parseLeadInput, rows => projectLeads(client, identity.propertyId, rows));
+  const appointments = service(appointmentRepository(client, filter), parseAppointmentInput, parseAppointmentInput, rows => rows.map(({ tenantId: _, propertyId: __, organizationId: ___, ownerId: ____, dimensions: _____, ...row }) => row));
+  return { request: request ?? new Request(siteUrl), companies, leads, appointments };
 }

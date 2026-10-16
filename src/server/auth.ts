@@ -3,6 +3,7 @@ import { createNeonAuth } from "@neondatabase/auth/next/server";
 import { resolveAdminIdentity } from "./database";
 import { headers } from "next/headers";
 import { siteUrl } from "@/config/site";
+import { ADMIN_COOKIE, AdminSessionError, verifyAdminToken } from "./admin-session";
 
 export class AuthError extends Error {
   constructor(message: string, readonly status: number) { super(message); }
@@ -23,11 +24,18 @@ export function assertSameOrigin(request: Request) {
 }
 
 export type VerifiedAuthSession = { issuer: string; subject: string; email: string; emailVerified: boolean; expiresAt: number };
-export async function verifyAuthSession(request?: Request): Promise<VerifiedAuthSession | null> {
+export async function verifyAuthSession(request?: Request, responseHeaders?: Headers): Promise<VerifiedAuthSession | null> {
   const url = new URL("/api/auth/get-session?disableCookieCache=true", request?.url ?? siteUrl);
-  const response = await getAuth().handler().GET(new Request(url, { headers: request?.headers ?? await headers() }), { params: Promise.resolve({ path: ["get-session"] }) });
-  if (!response.ok) return null;
-  const session: unknown = await response.json();
+  let response: Response;
+  try { response = await getAuth().handler().GET(new Request(url, { headers: request?.headers ?? await headers() }), { params: Promise.resolve({ path: ["get-session"] }) }); }
+  catch { throw new AuthError("Dịch vụ đăng nhập tạm thời không khả dụng.", 503); }
+  if (responseHeaders) for (const cookie of response.headers.getSetCookie()) responseHeaders.append("Set-Cookie", cookie);
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) return null;
+    throw new AuthError("Dịch vụ đăng nhập tạm thời không khả dụng.", 503);
+  }
+  let session: unknown;
+  try { session = await response.json(); } catch { throw new AuthError("Dịch vụ đăng nhập trả phản hồi không hợp lệ.", 503); }
   if (!session || typeof session !== "object" || !("user" in session) || !session.user || typeof session.user !== "object" || !("session" in session) || !session.session || typeof session.session !== "object") return null;
   const user = session.user;
   if (!("id" in user) || typeof user.id !== "string" || !("email" in user) || typeof user.email !== "string" || !("expiresAt" in session.session) || typeof session.session.expiresAt !== "string") return null;
@@ -36,12 +44,21 @@ export async function verifyAuthSession(request?: Request): Promise<VerifiedAuth
   return {issuer:process.env.NEON_AUTH_BASE_URL!,subject:user.id,email:user.email,emailVerified:"emailVerified" in user&&user.emailVerified===true,expiresAt};
 }
 export async function requireAdmin(request?: Request) {
-  const session=await verifyAuthSession(request);
-  if(!session)throw new AuthError("Vui lòng đăng nhập.",401);
-  if(!session.emailVerified)throw new AuthError("Xác minh email trước khi vào quản trị.",403);
-  const identity = await resolveAdminIdentity({ issuer: session.issuer, subject: session.subject, email: session.email, emailVerified: true });
+  const incoming = request?.headers ?? await headers();
+  const tokens = (incoming.get("cookie") ?? "").split(";").map(value => value.trim()).filter(value => value.startsWith(ADMIN_COOKIE + "="));
+  if (tokens.length !== 1) throw new AdminSessionError("SESSION_MISSING");
+  return verifyAdminToken(tokens[0]!.slice(ADMIN_COOKIE.length + 1));
+}
+
+export async function refreshAdminIdentity(request: Request, responseHeaders: Headers) {
+  const session = await verifyAuthSession(request, responseHeaders);
+  if (!session) throw new AuthError("Vui lòng đăng nhập.", 401);
+  if (!session.emailVerified) throw new AuthError("Xác minh email trước khi vào quản trị.", 403);
+  let identity;
+  try { identity = await resolveAdminIdentity(session); }
+  catch { throw new AuthError("Dịch vụ tài khoản tạm thời không khả dụng.", 503); }
   if (!identity) throw new AuthError("Tài khoản không có quyền quản trị.", 403);
-  return { ...identity, verifiedSession: { issuer: session.issuer, subject: session.subject, expiresAt: session.expiresAt } };
+  return { identity, session };
 }
 
 export function getPasswordPrefix(): string {

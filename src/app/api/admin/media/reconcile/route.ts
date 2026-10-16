@@ -1,5 +1,5 @@
-import { assertSameOrigin, AuthError, requireAdmin } from "../../../../../server/auth";
-import { WorkspaceError } from "../../../../../server/database";
+import { assertSameOrigin, requireAdmin } from "../../../../../server/auth";
+import { adminErrorResponse } from "@/server/admin-http";
 import { reconcileMedia } from "../../../../../server/media/repository";
 import { MediaError } from "../../../../../server/media/validation";
 export const dynamic = "force-dynamic";
@@ -15,7 +15,6 @@ export async function POST(request:Request) {
     if(!data||typeof data!=='object'||!('expectedRevision' in data)||typeof data.expectedRevision!=='number'||!Number.isSafeInteger(data.expectedRevision)||data.expectedRevision<0||Object.keys(data).length!==1)throw new MediaError("Phiên bản dữ liệu đối soát không hợp lệ.");
     return Response.json(await reconcileMedia(identity,data.expectedRevision,key,request),{headers:{'cache-control':'private, no-store'}});
   } catch(error) {
-    const known=error instanceof AuthError||error instanceof MediaError||error instanceof WorkspaceError;
-    return Response.json({error:{message:known?error.message:"Không hoàn tất được đối soát. Không xác nhận dung lượng trống."}},{status:known?error.status:503,headers:{'cache-control':'private, no-store'}});
+    return adminErrorResponse(error, "Không hoàn tất được đối soát. Không xác nhận dung lượng trống.");
   }
 }

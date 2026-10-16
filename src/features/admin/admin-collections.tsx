@@ -1,92 +1,112 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Button, Input, LoadingIndicator, Select } from "@mall/ui";
-import type { AdminCollectionName, AdminCollectionItems, AdminCollectionPage, AdminCollectionQuery, AdminCollectionDetail } from "../../shared/admin/collection-contracts";
+import type { AdminCollectionName, AdminCollectionItems, AdminCollectionPage, AdminCollectionQuery } from "../../shared/admin/collection-contracts";
 import type { AdminData } from "./use-admin-data";
 import { AdminPagination } from "./admin-pagination";
+import { adminRequest, ensureSession } from "./session";
+import { makeCacheKey, screenCache, stableQueryKey } from "./memory-cache";
+import { parseCollectionDetail, parseCollectionPage } from "./http-repository";
 
-async function collectionRequest<T>(path: string, signal: AbortSignal): Promise<T> {
-  const response = await fetch(`/api/admin/collections/${path}`, { credentials: "same-origin", cache: "no-store", signal });
-  if (!response.ok) throw new Error(response.status === 401 ? "Phiên đăng nhập hết hạn. Đăng nhập lại." : response.status === 404 ? "Không tìm thấy hồ sơ đã chọn." : `Không thể tải hồ sơ (${response.status}). Thử lại.`);
-  return response.json() as Promise<T>;
-}
 function queryString(query: AdminCollectionQuery) {
   const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(query)) if (value !== undefined && value !== "") params.set(key, Array.isArray(value) ? value.join(",") : String(value));
+  for (const [key, value] of Object.entries(query).sort(([a], [b]) => a.localeCompare(b))) if (value !== undefined && value !== "") params.set(key, Array.isArray(value) ? value.join(",") : String(value));
   return params.toString();
 }
 
-/** Collection revisions are informational; only full repository snapshots may advance CAS. */
-export function useAdminCollection<C extends AdminCollectionName>(data: AdminData, collection: C, filters: Pick<AdminCollectionQuery, "query" | "status" | "companyId"> = {}, enabled = true, initialPageSize = 20) {
-  const [selection, setSelection] = useState({ key: "", page: 1, pageSize: initialPageSize });
-  const filterKey = queryString(filters);
-  const page = selection.key === filterKey ? selection.page : 1;
-  const pageSize = selection.pageSize;
-  const requestKey = `${collection}/?${filterKey}&page=${page}&pageSize=${pageSize}`;
-  const [result, setResult] = useState<{ key: string; revision: number | null; value: AdminCollectionPage<AdminCollectionItems[C]> } | null>(null);
-  const [error, setError] = useState("");
-  const [attempt, setAttempt] = useState(0);
-  const ready = enabled && data.revision !== null;
-  const loading = ready && (result?.key !== requestKey || result.revision !== data.revision);
+function useCollectionResource<T extends { revision: number }>(data: AdminData, requestKey: string, enabled: boolean, loader: (signal: AbortSignal) => Promise<T>) {
+  const key = makeCacheKey(data.sessionKey, "", "collection", { request: requestKey });
+  const ready = enabled && !!data.sessionKey;
+  const visit = useRef({ key, ready, sequence: 0 });
+  if (visit.current.key !== key || visit.current.ready !== ready) visit.current = { key, ready, sequence: visit.current.sequence + 1 };
+  const [result, setResult] = useState<{ key: string; version: number; visit: number; value: T } | null>(null);
+  const [failure, setFailure] = useState<{ key: string; message: string } | null>(null);
+  const loaderRef = useRef(loader);
+  loaderRef.current = loader;
+  const { cacheVersion, setSourceRevision } = data;
   useEffect(() => {
     if (!ready) return;
     const controller = new AbortController();
-    setError("");
-    const timer = window.setTimeout(() => {
-      collectionRequest<AdminCollectionPage<AdminCollectionItems[C]>>(requestKey, controller.signal).then(value => {
-        if (controller.signal.aborted) return;
-        if (page > Math.max(1, value.totalPages)) { setSelection({ key: filterKey, page: Math.max(1, value.totalPages), pageSize }); return; }
-        setResult({ key: requestKey, revision: data.revision, value });
-      }).catch((issue: unknown) => { if (!controller.signal.aborted) setError(issue instanceof Error ? issue.message : "Không thể tải danh sách."); });
-    }, filters.query ? 250 : 0);
-    return () => { window.clearTimeout(timer); controller.abort(); };
-  }, [ready, requestKey, data.revision, attempt, page, pageSize, filterKey, filters.query]);
-  const value = result?.key === requestKey ? result.value : undefined;
-  return { rows: value?.items ?? [], page, pageSize, pageCount: value?.totalPages ?? 0, total: value?.totalItems ?? 0, start: (page - 1) * pageSize,
-    setPage: (next: number) => setSelection({ key: filterKey, page: next, pageSize }),
-    setPageSize: (next: number) => setSelection({ key: filterKey, page: 1, pageSize: next }),
-    loading: loading && !error, error, retry: () => { setError(""); setAttempt(value => value + 1); } };
+    setFailure(null);
+    screenCache.load(key, signal => loaderRef.current(signal), controller.signal).then(value => {
+      if (controller.signal.aborted) return;
+      setResult({ key, version: cacheVersion, visit: visit.current.sequence, value });
+      setSourceRevision(requestKey, value.revision);
+    }).catch((issue: unknown) => {
+      if (!controller.signal.aborted) setFailure({ key, message: issue instanceof Error ? issue.message : "Không thể tải hồ sơ." });
+    });
+    return () => { controller.abort(); };
+  }, [ready, key, requestKey, cacheVersion, setSourceRevision]);
+  const value = !ready ? undefined : result?.key === key && result.version === cacheVersion && result.visit === visit.current.sequence ? result.value : screenCache.get<T>(key)?.data;
+  const error = enabled && !data.sessionKey ? "Phiên quản trị đã hết hạn. Nhấn Thử lại để tiếp tục." : ready && failure?.key === key ? failure.message : "";
+  const retry = useCallback(async () => {
+    try {
+      await ensureSession({ userAction: true });
+      setFailure(null);
+      screenCache.markAllStale();
+    } catch (issue) { setFailure({ key, message: issue instanceof Error ? issue.message : "Không thể tải lại hồ sơ." }); }
+  }, [key]);
+  return { value, revision: value?.revision ?? null, loading: ready && !value && !error, error, retry };
+}
+
+/** List/detail revisions come from their own endpoints, not a workspace snapshot. */
+export function useAdminCollection<C extends AdminCollectionName>(data: AdminData, collection: C, filters: Pick<AdminCollectionQuery, "query" | "status" | "companyId"> = {}, enabled = true, initialPageSize = 20) {
+  const [selection, setSelection] = useState({ key: "", page: 1, pageSize: initialPageSize });
+  const filterKey = stableQueryKey(filters);
+  const page = selection.key === filterKey ? selection.page : 1;
+  const pageSize = selection.pageSize;
+  const requestKey = `${collection}/?${queryString({ ...filters, page, pageSize })}`;
+  const resource = useCollectionResource(data, requestKey, enabled, async signal => {
+    const response = await adminRequest(`/api/admin/collections/${requestKey}`, {}, { signal });
+    return parseCollectionPage(collection, await response.json());
+  });
+  const value = resource.value;
+  useEffect(() => {
+    if (value && page > Math.max(1, value.totalPages)) setSelection({ key: filterKey, page: Math.max(1, value.totalPages), pageSize });
+  }, [value, page, pageSize, filterKey]);
+  const navigate = async (nextPage: number, nextSize: number) => {
+    try {
+      await ensureSession({ userAction: true });
+      setNavigationError("");
+      setSelection({ key: filterKey, page: Math.max(1, nextPage), pageSize: nextSize });
+    } catch (issue) { setNavigationError(issue instanceof Error ? issue.message : "Không thể chuyển trang."); }
+  };
+  const [navigationError, setNavigationError] = useState("");
+  return {
+    rows: value?.items ?? [], revision: resource.revision,
+    page, pageSize, pageCount: value?.totalPages ?? 0, total: value?.totalItems ?? 0, start: (page - 1) * pageSize,
+    setPage: (next: number) => { void navigate(next, pageSize); },
+    setPageSize: (next: number) => { void navigate(1, next); },
+    loading: resource.loading, error: navigationError || resource.error, retry: resource.retry,
+  };
 }
 
 export function useAdminRecord<C extends AdminCollectionName>(data: AdminData, collection: C, id: string | null | undefined, enabled = true) {
-  const [result, setResult] = useState<{ key: string; revision: number | null; item: AdminCollectionItems[C] } | null>(null);
-  const [error, setError] = useState("");
-  const [attempt, setAttempt] = useState(0);
   const key = `${collection}/${encodeURIComponent(id ?? "")}/`;
-  const ready = enabled && !!id && data.revision !== null;
-  useEffect(() => {
-    if (!ready) return;
-    const controller = new AbortController();
-    setError("");
-    collectionRequest<AdminCollectionDetail<AdminCollectionItems[C]>>(key, controller.signal).then(value => {
-      if (!controller.signal.aborted) setResult({ key, revision: data.revision, item: value.item });
-    }).catch((issue: unknown) => { if (!controller.signal.aborted) { setResult(null); setError(issue instanceof Error ? issue.message : "Không thể tải hồ sơ."); } });
-    return () => controller.abort();
-  }, [ready, key, data.revision, attempt]);
-  return { item: ready && result?.key === key && result.revision === data.revision ? result.item : undefined, loading: ready && (result?.key !== key || result.revision !== data.revision) && !error, error: ready ? error : "", retry: () => { setError(""); setAttempt(value => value + 1); } };
+  const resource = useCollectionResource(data, key, enabled && !!id, async signal => {
+    const response = await adminRequest(`/api/admin/collections/${key}`, {}, { signal });
+    return parseCollectionDetail(collection, await response.json());
+  });
+  return { item: resource.value?.item, revision: resource.revision, loading: resource.loading, error: resource.error, retry: resource.retry };
 }
 
-/** Resolve only explicit relationships, in bounded batches; never enumerate a catalog. */
+/** Resolve only selected relationship IDs, in bounded batches. */
 export function useRelatedCompanies(data: AdminData, ids: readonly (string | undefined)[], enabled = true) {
-  const key = [...new Set(ids.filter((id): id is string => !!id))].sort().join(",");
-  const [result, setResult] = useState<{ key: string; revision: number | null; items: AdminCollectionItems["companies"][] } | null>(null);
-  const [error, setError] = useState("");
-  const [attempt, setAttempt] = useState(0);
-  const ready = enabled && !!key && data.revision !== null;
-  useEffect(() => {
-    if (!ready) return;
-    const controller = new AbortController();
-    setError("");
-    const selected = key.split(",");
+  const selected = [...new Set(ids.filter((id): id is string => !!id))].sort();
+  const key = JSON.stringify(selected);
+  const resource = useCollectionResource(data, `related-companies:${key}`, enabled && selected.length > 0, async signal => {
     const batches: string[][] = [];
     for (let index = 0; index < selected.length; index += 100) batches.push(selected.slice(index, index + 100));
-    Promise.all(batches.map(ids => collectionRequest<AdminCollectionPage<AdminCollectionItems["companies"]>>(`companies/?${queryString({ ids, pageSize: 100 })}`, controller.signal))).then(pages => {
-      if (!controller.signal.aborted) setResult({ key, revision: data.revision, items: pages.flatMap(page => page.items) });
-    }).catch((issue: unknown) => { if (!controller.signal.aborted) setError(issue instanceof Error ? issue.message : "Không thể tải doanh nghiệp liên quan."); });
-    return () => controller.abort();
-  }, [ready, key, data.revision, attempt]);
-  return { items: ready && result?.key === key ? result.items : [], loading: ready && (result?.key !== key || result.revision !== data.revision) && !error, error: ready ? error : "", retry: () => { setError(""); setAttempt(value => value + 1); } };
+    const pages = await Promise.all(batches.map(async ids => {
+      const response = await adminRequest(`/api/admin/collections/companies/?${queryString({ ids, pageSize: 100 })}`, {}, { signal });
+      return parseCollectionPage("companies", await response.json());
+    }));
+    const revision = pages[0].revision;
+    if (pages.some(page => page.revision !== revision)) throw new Error("Dữ liệu đã thay đổi trong lúc tải doanh nghiệp. Tải lại trước khi lưu.");
+    return { revision, items: pages.flatMap(page => page.items) };
+  });
+  return { items: resource.value?.items ?? [], revision: resource.revision, loading: resource.loading, error: resource.error, retry: resource.retry };
 }
 
 export function CollectionFeedback({ state }: { state: { loading: boolean; error: string; retry: () => void } }) {
@@ -97,14 +117,28 @@ export function CompanyPicker({ data, name, defaultValue = "", required = false,
   const [localValue, setLocalValue] = useState(defaultValue);
   const selectedId = value ?? localValue;
   const [query, setQuery] = useState("");
+  const [inputQuery, setInputQuery] = useState("");
+  const [actionError, setActionError] = useState("");
+  const searchSerial = useRef(0);
   const pages = useAdminCollection(data, "companies", { query });
   const selected = useAdminRecord(data, "companies", selectedId);
   const options = selected.item && !pages.rows.some(item => item.id === selectedId) ? [selected.item, ...pages.rows] : pages.rows;
+  async function search(next: string) {
+    setInputQuery(next);
+    const serial = ++searchSerial.current;
+    try { await ensureSession({ userAction: true }); if (serial === searchSerial.current) { setActionError(""); setQuery(next); } }
+    catch (issue) { if (serial === searchSerial.current) setActionError(issue instanceof Error ? issue.message : "Không thể tìm doanh nghiệp."); }
+  }
+  async function select(next: string) {
+    try { await ensureSession({ userAction: true }); setActionError(""); setLocalValue(next); onValueChange?.(next); }
+    catch (issue) { setActionError(issue instanceof Error ? issue.message : "Không thể chọn doanh nghiệp."); }
+  }
   return <div className="company-picker">
     {name && <input type="hidden" name={name} value={selectedId}/>}
-    <label>Tìm doanh nghiệp<Input type="search" value={query} maxLength={200} placeholder="Tìm tên, ngành hàng…" onChange={event => setQuery(event.target.value)}/></label>
+    <label>Tìm doanh nghiệp<Input type="search" value={inputQuery} maxLength={200} placeholder="Tìm tên, ngành hàng…" onChange={event => { void search(event.target.value); }}/></label>
+    {actionError && <Alert tone="error">{actionError}</Alert>}
     <CollectionFeedback state={pages}/><CollectionFeedback state={selected}/>
-    <label>{label}<Select value={selectedId} required={required} onChange={event => { setLocalValue(event.target.value); onValueChange?.(event.target.value); }}>
+    <label>{label}<Select value={selectedId} required={required} onChange={event => { void select(event.target.value); }}>
       <option value="">{emptyLabel}</option>
       {selectedId && !options.some(item => item.id === selectedId) && <option value={selectedId} disabled>{selected.loading ? "Đang tải doanh nghiệp đã chọn…" : `Không tải được hồ sơ (${selectedId})`}</option>}
       {options.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}

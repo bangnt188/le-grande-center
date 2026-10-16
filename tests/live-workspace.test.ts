@@ -2,8 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { parseAdminCommand } from "../src/shared/admin/parse-command";
 import { mergeIssue } from "../src/shared/admin/space-model";
-import { getDatabase, resolveAdminIdentity, withTransaction, WorkspaceError, type AdminIdentity } from "../src/server/database";
-import { readWorkspace, executeCommand } from "../src/server/workspace";
+import { getDatabase, resolveAdminIdentity, withAdminTransaction, withTransaction, WorkspaceError, type AdminIdentity } from "../src/server/database";
+import { executeCommand } from "../src/server/workspace";
+import { readAdminScreen, parseScreenQuery } from "../src/server/admin-screens";
+import { readMediaDetail, readMediaPage } from "../src/server/media/queries";
+import { uploadMedia, reviewMedia, reconcileMedia } from "../src/server/media/repository";
+import { prepareFiles } from "../src/server/media/prepare";
+import { sha256 } from "../src/server/media/neon-origin";
+import { AdminSessionError } from "../src/server/admin-session";
 import { listStaffAccounts, revokeStaffAccount, saveStaffAccount } from "../src/server/staff-accounts";
 import { submitContact } from "../src/server/public";
 import { readPublicWebsiteData } from "../src/server/public-data";
@@ -13,6 +19,16 @@ import type { AdminCommand } from "../src/shared/admin/contracts";
 import { verifyOwnedLocalDatabase } from "../scripts/local-database-guard.mjs";
 import { parseCollectionName, parseCollectionQuery, readAdminCollection, readAdminCollectionItem } from "../src/server/admin-collections";
 
+// Test-only aggregation lets existing cross-screen invariant assertions share a fixture.
+// Production has no aggregate endpoint or aggregate mutation response.
+async function readWorkspace(identity: AdminIdentity) {
+ const floors=await readAdminScreen(identity,"floors"),settings=await readAdminScreen(identity,"settings");
+ const spaces=await Promise.all(([1,2,3,4,5,6] as const).map(floor=>readAdminScreen(identity,"spaces",{floor})));
+ const requests=await readAdminScreen(identity,"requests",{pageSize:100}),leases=await readAdminScreen(identity,"leases",{pageSize:100});
+ const companies=await readAdminCollection(identity,"companies",{}),leads=await readAdminCollection(identity,"leads",{}),appointments=await readAdminCollection(identity,"appointments",{});
+ const media=await readMediaPage(identity,{pageSize:100});
+ return {revision:floors.revision,floors:floors.floors,settings:settings.settings,slots:spaces.flatMap(item=>item.slots),groups:spaces.flatMap(item=>item.groups),requests:requests.requests,reservations:requests.reservations,leases:leases.leases,companies:companies.items,leads:leads.items,appointments:appointments.items,media:media.items,storage:media.storage,collections:{companies,leads,appointments}};
+}
 // Mutating regressions require the owned local PostgreSQL wrapper, never an arbitrary DATABASE_URL.
 test("bounded commands reject extra fields, invalid types and fabricated adjacency", () => {
  const id=crypto.randomUUID();
@@ -34,6 +50,15 @@ test("collection input rejects unbounded, duplicate and unsupported filters", ()
  assert.deepEqual(parseCollectionQuery("companies",new URLSearchParams({ids:ids.join(",")})),{page:1,pageSize:2,ids});
 });
 
+test("screen boundaries reject unsupported dependencies and legacy document commands", () => {
+ for(const query of ["page=0","pageSize=101","floor=7","id=invalid","status=unknown","page=1&page=2","query=%00"])assert.throws(()=>parseScreenQuery("requests",new URLSearchParams(query)));
+ for(const query of ["page=1","companyId="+crypto.randomUUID(),"query=company"])assert.throws(()=>parseScreenQuery("floors",new URLSearchParams(query)));
+ assert.throws(()=>parseScreenQuery("slot",new URLSearchParams()));
+ assert.throws(()=>parseAdminCommand({type:"attach-lease-document",leaseId:crypto.randomUUID(),mediaId:crypto.randomUUID()}));
+ assert.throws(()=>parseAdminCommand({type:"record-lease",reservationId:crypto.randomUUID(),mediaId:crypto.randomUUID()}));
+ assert.equal(parseAdminCommand({type:"record-lease",reservationId:crypto.randomUUID()}).type,"record-lease");
+});
+
 test("Local PostgreSQL relational commands: CAS, uncertain-response replay, scope, transitions and public intake", {skip:process.env.RUN_LOCAL_DATABASE_TESTS!=='1'}, async()=>{
  await verifyOwnedLocalDatabase();
  const readDecision=async(statement:string,values:string[])=>{
@@ -47,16 +72,17 @@ test("Local PostgreSQL relational commands: CAS, uncertain-response replay, scop
  const resolved=await resolveAdminIdentity({issuer,subject,email,emailVerified:true});assert.ok(resolved);const identity=trusted(resolved,subject);assert.equal(identity.verifiedSession?.subject,subject);assert.notEqual(identity.verifiedSession?.subject,identity.id);
  assert.equal(await resolveAdminIdentity({issuer,subject:crypto.randomUUID(),email,emailVerified:true}),null);
  const deniedPropertyId=crypto.randomUUID();
- await assert.rejects(readWorkspace({...identity,propertyId:deniedPropertyId}),error=>error instanceof WorkspaceError&&error.status===403);
- assert.deepEqual(await readDecision("SELECT allowed,reason,policy_version FROM leasing.backend_access_decisions WHERE property_id=$1 ORDER BY recorded_at DESC LIMIT 1",[deniedPropertyId]),{allowed:false,reason:'invalid-context',policy_version:'unresolved'});
+ await assert.rejects(readAdminScreen({...identity,propertyId:deniedPropertyId},"floors"),error=>error instanceof WorkspaceError&&error.status===404);
+ const beforeDecisions=await readDecision("SELECT count(*)::text AS count FROM leasing.backend_access_decisions WHERE actor_user_id=$1",[identity.id]);
  let data=await readWorkspace(identity);
  const staffEmail='staff-invitation-'+crypto.randomUUID()+'@example.test',staffSubject=crypto.randomUUID();
  const invitation=await saveStaffAccount(identity,staffEmail,'editor');assert.equal(invitation.status,'invited');
  let editor=await resolveAdminIdentity({issuer,subject:staffSubject,email:staffEmail,emailVerified:true});
- assert.equal(editor?.role,'editor');assert.ok(editor);editor=trusted(editor,staffSubject);await readWorkspace(editor);
+ assert.equal(editor?.role,'editor');assert.ok(editor);editor=trusted(editor,staffSubject);await readAdminScreen(editor,"floors");
+ await assert.rejects(readAdminScreen(editor,"settings"),error=>error instanceof WorkspaceError&&error.status===403);
  await assert.rejects(saveStaffAccount(editor,crypto.randomUUID()+'@example.test','administrator'),error=>error instanceof WorkspaceError&&error.status===403);
  await assert.rejects(executeCommand(editor,{command:{type:'update-settings',values:data.settings},expectedRevision:data.revision,idempotencyKey:crypto.randomUUID()}),error=>error instanceof WorkspaceError&&error.status===403);
- assert.deepEqual(await readDecision("SELECT allowed,reason FROM leasing.backend_access_decisions WHERE property_id=$1 AND actor_user_id=$2 AND permission='workspace:configure' ORDER BY recorded_at DESC LIMIT 1",[editor.propertyId,editor.id]),{allowed:false,reason:'no-grant'});
+ assert.deepEqual(await readDecision("SELECT count(*)::text AS count FROM leasing.backend_access_decisions WHERE actor_user_id=$1",[identity.id]),beforeDecisions);
  const listed=await listStaffAccounts(identity);assert.ok(listed.some(account=>account.email===staffEmail&&account.role==='editor'&&account.status==='active'));
  await saveStaffAccount(identity,staffEmail,'administrator');
  editor=await resolveAdminIdentity({issuer,subject:staffSubject,email:staffEmail,emailVerified:true});assert.equal(editor?.role,'administrator');
@@ -84,11 +110,11 @@ test("Local PostgreSQL relational commands: CAS, uncertain-response replay, scop
  await assert.rejects(executeCommand(identity,{command:{type:"delete-media",mediaId:logo.id},expectedRevision:data.revision,idempotencyKey:crypto.randomUUID()}));
  await executeCommand(identity,{command:{type:'update-settings',values:data.settings},expectedRevision:data.revision,idempotencyKey:crypto.randomUUID()});data=await readWorkspace(identity);
  await executeCommand(identity,{command:{type:'update-floor',floor:1,purpose:data.floors[0].purpose,publicTitle:data.floors[0].publicTitle,publicDescription:data.floors[0].publicDescription},expectedRevision:data.revision,idempotencyKey:crypto.randomUUID()});data=await readWorkspace(identity);
- const run=async(command:AdminCommand)=>{data=await executeCommand(identity,{command,expectedRevision:data.revision,idempotencyKey:crypto.randomUUID()});return data;};
+ const run=async(command:AdminCommand)=>{const receipt=await executeCommand(identity,{command,expectedRevision:data.revision,idempotencyKey:crypto.randomUUID()});assert.deepEqual(Object.keys(receipt).sort(),["entityId","revision"]);data=await readWorkspace(identity);assert.equal(data.revision,receipt.revision);return data;};
  const command:AdminCommand={type:'upsert-company',values:{name:'Disposable regression company '+crypto.randomUUID(),industry:'Retail',brand:'',contact:'Reviewer',email:'',phone:'',owner:'',note:'',taxId:'',address:''}},key=crypto.randomUUID(),revision=data.revision;
- data=await executeCommand(identity,{command,expectedRevision:revision,idempotencyKey:key});
- const company=data.companies.find(c=>c.name===command.values.name)!;assert.ok(company);assert.equal(company.version,1);
- const replay=await executeCommand(identity,{command,expectedRevision:revision,idempotencyKey:key});assert.equal(replay.revision,data.revision);assert.equal(replay.companies.filter(c=>c.id===company.id).length,1);
+ const created=await executeCommand(identity,{command,expectedRevision:revision,idempotencyKey:key});data=await readWorkspace(identity);
+ const company=(await readAdminCollectionItem(identity,"companies",created.entityId)).item;assert.equal(company.name,command.values.name);assert.equal(company.version,1);
+ const replay=await executeCommand(identity,{command,expectedRevision:revision,idempotencyKey:key});assert.deepEqual(replay,created);assert.deepEqual(Object.keys(replay).sort(),["entityId","revision"]);
  await assert.rejects(executeCommand(identity,{command:{type:'save-company',companyId:company.id,note:'different'},expectedRevision:revision,idempotencyKey:key}),error=>error instanceof WorkspaceError&&error.status===409);
  const raced=await Promise.allSettled(['first','second'].map(note=>executeCommand(identity,{command:{type:'save-company',companyId:company.id,note},expectedRevision:data.revision,idempotencyKey:crypto.randomUUID()})));
  assert.equal(raced.filter(r=>r.status==='fulfilled').length,1);assert.equal(raced.filter(r=>r.status==='rejected').length,1);data=await readWorkspace(identity);
@@ -127,25 +153,38 @@ test("Local PostgreSQL relational commands: CAS, uncertain-response replay, scop
  await run({type:'review-request',requestId:request.id});await assert.rejects(run({type:'review-request',requestId:request.id}));
  await run({type:'approve-request',requestId:request.id,holdHours:48,note:'Approved test'});const hold=data.reservations.find(h=>h.requestId===request.id)!;
  assert.equal(data.slots.find(s=>s.id===a.id)?.status,'Còn trống');await assert.rejects(run({type:'update-slot',slotId:a.id,status:'Trống',tenant:''}));
- await assert.rejects(run({type:'record-lease',reservationId:hold.id,mediaId:crypto.randomUUID()}));assert.equal((await readWorkspace(identity)).leases.length,data.leases.length);
- const pdf=crypto.randomUUID(),documentId=crypto.randomUUID();
- // Relational gate fixture only: real PDF bytes/storage delivery require media endpoint integration checks.
- await withTransaction('test:private-pdf-gate',async client=>{
-  await client.query("INSERT INTO leasing.documents(id,property_id,classification,title) VALUES($1,$2,'business_private','Disposable DB invariant PDF')",[documentId,identity.propertyId]);
-  await client.query("INSERT INTO leasing.document_versions(id,property_id,document_id,version_number,storage_provider,bucket_name,object_key,content_type,byte_size,sha256,original_filename,uploaded_by) VALUES($1::uuid,$2,$3,1,'r2','test-bucket',$1::uuid::text,'application/pdf',5,$4,'regression.pdf',$5)",[pdf,identity.propertyId,documentId,'0'.repeat(64),identity.id]);
-  await client.query("INSERT INTO leasing.media_object_state(document_version_id,property_id,state) VALUES($1,$2,'quarantine')",[pdf,identity.propertyId]);
- });
- await assert.rejects(run({type:'record-lease',reservationId:hold.id,mediaId:pdf}));
- await withTransaction('test:manual-reviewed-fixture',async client=>{
-  await client.query("UPDATE leasing.document_versions SET manual_reviewed_by=$2,manual_reviewed_at=now(),manual_review_note='DB gate test: external review attestation fixture',sealed_at=now() WHERE id=$1",[pdf,identity.id]);
-  await client.query("UPDATE leasing.media_object_state SET state='ready' WHERE document_version_id=$1",[pdf]);
- });
- await run({type:'record-lease',reservationId:hold.id,mediaId:pdf});const lease=data.leases.find(l=>l.reservationId===hold.id)!;assert.ok(lease);assert.equal(data.reservations.find(h=>h.id===hold.id)?.status,'converted');assert.equal(data.slots.find(s=>s.id===a.id)?.status,'Đã thuê');assert.equal(lease.signedOn,undefined);
- await run({type:'attach-lease-document',leaseId:lease.id,mediaId:pdf});await assert.rejects(run({type:'cancel-hold',reservationId:hold.id,reason:'Already converted'}));
- await assert.rejects(run({type:'delete-media',mediaId:pdf}));await assert.rejects(run({type:'link-media',mediaId:pdf,scope:'Toàn dự án'}));
+ const documentsBefore=await readDecision("SELECT count(*)::text AS count FROM leasing.document_versions WHERE property_id=$1",[identity.propertyId]);
+ await run({type:'record-lease',reservationId:hold.id,rentNote:"Bản gốc lưu ngoài hệ thống",referenceNumber:"REGRESSION-METADATA"});
+ const lease=data.leases.find(l=>l.reservationId===hold.id)!;
+ assert.ok(lease);assert.equal(lease.referenceNumber,"REGRESSION-METADATA");assert.equal(lease.rentNote,"Bản gốc lưu ngoài hệ thống");assert.ok(lease.recordedAt);assert.equal(lease.recordedBy,identity.id);
+ assert.equal(data.reservations.find(h=>h.id===hold.id)?.status,'converted');assert.equal(data.slots.find(s=>s.id===a.id)?.status,'Đã thuê');assert.equal(lease.signedOn,undefined);assert.equal(lease.documentMediaId,null);
+ assert.deepEqual(await readDecision("SELECT count(*)::text AS count FROM leasing.document_versions WHERE property_id=$1",[identity.propertyId]),documentsBefore);
+ assert.equal((await readAdminScreen(identity,"leases",{id:lease.id})).leases[0]?.id,lease.id);
+ assert.equal((await readAdminScreen(identity,"slot",{id:a.id})).leases[0]?.id,lease.id);
+ const companySummary=(await readAdminCollectionItem(identity,"companies",company.id)).item;
+ assert.equal(companySummary.category,"Đang thuê");assert.equal(companySummary.leaseCount,1);assert.equal(companySummary.requestCount,1);
+ assert.equal((await readAdminScreen(identity,"tenants",{companyId:company.id})).leases[0]?.id,lease.id);
+ await assert.rejects(run({type:'cancel-hold',reservationId:hold.id,reason:'Already converted'}));
+ await assert.rejects(run({type:'record-lease',reservationId:hold.id}));
+ await assert.rejects(withTransaction(identity.id,client=>client.query("UPDATE leasing.slot_allocations SET occupancy_period=daterange($2::date+1,$3::date+1,'[)') WHERE lease_id=$1 AND released_at IS NULL",[lease.id,start,end])));
+ await assert.rejects(withTransaction(identity.id,client=>client.query("UPDATE leasing.slot_allocations SET released_at=now() WHERE lease_id=$1 AND released_at IS NULL",[lease.id])));
+ await assert.rejects(withTransaction(identity.id,client=>client.query("INSERT INTO leasing.leases(property_id,organization_id,space_version_id,reference_number,occupancy_period,status) SELECT property_id,organization_id,space_version_id,'INVALID-NO-METADATA',occupancy_period,'executed' FROM leasing.leases WHERE id=$1",[lease.id])));
+ await assert.rejects(run({type:"save-request",values:{companyId:company.id,floor:1,slotIds:[a.id],start,end,note:"Overlapping occupied lease"}}));
+ const manualSlot=data.slots.find(slot=>slot.code==="B.1")!;
+ await run({type:"update-slot",slotId:manualSlot.id,status:"Đang thuê",tenant:"Manual occupant without document"});
+ const manualTenants=await readAdminScreen(identity,"tenants",{query:"Manual occupant without document"});
+ assert.equal(manualTenants.totalItems,1);assert.equal(manualTenants.slots[0]?.id,manualSlot.id);assert.equal(manualTenants.leases.length,0);
+ await run({type:"update-slot",slotId:manualSlot.id,status:"Trống",tenant:""});
  const cancellationSlot=data.slots.find(s=>s.code==='C.1')!;
  await run({type:'save-request',values:{companyId:company.id,floor:3,slotIds:[cancellationSlot.id],start,end,note:'Cancellation test'}});const cancellingRequest=data.requests.find(q=>q.companyId===company.id&&q.note==='Cancellation test')!;
  await run({type:'approve-request',requestId:cancellingRequest.id,holdHours:48,note:''});const cancellingHold=data.reservations.find(h=>h.requestId===cancellingRequest.id)!;await run({type:'cancel-hold',reservationId:cancellingHold.id,reason:'Test cancellation'});
+ const expiredSlot=data.slots.find(slot=>slot.code==="C.2")!;
+ await run({type:"save-request",values:{companyId:company.id,floor:3,slotIds:[expiredSlot.id],start,end,note:"Expired hold test"}});
+ const expiredRequest=data.requests.find(item=>item.note==="Expired hold test")!;
+ await run({type:"approve-request",requestId:expiredRequest.id,holdHours:1,note:""});
+ const expiredHold=data.reservations.find(item=>item.requestId===expiredRequest.id)!;
+ await withTransaction(identity.id,client=>client.query("UPDATE leasing.reservations SET held_at=now()-interval '2 hours',expires_at=now()-interval '1 hour' WHERE id=$1",[expiredHold.id]));
+ await assert.rejects(run({type:"record-lease",reservationId:expiredHold.id}));
 
  await run({type:'save-request',values:{companyId:company.id,floor:1,slotIds:[b.id],start,end,note:''}});request=data.requests.find(q=>q.companyId===company.id&&q.slotIds.includes(b.id)&&q.status==='submitted')!;await run({type:'reject-request',requestId:request.id,reason:'Test rejection'});await assert.rejects(run({type:'approve-request',requestId:request.id,holdHours:48,note:''}));
  const startsAt=new Date(Date.now()+7*86400000).toISOString();await run({type:'save-appointment',values:{companyId:company.id,purpose:'Visit',startsAt,location:'Le Grande Centre',durationMinutes:30}});const appointment=data.appointments.find(a=>a.companyId===company.id)!;
@@ -195,9 +234,70 @@ test("Local PostgreSQL relational commands: CAS, uncertain-response replay, scop
  assert.equal(scopedLeads.totalItems,105);assert.ok(scopedLeads.items.every(item=>item.companyId===company.id&&item.contactDetails?.company===prefix));
  const confirmed=await readAdminCollection(identity,"appointments",{companyId:company.id,status:"confirmed",query:prefix});
  assert.equal(confirmed.totalItems,1);assert.equal(confirmed.items[0]?.id,selectedAppointment.id);
+ const mediaPrefix="Media boundary "+crypto.randomUUID(),mediaIds:string[]=[];
+ await withTransaction(identity.id,async client=>{
+  for(let i=0;i<60;i++){
+   const doc=crypto.randomUUID(),id=crypto.randomUUID();mediaIds.push(id);
+   await client.query("INSERT INTO leasing.documents(id,property_id,classification,title,media_scope) VALUES($1,$2,'business_private',$3,'Tầng 1')",[doc,identity.propertyId,mediaPrefix+" "+i]);
+   await client.query("INSERT INTO leasing.document_versions(id,property_id,document_id,version_number,storage_provider,bucket_name,object_key,content_type,byte_size,sha256,original_filename,uploaded_by) VALUES($1::uuid,$2,$3,1,'r2','owned-metadata-fixture',$1::uuid::text,$4,5,$5,'fixture',$6)",[id,identity.propertyId,doc,i%2?"image/png":"application/pdf","0".repeat(64),identity.id]);
+   await client.query("INSERT INTO leasing.media_object_state(document_version_id,property_id,state) VALUES($1,$2,$3)",[id,identity.propertyId,i%2?"ready":"quarantine"]);
+  }
+  await client.query("UPDATE leasing.media_storage SET used_bytes=used_bytes+300 WHERE property_id=$1",[identity.propertyId]);
+ });
+ const uploadedPages=await Promise.all([1,2,3].map(page=>readMediaPage(identity,{source:"uploaded",query:mediaPrefix,page,pageSize:24})));
+ assert.deepEqual(uploadedPages.map(page=>page.items.length),[24,24,12]);assert.ok(uploadedPages.every(page=>page.totalItems===60&&page.totalPages===3));
+ const uploadedIds=uploadedPages.flatMap(page=>page.items.map(item=>item.id));assert.equal(new Set(uploadedIds).size,60);assert.deepEqual(new Set(uploadedIds),new Set(mediaIds));
+ const imagePage=await readMediaPage(identity,{source:"uploaded",query:mediaPrefix,kind:"Ảnh",scope:"Tầng 1",pageSize:100});
+ assert.equal(imagePage.totalItems,30);assert.ok(imagePage.items.every(item=>item.kind==="Ảnh"&&item.scope==="Tầng 1"));
+ const uploads=await readMediaPage(identity,{source:"uploaded",pageSize:100}),projects=await readMediaPage(identity,{source:"project",pageSize:100});
+ const crossingPage=Math.floor(uploads.totalItems/24)+1,crossingOffset=(crossingPage-1)*24;
+ const crossing=await readMediaPage(identity,{page:crossingPage,pageSize:24});
+ const expected=[...uploads.items.slice(crossingOffset),...projects.items].slice(0,24).map(item=>item.id);
+ assert.deepEqual(crossing.items.map(item=>item.id),expected);assert.equal(crossing.totalItems,uploads.totalItems+projects.totalItems);
+ const outsideMedia=uploadedPages[2].items[0]!;
+ assert.equal((await readMediaDetail(identity,outsideMedia.id)).item.id,outsideMedia.id);
+ await withTransaction(identity.id,client=>client.query("INSERT INTO leasing.document_retention(document_version_id,property_id,legal_hold,policy_reference,policy_updated_by) VALUES($1,$2,true,'Owned retention regression',$3)",[outsideMedia.id,identity.propertyId,identity.id]));
+ const protectedMedia=(await readMediaDetail(identity,outsideMedia.id)).item;assert.equal(protectedMedia.canDelete,false);assert.ok(protectedMedia.protectedReason);
+ await assert.rejects(executeCommand(identity,{command:{type:"delete-media",mediaId:outsideMedia.id},expectedRevision:data.revision,idempotencyKey:crypto.randomUUID()}));
+ assert.equal((await readMediaDetail(identity,logo.id)).item.canDelete,false);
+ assert.equal((await readMediaPage(identity,{source:"uploaded",page:999})).items.length,0);
+ const otherProperty=await withTransaction(identity.id,async client=>(await client.query("INSERT INTO leasing.properties(code,name,owner_organization_id) SELECT $2,'Owned foreign property',owner_organization_id FROM leasing.properties WHERE id=$1 RETURNING id",[identity.propertyId,"foreign-"+crypto.randomUUID()])).rows[0].id as string);
+ const foreignIdentity={...identity,propertyId:otherProperty};
+ await assert.rejects(readAdminCollectionItem(foreignIdentity,"companies",company.id),error=>error instanceof WorkspaceError&&error.status===404);
+ await assert.rejects(readMediaDetail(foreignIdentity,outsideMedia.id),error=>error instanceof WorkspaceError&&error.status===404);
+ assert.equal((await readAdminScreen(foreignIdentity,"leases",{companyId:company.id})).leases.length,0);
+ // A durable finalized receipt is replayed verbatim even after newer workspace writes.
+ const replayRevision=data.revision-1,reconcileKey=crypto.randomUUID(),reviewKey=crypto.randomUUID(),uploadKey=crypto.randomUUID(),batchId=crypto.randomUUID(),receiptMediaId=crypto.randomUUID(),receiptDoc=crypto.randomUUID(),reviewNote="External review already committed";
+ const replayFile=new File(["%PDF-1.7\nowned replay proof\n%%EOF"],"owned-replay.pdf",{type:"application/pdf"}),[prepared]=await prepareFiles([replayFile]);
+ const quotaDigest=await sha256(new TextEncoder().encode(JSON.stringify({action:"media.quota-reconcile",expectedRevision:replayRevision-1})));
+ const reviewDigest=await sha256(new TextEncoder().encode(JSON.stringify({id:receiptMediaId,note:reviewNote,expectedRevision:replayRevision-1})));
+ const uploadDigest=await sha256(new TextEncoder().encode(JSON.stringify({scope:"Toàn dự án",expectedRevision:replayRevision-1,files:[[prepared.name,prepared.mime,prepared.sha256,prepared.bytes.length]]})));
+ await withTransaction(identity.id,async client=>{
+  await client.query("INSERT INTO leasing.command_receipts(property_id,actor_user_id,idempotency_key,request_sha256,command_code,result_entity_id,result_revision) VALUES($1,$2,$3,$4,'media.quota-reconcile',$1,$5),($1,$2,$6,$7,'media.manual-review',$8,$5)",[identity.propertyId,identity.id,reconcileKey,quotaDigest,replayRevision,reviewKey,reviewDigest,receiptMediaId]);
+  await client.query("INSERT INTO leasing.media_batches(id,property_id,actor_user_id,request_key,request_sha256,expected_revision,state,result_revision) VALUES($1,$2,$3,$4,$5,$6,'finalized',$7)",[batchId,identity.propertyId,identity.id,uploadKey,uploadDigest,replayRevision-1,replayRevision]);
+  await client.query("INSERT INTO leasing.documents(id,property_id,classification,title,media_scope) VALUES($1,$2,'business_private','Owned replay metadata','Toàn dự án')",[receiptDoc,identity.propertyId]);
+  await client.query("INSERT INTO leasing.document_versions(id,property_id,document_id,version_number,storage_provider,bucket_name,object_key,content_type,byte_size,sha256,original_filename,uploaded_by) VALUES($1::uuid,$2,$3,1,'r2','owned-metadata-fixture',$1::uuid::text,'application/pdf',$4,$5,'owned-replay.pdf',$6)",[receiptMediaId,identity.propertyId,receiptDoc,prepared.bytes.length,prepared.sha256,identity.id]);
+  await client.query("UPDATE leasing.document_versions SET manual_reviewed_by=$2,manual_reviewed_at=now(),manual_review_note=$3,sealed_at=now() WHERE id=$1",[receiptMediaId,identity.id,reviewNote]);
+  await client.query("INSERT INTO leasing.media_object_state(document_version_id,property_id,batch_id,state) VALUES($1,$2,$3,'ready')",[receiptMediaId,identity.propertyId,batchId]);
+  await client.query("UPDATE leasing.media_storage SET used_bytes=used_bytes+$2 WHERE property_id=$1",[identity.propertyId,prepared.bytes.length]);
+ });
+ assert.deepEqual(await reconcileMedia(identity,replayRevision-1,reconcileKey),{revision:replayRevision,entityId:identity.propertyId});
+ assert.deepEqual(await reviewMedia(identity,receiptMediaId,reviewNote,replayRevision-1,reviewKey),{revision:replayRevision,entityId:receiptMediaId});
+ assert.deepEqual(await uploadMedia(identity,[replayFile],"Toàn dự án",replayRevision-1,uploadKey),{revision:replayRevision,mediaIds:[receiptMediaId]});
+ await assert.rejects(reviewMedia(identity,receiptMediaId,"Different review details",replayRevision-1,reviewKey));
+ const beforeRollback=await readDecision("SELECT contact_email FROM leasing.properties WHERE id=$1",[identity.propertyId]);
+ const expiring={...identity,verifiedSession:{...identity.verifiedSession!,expiresAt:Date.now()+100}};
+ await assert.rejects(withAdminTransaction(expiring,async client=>{await client.query("UPDATE leasing.properties SET contact_email='must-rollback@example.test' WHERE id=$1",[identity.propertyId]);await client.query("SELECT pg_sleep(0.15)");}),AdminSessionError);
+ assert.deepEqual(await readDecision("SELECT contact_email FROM leasing.properties WHERE id=$1",[identity.propertyId]),beforeRollback);
  await withTransaction('test:assertions',async client=>{const receipts=(await client.query('SELECT count(*) AS count FROM leasing.command_receipts WHERE actor_user_id=$1 AND idempotency_key=$2',[identity.id,key])).rows[0];assert.equal(Number(receipts.count),1);const actor=(await client.query('SELECT current_user AS role')).rows[0];assert.equal(actor.role,'leasing_runtime');await client.query('UPDATE leasing.users SET disabled_at=now() WHERE id=$1',[identity.id]);});
- assert.equal(await resolveAdminIdentity({issuer,subject,email,emailVerified:true}),null);await assert.rejects(readWorkspace(identity),error=>error instanceof WorkspaceError&&error.status===403);
+ assert.equal(await resolveAdminIdentity({issuer,subject,email,emailVerified:true}),null);
+ // Signed snapshots intentionally survive remote revoke until their fixed expiry.
+ await readAdminScreen(identity,"floors");
+ const expired={...identity,verifiedSession:{...identity.verifiedSession!,expiresAt:Date.now()-1}};
+ await assert.rejects(readAdminScreen(expired,"floors"),error=>error instanceof AdminSessionError&&error.code==="SESSION_EXPIRED");
+ await assert.rejects(executeCommand(expired,{command:{type:"delete-company",companyId:company.id},expectedRevision:data.revision,idempotencyKey:crypto.randomUUID()}),error=>error instanceof AdminSessionError);
  await withTransaction('test:revoke-root',async client=>{await client.query('UPDATE leasing.root_allowlist SET revoked_at=now() WHERE lower(email)=lower($1)',[rootEmail]);});
- await assert.rejects(readWorkspace(rootIdentity),error=>error instanceof WorkspaceError&&error.status===403);
+ await readAdminScreen(rootIdentity,"floors");
  assert.equal(await resolveAdminIdentity({issuer:rootIssuer,subject:rootSubject,email:rootEmail,emailVerified:true}),null);
+ assert.deepEqual(await readDecision("SELECT count(*)::text AS count FROM leasing.backend_access_decisions WHERE actor_user_id=$1",[identity.id]),beforeDecisions);
 });

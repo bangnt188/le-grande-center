@@ -1,8 +1,10 @@
 import "server-only";
 import { Pool, type PoolClient } from "@neondatabase/serverless";
 export type { PoolClient } from "@neondatabase/serverless";
+import { assertSessionActive } from "./admin-session";
 export type AdminIdentity = { id: string; propertyId: string; role: "administrator" | "editor" | "root"; email: string; verifiedSession?: { issuer: string; subject: string; expiresAt: number } };
-export class WorkspaceError extends Error { constructor(message: string, readonly status = 400) { super(message); } }
+import { WorkspaceError } from "./errors";
+export { WorkspaceError } from "./errors";
 export function getDatabase(): Pool {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new Error("DATABASE_URL is required");
@@ -23,7 +25,16 @@ export async function withTransaction<T>(actorId: string, work: (client: PoolCli
     throw error;
   } finally { client?.release(); await pool.end(); }
 }
-export async function assertAdmin(client: PoolClient, identity: AdminIdentity) {
+export async function withAdminTransaction<T>(identity: AdminIdentity, work: (client: PoolClient) => Promise<T>): Promise<T> {
+  assertSessionActive(identity);
+  return withTransaction(identity.id, async client => {
+    const result = await work(client);
+    // Fixed local expiry is checked again after long uploads/provider I/O, immediately before commit.
+    assertSessionActive(identity);
+    return result;
+  });
+}
+async function assertResolvedAdmin(client: PoolClient, identity: AdminIdentity) {
   if (identity.role === "root") {
     const { rows } = await client.query(`SELECT u.id FROM leasing.root_allowlist r JOIN leasing.users u ON u.id=r.user_id
       WHERE u.id=$1 AND r.property_id=$2 AND r.revoked_at IS NULL AND r.deleted_at IS NULL
@@ -58,7 +69,7 @@ export async function resolveAdminIdentity(verified: { issuer: string; subject: 
         await client.query(`INSERT INTO leasing.audit_events(property_id,actor_user_id,action_code,entity_type,entity_id) VALUES($1,$2,'root.bootstrap','user',$2)`, [root.property_id,id]);
       }
       const identity: AdminIdentity = { id, propertyId: root.property_id, email: root.email, role: "root" };
-      try { await assertAdmin(client, identity); } catch (error) { if (error instanceof WorkspaceError) return null; throw error; }
+      try { await assertResolvedAdmin(client, identity); } catch (error) { if (error instanceof WorkspaceError) return null; throw error; }
       return identity;
     }
     const { rows } = await client.query(`SELECT a.*,u.auth_issuer,u.auth_subject,u.disabled_at,p.id AS property_id
@@ -78,7 +89,7 @@ export async function resolveAdminIdentity(verified: { issuer: string; subject: 
       await client.query(`INSERT INTO leasing.audit_events(property_id,actor_user_id,action_code,entity_type,entity_id,metadata) VALUES($1,$2,'admin.bootstrap','user',$2,$3::jsonb)`, [allowed.property_id,id,JSON.stringify({role})]);
     }
     const identity: AdminIdentity = { id, propertyId: allowed.property_id, email: allowed.email, role };
-    try { await assertAdmin(client, identity); } catch (error) { if (error instanceof WorkspaceError) return null; throw error; }
+    try { await assertResolvedAdmin(client, identity); } catch (error) { if (error instanceof WorkspaceError) return null; throw error; }
     return identity;
   });
 }

@@ -1,14 +1,14 @@
 # Backend readiness — phase 2
 
-Cập nhật 16/10/2026. Đây là trạng thái ứng dụng thật, không phải checklist folder-only hoặc demo Pages. Phần cache HTML/RSC ngày 16/10 là source đã kiểm chứng local, **chưa deploy**; các bằng chứng Worker trước đó giữ nguyên phạm vi của từng lần phát hành.
+Cập nhật source 17/10/2026. Session15 phút + per-screen admin ở [admin data contract](admin-data-contract.md) là contract mới, **chưa deploy và chưa migrate011 trên DB live**. Các bằng chứng Worker bên dưới giữ nguyên phạm vi/lịch sử lần phát hành, không chứng minh source mới đã chạy production.
 
 ## Đã triển khai
 
 | Boundary | Implementation hiện tại |
 | --- | --- |
 | Runtime | Next App Router SSR (`output: standalone`), OpenNext Cloudflare; admin/API cùng origin. Không static export/Pages hoặc deploy-dev-pages. |
-| Auth | `/admin/` dùng email + mật khẩu qua Neon Auth, không Google OAuth. Admin/root cấp email và role Admin/Editor trong app; nhân viên tự tạo tài khoản email/password và xác minh email. Backend chỉ cho phép email có allowlist/assignment active; Editor không quản lý tài khoản hoặc cấu hình vận hành. Root `root@legrandecentre.vn` được cấp riêng, ẩn khỏi danh sách staff; mỗi request xác minh session mới, emailVerified, issuer/subject và quyền DB. |
-| DB | Admin/write dùng request-local Neon Pool, transaction `leasing_runtime` và actor context/RLS. Public miss dùng một Neon HTTP transaction bốn statement: role, actor, property share lock và projection gọn. `workspace.ts` giữ CAS/idempotency/audit, staff authorization recheck mỗi request. |
+| Auth | Neon email/password, verified email + allowlist/issuer/subject khi mint signed cookie `HttpOnly/Secure` tối đa900s; warm request verify cục bộ, không provider/DB permission lookup. Renew chỉ từ thao tác khi thiếu/hết cache, không sliding/timer/focus/poll. Revoke trễ tối đa15 phút. Administrator/Editor; root giữ riêng/ẩn khỏi staff. |
+| DB | Admin/write dùng một request-local Neon transaction `leasing_runtime` với actor context/RLS, expiry precommit, property lock, CAS/idempotency/business audit. Không generic access-decision write trên warm admin reads, không re-authorize DB trong cùng operation. Public miss giữ một Neon HTTP transaction gọn. |
 | Schema | Neon có hai branch: `production` (`br-tiny-butterfly-b3uuw92p`) và `lgc-bot-test` (`br-wispy-morning-b33h15x4`). Cả hai có baseline+migrations 001–010. `leasing`/`row_audit` đã reset; catalog approved 6 tầng/81 căn, không có dữ liệu nghiệp vụ thật; root allowlist/approved Neon logo được giữ/khôi phục. |
 | Public | SSR và `/api/public/website` dùng projection DB đã lọc; React request dedup + cache revalidation 60 giây. Worker dùng private R2 incremental cache, D1 tag cache và DO queue. Mutation đợi D1 expiration sau commit trước HTTP thành công; API/SSR immediate-read đã qua ba vòng có hoàn nguyên. Intake bỏ qua render cache. Không trả tenant/contact nội bộ, hold expiry hoặc hợp đồng; không fixture khi DB lỗi. |
 | Intake | `@mall/ui/forms` live → `POST /api/contact`, cap JSON 16 KiB, consent/field/origin validation, UUID idempotency, HMAC IP + DB cooldown/rate limit. Commit lead/intake trước HTTP 201; visit request không tạo/xác nhận booking. Không có Turnstile. |
@@ -25,7 +25,43 @@ Cập nhật 16/10/2026. Đây là trạng thái ứng dụng thật, không ph�
 
 Private cache R2 `le-grande-centre-stage2-next-cache` và D1 `le-grande-centre-stage2-next-tags` không nằm trong public `mall-assets`. Worker `https://le-grande-centre-stage2.nguyenbang-skyone.workers.dev` giữ tên hosting/cache lịch sử `stage2` và dùng Neon branch `lgc-bot-test`; đây là database branch riêng. Repo chỉ có một Wrangler root config và `npm run deploy`, nhắm tới stage2. `legrandecentre.vn` hiện do Vercel phục vụ; runtime DB của Vercel chưa xác minh.
 
-Server cache TTL dùng stale-while-revalidate, không bảo đảm dữ liệu luôn mới đúng 60 giây khi DB lỗi. `invalidatePublicWebsite()` chỉ chạy sau committed mutation, gọi `revalidateTag` và trên Worker đợi chính D1 adapter ghi expiration trước response; không chỉ phụ thuộc pending `waitUntil` của Next route handler. Regional cache luôn kiểm D1 tags, không lazy-renew timestamp của bản cũ. Browser full-prefetch chỉ cho căn trước/sau, cache client giới hạn 60 giây; sơ đồ/danh sách không prefetch hàng loạt. Không tự refresh tab/layout đang mở. Form intake và authorization luôn đọc authoritative DB/provider.
+Server cache TTL dùng stale-while-revalidate, không bảo đảm dữ liệu luôn mới đúng 60 giây khi DB lỗi. `invalidatePublicWebsite()` chỉ chạy sau committed mutation, gọi `revalidateTag` và trên Worker đợi chính D1 adapter ghi expiration trước response; không chỉ phụ thuộc pending `waitUntil` của Next route handler. Regional cache luôn kiểm D1 tags, không lazy-renew timestamp của bản cũ. Browser full-prefetch chỉ cho căn trước/sau, cache client giới hạn60 giây; sơ đồ/danh sách không prefetch hàng loạt. Không tự refresh tab/layout đang mở. Form intake đọc authoritative DB; admin provider/identity chỉ authoritative lúc mint/refresh session cache.
+
+## Admin latency — 17/10/2026 (chưa deploy)
+
+Đã cắt aggregate workspace/auth-per-request sang signed cookie900s + per-screen
+reads, memory cache60s, receipt-only writes, server Media pagination và metadata-only
+leases. Source/migration/security/release contract: [admin data contract](admin-data-contract.md).
+Orca dùng một coordinator và hai worker: Antigravity `gemini-3.8-flash-high`
+(high), OMP `openai-codex/gpt-6.1-sol`; các dispatch đã hoàn tất/release.
+
+| Check thực chạy | Kết quả |
+| --- | --- |
+| Application regressions | 51 pass,1 live skip |
+| Shared backend regressions | 105 pass |
+| Owned PostgreSQL integration | 4 pass; migration/seed apply hai lần, cluster đã dọn |
+| Application TypeScript + Next production build | Pass |
+| Cloudflare build | Exit0; `.open-next/worker.js` được tạo; envfile khôi phục |
+| HTTPS shell | 200 với0 query DB /0 provider |
+| Warm business API families | 0 provider /0 self-identity lookup /0 generic access audit |
+| Browser expiry / logout | Idle0 renew, action1 POST; logout1 DELETE, cookie mất, API401 |
+| Browser Media | 24+7 mục; originals chỉ sau click; preview unmount khi rời màn |
+| Browser B2B | Request→review→hold→lease không PDF; appointment create→confirm→cancel |
+
+Staff listing vẫn cần query allowlist để trả dữ liệu quản lý tài khoản, không phải
+tra lại quyền của caller. Browser còn kiểm selected-company relationship paging,
+record-id detail, tenant empty search giữ focus, form-only floor/default dependencies,
+Website logo picker20 và staff-only-on-tab. Tampered cookie401 và cross-origin403
+trước DB/provider; Editor bị chặn staff/settings; DB kiểm CAS/replay/property và
+expiry-precommit rollback.
+
+Smoke dùng actual Next HTTPS + PostgreSQL disposable và managed-provider fixture,
+không cloud mutation/live credentials. Cloudflare build dùng projection public thật
+của owned runtime6 tầng/81 căn. Chưa deploy/migrate011 lên DB live; không có HAR
+sau deploy nên không khẳng định latency production đã giảm xuống một con số nào.
+Neon live/provider mail, upload cloud và Workerd CPU quota chưa được smoke lần này.
+Build vẫn có cảnh báo thư viện UI về `use client` và OpenNext Node middleware
+experimental; không che/suppress chúng hoặc suy build pass thành Worker runtime pass.
 
 ## Cache public HTML/RSC — 16/10/2026 (chưa deploy)
 

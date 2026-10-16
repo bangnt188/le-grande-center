@@ -2,7 +2,6 @@ import type { B2BCommand, B2BData } from "./b2b-model";
 import type { Floor, FloorConfiguration, Slot, SlotStatus, SpaceGroup } from "./space-model";
 import type { StorageUsage } from "./storage-policy";
 import { isWebsiteSettings, type WebsiteSettings } from "./website-settings";
-import type { AdminCollections } from "./collection-contracts";
 
 export const LEAD_STATUSES = ["Mới", "Đang tư vấn", "Đã xử lý"] as const;
 export type Lead = {
@@ -23,13 +22,31 @@ export function isAdminSettings(value: unknown): value is AdminSettings {
     && Number.isInteger(settings.defaultHoldHours) && Number(settings.defaultHoldHours) >= 1 && Number(settings.defaultHoldHours) <= 720
     && Number.isInteger(settings.appointmentMinutes) && Number(settings.appointmentMinutes) >= 15 && Number(settings.appointmentMinutes) <= 240 && isWebsiteSettings(settings.website);
 }
+export type AdminSession = { actorId: string; propertyId: string; role: "administrator" | "editor"; expiresAt: number };
+export type AdminMutationReceipt = { revision: number; entityId: string };
+export type AdminUploadReceipt = { revision: number; mediaIds: string[] };
+export type AdminScreenName = "floors" | "spaces" | "slot" | "tenants" | "requests" | "leases" | "settings" | "defaults";
+export type AdminScreenQuery = { floor?: Floor; id?: string; page?: number; pageSize?: number; query?: string; companyId?: string; status?: string };
+export type AdminScreenData = {
+  floors: { floors: FloorConfiguration[]; slots: Slot[] };
+  spaces: { floors: FloorConfiguration[]; slots: Slot[]; groups: SpaceGroup[] };
+  slot: { slots: Slot[]; groups: SpaceGroup[]; companies: B2BData["companies"]; requests: B2BData["requests"]; reservations: B2BData["reservations"]; leases: B2BData["leases"] };
+  tenants: { slots: Slot[]; companies: B2BData["companies"]; leases: B2BData["leases"]; page: number; pageSize: number; totalItems: number; totalPages: number };
+  requests: { requests: B2BData["requests"]; reservations: B2BData["reservations"]; companies: B2BData["companies"]; slots: Slot[]; groups: SpaceGroup[]; page: number; pageSize: number; totalItems: number; totalPages: number };
+  leases: { leases: B2BData["leases"]; companies: B2BData["companies"]; slots: Slot[]; page: number; pageSize: number; totalItems: number; totalPages: number };
+  settings: { settings: AdminSettings };
+  defaults: { defaults: Pick<AdminSettings, "defaultHoldHours" | "appointmentMinutes" | "appointmentLocation"> };
+};
+export type AdminScreenResponse<S extends AdminScreenName = AdminScreenName> = { revision: number } & AdminScreenData[S];
+export type AdminMediaQuery = { page?: number; pageSize?: number; query?: string; kind?: MediaItem["kind"]; source?: "all" | "uploaded" | "project"; scope?: string };
+export type AdminMediaPage = { items: MediaItem[]; page: number; pageSize: number; totalItems: number; totalPages: number; revision: number; storage: StorageUsage | null };
+export type AdminMediaDetail = { item: MediaItem; revision: number };
 export type MediaItem = {
   id: string; name: string; kind: "Ảnh" | "Tài liệu" | "Video" | "Model 3D" | "Tài nguyên"; scope: string;
   size: string; url?: string; reference?: boolean; sizeBytes?: number; mimeType?: string; hasUploadedFile: boolean;
-  projectAsset?: boolean; sourcePath?: string;
+  projectAsset?: boolean; sourcePath?: string; thumbnailUrl?: string; canDelete?: boolean; protectedReason?: string;
   uploadState?: "ready" | "quarantine"; reviewUrl?: string; reviewedAt?: string;
 };
-export type AdminSnapshot = B2BData & { revision: number; collections: AdminCollections; storage: StorageUsage | null; floors: FloorConfiguration[]; settings: AdminSettings; slots: Slot[]; groups: SpaceGroup[]; leads: Lead[]; media: MediaItem[] };
 export type AdminCommand = B2BCommand
   | { type: "update-floor"; floor: Floor; purpose: string; publicTitle: string; publicDescription: string }
   | { type: "update-website-settings"; values: WebsiteSettings }
@@ -44,14 +61,11 @@ export type AdminCommand = B2BCommand
   | { type: "rename-media"; mediaId: string; name: string }
   | { type: "delete-media"; mediaId: string };
 
-// Authoritative state after each mutation. HTTP backends must authenticate,
-// authorize and commit business invariants atomically. Browser demo is not auth.
+// Signed identity is held only in HttpOnly cookies; screen data is private memory.
 export interface AdminRepository {
-  readonly initialSnapshot: AdminSnapshot | null;
-  read(): Promise<AdminSnapshot>;
-  execute(command: AdminCommand): Promise<AdminSnapshot>;
-  upload(files: File[], scope: string): Promise<AdminSnapshot>;
-  reviewMedia(id: string, note: string): Promise<AdminSnapshot>;
-  reconcileStorage(): Promise<AdminSnapshot>;
-  dispose(): void;
+  read<S extends AdminScreenName>(screen: S, query?: AdminScreenQuery, signal?: AbortSignal): Promise<AdminScreenResponse<S>>;
+  execute(command: AdminCommand, expectedRevision: number, idempotencyKey?: string): Promise<AdminMutationReceipt>;
+  upload(files: File[], scope: string, expectedRevision: number, idempotencyKey?: string): Promise<AdminUploadReceipt>;
+  reviewMedia(id: string, note: string, expectedRevision: number, idempotencyKey?: string): Promise<AdminMutationReceipt>;
+  reconcileStorage(expectedRevision: number, idempotencyKey?: string): Promise<AdminMutationReceipt>;
 }

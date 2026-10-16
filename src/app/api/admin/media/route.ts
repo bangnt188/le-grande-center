@@ -1,9 +1,16 @@
-import { assertSameOrigin, AuthError, requireAdmin } from "../../../../server/auth";
-import { WorkspaceError } from "../../../../server/database";
+import { assertSameOrigin, requireAdmin } from "../../../../server/auth";
 import { uploadMedia } from "../../../../server/media/repository";
+import { adminErrorResponse } from "@/server/admin-http";
+import { parseMediaQuery, readMediaPage } from "@/server/media/queries";
 import { boundedMultipart, MediaError } from "../../../../server/media/validation";
 import { invalidatePublicWebsite } from "@/server/public";
 export const dynamic = "force-dynamic";
+export async function GET(request: Request) {
+  try {
+    const identity = await requireAdmin(request);
+    return Response.json(await readMediaPage(identity, parseMediaQuery(new URL(request.url).searchParams)), { headers: { "Cache-Control": "private, no-store" } });
+  } catch (error) { return adminErrorResponse(error, "Không thể tải thư viện."); }
+}
 export async function POST(request: Request) {
   try {
     assertSameOrigin(request);
@@ -11,11 +18,10 @@ export async function POST(request: Request) {
     const key = request.headers.get("idempotency-key");
     if (!key || !/^[a-f0-9-]{36}$/i.test(key) || new URL(request.url).search) throw new MediaError("Thông tin tải lên không hợp lệ.");
     const {files,scope,expectedRevision} = await boundedMultipart(request);
-    const snapshot = await uploadMedia(identity,files,scope,expectedRevision,key,request);
+    const receipt = await uploadMedia(identity,files,scope,expectedRevision,key,request);
     await invalidatePublicWebsite();
-    return Response.json(snapshot,{headers:{"cache-control":"private, no-store"}});
+    return Response.json(receipt,{headers:{"cache-control":"private, no-store"}});
   } catch(error) {
-    if(error instanceof AuthError||error instanceof MediaError||error instanceof WorkspaceError)return Response.json({error:{message:error.message}},{status:error.status,headers:{"cache-control":"private, no-store"}});
-    return Response.json({error:{message:"Không hoàn tất được tải lên. Dữ liệu/dung lượng chưa được báo thành công; hãy tải lại và thử lại."}},{status:503,headers:{"cache-control":"private, no-store"}});
+    return adminErrorResponse(error, "Không hoàn tất được tải lên. Hãy thử lại cùng mã yêu cầu.");
   }
 }

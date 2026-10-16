@@ -5,7 +5,7 @@ Cập nhật 16/10/2026. Project `wispy-sunset-10596642` có Neon branch `produc
 ## Thành phần hiện tại
 
 - Neon PostgreSQL: dữ liệu quan hệ, staff assignment/allowlist, CAS/idempotency/audit, public projection và intake. Cả `production` và `lgc-bot-test` đã áp dụng **010-lead-reference-codes**. Branch kiểm thử được dành riêng cho form/Zalo; hiện chỉ còn bản ghi form UI giả `LGC-00002`.
-- Neon Auth: `/admin/` dùng email + mật khẩu, không Google OAuth. Admin/root cấp email và vai trò Admin/Editor trong app; nhân viên tự tạo mật khẩu tại `/admin/` và xác minh email theo cấu hình provider. Signup không tự cấp quyền. Neon Auth chỉ là dịch vụ backend; nhân viên không cần vào Neon Console. Root `root@legrandecentre.vn` nằm trong allowlist riêng, bị ẩn khỏi danh sách nhân viên. App kiểm tra session mới, issuer/subject và quyền DB trên từng request.
+- Neon Auth: `/admin/` dùng email + mật khẩu, không Google OAuth. Administrator cấp email và vai trò Administrator/Editor; nhân viên tạo mật khẩu và xác minh email, signup không tự cấp quyền. Owner/root giữ allowlist riêng và ẩn khỏi staff. Source mới kiểm provider + issuer/subject + quyền DB khi mint/renew app cookie ký số **900 giây**; warm API verify cookie local, không auth/identity query. Chỉ user action renew khi thiếu/hết cache; revoke có độ trễ tối đa15 phút. [Contract hiện hành](admin-data-contract.md); chưa deploy/migrate011 live.
 - `neon.ts`: bucket `media` `public_read`; function `media` source `src/server/media/neon-function.ts`. Không lưu tài liệu nội bộ vào bucket public-read.
 - Function media là **trusted server origin**: `x-secret: MEDIA_ORIGIN_SECRET` (ít nhất 64 ký tự), constant-time auth trước body/storage, chỉ known branding UUID keys và key logo approved, PUT ảnh PNG/JPEG/WebP bounded 10 MiB với signature/dimension checks. Không có anonymous write/arbitrary key endpoint. Node app phải kiểm tra session/quota/ownership và reserve trước gọi origin.
 - AWS S3 credentials chỉ ở Neon origin; ứng dụng gọi `NEON_MEDIA_FUNCTION_URL`, không chuyển AWS write keys vào Worker/browser. Public URL ảnh không phải quyền ghi.
@@ -30,6 +30,12 @@ Cấu hình server tách branch theo môi trường:
 | Trusted Neon media origin | `MEDIA_ORIGIN_SECRET` cùng giá trị với app; `AWS_ENDPOINT_URL_S3`, `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` do môi trường origin cung cấp |
 | R2 | `PRIVATE_DOCUMENTS`/`PUBLIC_ASSETS` bindings; `R2_PRIVATE_BUCKET` đúng môi trường và `R2_ACCOUNT_ID`; Node ngoài binding cần scoped R2 access keys nếu dùng S3 adapter |
 | Public build config | `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_R2_PUBLIC_BASE_URL`, `NEXT_PUBLIC_NEON_MEDIA_BASE_URL`, `SEO_INDEXABLE` — không có secret |
+
+App session sử dụng `NEON_AUTH_COOKIE_SECRET` hiện hữu qua HKDF purpose separation;
+không cần secret/binding/cache service mới. Không thay/rotate secret trong code.
+Cookie `__Host-lgc_admin` bắt buộc Secure/HttpOnly/SameSite=Lax, nên runtime ngoài
+localhost phải có HTTPS đúng origin. Logout/đổi account xóa cookie và private
+memory cache. Thiếu secret hợp lệ trả503, không fallback cookie cũ hoặc quyền DB.
 
 Wrangler giữ một root config. Worker `https://le-grandecentre-stage2.nguyenbang-skyone.workers.dev` là noindex và dùng `DATABASE_URL` của `lgc-bot-test`; migration 010 cũng đã được áp dụng lên production DB. `legrandecentre.vn` đang do Vercel phục vụ; repository này chưa có Vercel project link/auth nên không deploy từ `npm run deploy` sang domain đó. Neon Auth/media, R2 và Cloudflare cache vẫn là shared resources; hậu tố Worker/cache `stage2` không tự chọn DB branch.
 

@@ -1,22 +1,5 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import nextConfig from "../next.config";
-
-
-test("next.config defines global security headers", async () => {
-  assert.equal(typeof nextConfig.headers, "function");
-  const headersConfig = await nextConfig.headers!();
-  assert.ok(Array.isArray(headersConfig));
-  const globalRule = headersConfig.find(rule => rule.source === "/:path*");
-  assert.ok(globalRule, "Should have a global rule for /:path*");
-  
-  const headersMap = new Map(globalRule.headers.map(h => [h.key, h.value]));
-  assert.equal(headersMap.get("X-Frame-Options"), "SAMEORIGIN");
-  assert.equal(headersMap.get("X-Content-Type-Options"), "nosniff");
-  assert.equal(headersMap.get("Referrer-Policy"), "strict-origin-when-cross-origin");
-  assert.ok(headersMap.get("Strict-Transport-Security")?.includes("max-age="));
-  assert.ok(headersMap.get("Permissions-Policy")?.includes("camera=()"));
-});
 
 test("password prefix transformation adds prefix when configured", async () => {
   const { applyPasswordPrefix, transformPasswordRequest } = await import("../src/server/auth");

@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Button, PasswordField, TextField, Toast, type ToastTone } from "@mall/ui";
-import { useWebsiteSettings } from "@/features/public/website-settings";
 import { authClient } from "./auth-client";
+import { clearAdminSession, ensureSession } from "./session";
 import styles from "./admin-entry.module.css";
 
 type ToastState = {
@@ -14,7 +14,6 @@ type ToastState = {
   title?: string;
   text: string;
 };
-
 
 function ArrowLeftIcon() {
   return (
@@ -29,7 +28,6 @@ export default function AdminEntry() {
   const [email, setEmail] = useState("");
   const [pending, setPending] = useState(false);
   const [creatingAccount, setCreatingAccount] = useState(false);
-  const { logoUrl } = useWebsiteSettings();
 
   const [toast, setToast] = useState<ToastState | null>(() => {
     if (params.get("denied")) {
@@ -72,6 +70,10 @@ export default function AdminEntry() {
       }
       const result = await authClient.signIn.email({ email, password });
       if (result.error) throw new Error(result.error.message || "Đăng nhập thất bại.");
+
+      clearAdminSession();
+      await ensureSession({ userAction: true });
+
       showToast("info", "Đang mở không gian quản trị...", "Đã xác thực tài khoản");
       window.location.assign("/admin/workspace/");
     } catch (issue) {
@@ -80,7 +82,6 @@ export default function AdminEntry() {
       setPending(false);
     }
   }
-
 
   return (
     <main className={`legrande-admin ${styles.root}`} data-ui-root data-ui-theme="shopping-mall" data-ui-scheme="light">
@@ -111,11 +112,7 @@ export default function AdminEntry() {
         <div className={styles.brandCenter}>
           <div className={styles.brandEmblemWrapper}>
             <div className={styles.brandEmblem}>
-              {logoUrl ? (
-                <img src={logoUrl} alt="Le Grande Centre" width={56} height={56} className={styles.brandLogoImg} />
-              ) : (
-                <span className={styles.brandMonogram} aria-hidden="true">LG</span>
-              )}
+              <span className={styles.brandMonogram} aria-hidden="true">LG</span>
             </div>
           </div>
           <h2 className={styles.brandTitle}>Le Grande Centre</h2>

@@ -1,13 +1,9 @@
-import { assertSameOrigin, AuthError, requireAdmin } from "@/server/auth";
+import { assertSameOrigin, requireAdmin } from "@/server/auth";
+import { adminErrorResponse as errorResponse } from "@/server/admin-http";
 import { WorkspaceError } from "@/server/database";
 import { listStaffAccounts, revokeStaffAccount, saveStaffAccount } from "@/server/staff-accounts";
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store" };
-function errorResponse(error: unknown) {
-  const known = error instanceof AuthError || error instanceof WorkspaceError;
-  const status = known ? error.status : 500;
-  return Response.json({ error: status === 500 ? "Không thể xử lý tài khoản." : (error as Error).message }, { status, headers });
-}
 async function body(request: Request) {
   if (new URL(request.url).search || !request.headers.get("content-type")?.startsWith("application/json")) throw new WorkspaceError("Yêu cầu không hợp lệ.");
   const length = Number(request.headers.get("content-length") ?? 0);

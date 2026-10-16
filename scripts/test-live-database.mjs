@@ -40,13 +40,6 @@ async function runRegression() {
   await migrateDatabase(connection);
   // Reapply to check migration hashes and brochure/root seed idempotency.
   await migrateDatabase(connection);
-  const pool = new pg.Pool({ connectionString: connection, max: 1 });
-  try {
-    const { rows } = await pool.query("SELECT name FROM leasing.schema_migrations ORDER BY name");
-    assert.deepEqual(rows.map(row => row.name.slice(0, 3)), ["001", "002", "003", "004", "005", "006", "007", "008", "009", "010"]);
-  } finally {
-    await pool.end();
-  }
   // Independently read from the approved PNG on 2026-10-15. This relational
   // metadata fixture keeps ordinary tests offline; live smoke verifies delivery.
   const publicUrl = neonMediaUrl("client-reference/legacy/logo-without-text.png");

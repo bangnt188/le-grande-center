@@ -1,11 +1,10 @@
 import "server-only";
 import { types } from "@neondatabase/serverless";
 import type { AdminIdentity, PoolClient } from "../database";
-import { assertAdmin, withTransaction, WorkspaceError } from "../database";
-import { readWorkspaceInTransaction } from "../workspace";
-import type { MediaItem } from "../../shared/admin/contracts";
+import { withAdminTransaction, WorkspaceError } from "../database";
+import { assertSessionActive } from "../admin-session";
+import type { AdminUploadReceipt, MediaItem } from "../../shared/admin/contracts";
 import { formatStorageBytes, STORAGE_LIMIT_BYTES } from "../../shared/admin/storage-policy";
-import { projectMedia } from "../../features/admin/project-media";
 import { deleteObject, getObject, inventoryPage, mediaLocation, putObject } from "./storage";
 import { publicNeonUrl, sha256 } from "./neon-origin";
 import type { MediaLocation } from "./storage";
@@ -23,18 +22,13 @@ export function decodeStorageUsage(row:StorageUsageRow|undefined|null) {
 export async function readStorageUsage(client:PoolClient,propertyId:string) {
   return decodeStorageUsage((await client.query<StorageUsageRow>(storageUsageSql,[propertyId])).rows[0]);
 }
-export const mediaSnapshotSql = `SELECT v.id,d.title,v.content_type,d.media_scope,v.byte_size::text,s.state,v.public_url,v.manual_reviewed_at FROM leasing.document_versions v JOIN leasing.documents d ON d.id=v.document_id JOIN leasing.media_object_state s ON s.document_version_id=v.id WHERE v.property_id=$1 AND s.state IN ('ready','quarantine') ORDER BY v.uploaded_at DESC`;
 export type MediaSnapshotRow = Pick<StoredMedia,"id"|"title"|"content_type"|"media_scope"|"byte_size"|"state"|"public_url"|"manual_reviewed_at">;
-export async function readMedia(client:PoolClient,propertyId:string):Promise<MediaItem[]> {
-  return decodeMediaRows((await client.query<MediaSnapshotRow>(mediaSnapshotSql,[propertyId])).rows);
-}
 export function decodeMediaRows(rows:readonly MediaSnapshotRow[],jsonDates=false):MediaItem[] {
   // JSON aggregation bypasses the driver's timestamptz parser; restore its existing Date semantics.
   const parseTimestamp=jsonDates?types.getTypeParser(types.builtins.TIMESTAMPTZ,"text"):undefined;
   const parseReviewedAt=parseTimestamp?(value:string)=>parseTimestamp(value.replace("T"," ")):undefined;
-  const uploads:MediaItem[] = rows.map(row=>({id:row.id,name:row.title,kind:row.content_type.startsWith('image/')?'Ảnh':'Tài liệu',scope:row.media_scope,size:formatStorageBytes(Number(row.byte_size)),sizeBytes:Number(row.byte_size),mimeType:row.content_type,hasUploadedFile:row.state==='ready',url:row.state==='ready'?(row.public_url??`/api/admin/media/${row.id}/view`):undefined,uploadState:row.state==='ready'?'ready':'quarantine',reviewUrl:row.state==='quarantine'?`/api/admin/media/${row.id}/view?review=1`:undefined,reviewedAt:row.manual_reviewed_at==null?undefined:parseReviewedAt?parseReviewedAt(row.manual_reviewed_at):row.manual_reviewed_at}));
-  // Approved project assets are read-only; uploaded branding metadata comes from NeonDB.
-  return [...uploads,...projectMedia()];
+  const uploads:MediaItem[] = rows.map(row=>({id:row.id,name:row.title,kind:row.content_type.startsWith('image/')?'Ảnh':row.content_type.startsWith('video/')?'Video':'Tài liệu',scope:row.media_scope,size:formatStorageBytes(Number(row.byte_size)),sizeBytes:Number(row.byte_size),mimeType:row.content_type,hasUploadedFile:row.state==='ready',url:row.state==='ready'?(row.public_url??`/api/admin/media/${row.id}/view`):undefined,uploadState:row.state==='ready'?'ready':'quarantine',reviewUrl:row.state==='quarantine'?`/api/admin/media/${row.id}/view?review=1`:undefined,reviewedAt:row.manual_reviewed_at==null?undefined:parseReviewedAt?parseReviewedAt(row.manual_reviewed_at):row.manual_reviewed_at}));
+  return uploads;
 }
 async function ownedMedia(client:PoolClient,identity:AdminIdentity,id:string) {
   if (!uuid.test(id)) throw new MediaError("Tài nguyên dự án chỉ được xem, không sửa hoặc xóa.",400);
@@ -55,18 +49,18 @@ async function validScope(client:PoolClient,propertyId:string,scope:string) {
   if (!rows.length) throw new MediaError("Mặt bằng liên kết không tồn tại.");
 }
 export async function renameMedia(client:PoolClient,identity:AdminIdentity,id:string,name:string) {
-  await assertAdmin(client,identity);const row=await ownedMedia(client,identity,id);
+  assertSessionActive(identity);const row=await ownedMedia(client,identity,id);
   if(typeof name!=='string'||!name.trim()||name.length>160||/[\x00-\x1f\x7f]/.test(name))throw new MediaError("Tên tệp không hợp lệ.");
   await client.query('UPDATE leasing.documents SET title=$1 WHERE id=$2 AND property_id=$3',[name.trim(),row.document_id,identity.propertyId]);
 }
 export async function linkMedia(client:PoolClient,identity:AdminIdentity,id:string,scope:string) {
-  await assertAdmin(client,identity);const row=await ownedMedia(client,identity,id);await assertUnlinked(client,identity,row);
+  assertSessionActive(identity);const row=await ownedMedia(client,identity,id);await assertUnlinked(client,identity,row);
   if(row.state!=='ready')throw new MediaError("Duyệt tệp cách ly trước khi gắn liên kết.");
   await validScope(client,identity.propertyId,scope);
   await client.query('UPDATE leasing.documents SET media_scope=$1 WHERE id=$2 AND property_id=$3',[scope,row.document_id,identity.propertyId]);
 }
 export async function deleteMedia(client:PoolClient,identity:AdminIdentity,id:string) {
-  await assertAdmin(client,identity);const row=await ownedMedia(client,identity,id);await assertUnlinked(client,identity,row);
+  assertSessionActive(identity);const row=await ownedMedia(client,identity,id);await assertUnlinked(client,identity,row);
   if((await client.query('SELECT 1 FROM leasing.website_settings WHERE property_id=$1 AND logo_media_id=$2',[identity.propertyId,id])).rows.length)throw new MediaError("Chọn và lưu logo khác trước khi xóa logo hiện tại.");
   await client.query("UPDATE leasing.media_object_state SET state='deleting' WHERE document_version_id=$1",[id]);
   // ponytail: low-volume uploads serialize per property; a durable outbox replaces in-lock provider calls if throughput demands it.
@@ -75,13 +69,13 @@ export async function deleteMedia(client:PoolClient,identity:AdminIdentity,id:st
   await client.query('UPDATE leasing.media_storage SET used_bytes=used_bytes-$2 WHERE property_id=$1',[identity.propertyId,row.byte_size]);
 }
 async function lockProperty(client:PoolClient,identity:AdminIdentity) {
-  await assertAdmin(client,identity);
+  assertSessionActive(identity);
   const {rows}=await client.query<{workspace_revision:string}>('SELECT workspace_revision FROM leasing.properties WHERE id=$1 FOR UPDATE',[identity.propertyId]);
   if(!rows.length)throw new MediaError("Dự án chưa được khởi tạo.",503);
   return Number(rows[0].workspace_revision);
 }
 async function cleanupBatch(identity:AdminIdentity,batchId:string) {
-  await withTransaction(identity.id,async client=>{
+  await withAdminTransaction(identity,async client=>{
     await lockProperty(client,identity);
     const batch=await client.query("SELECT state FROM leasing.media_batches WHERE id=$1 AND property_id=$2 FOR UPDATE",[batchId,identity.propertyId]);
     if(batch.rows[0]?.state!=='reserved')return;
@@ -94,7 +88,7 @@ async function cleanupBatch(identity:AdminIdentity,batchId:string) {
   });
 }
 export async function cleanupExpiredMedia(identity:AdminIdentity) {
-  const ids=await withTransaction(identity.id,async client=>{await assertAdmin(client,identity);return (await client.query<{id:string}>("SELECT id FROM leasing.media_batches WHERE property_id=$1 AND state='reserved' AND created_at<now()-interval '15 minutes' ORDER BY created_at LIMIT 20",[identity.propertyId])).rows;});
+  const ids=await withAdminTransaction(identity,async client=>(await client.query<{id:string}>("SELECT id FROM leasing.media_batches WHERE property_id=$1 AND state='reserved' AND created_at<now()-interval '15 minutes' ORDER BY created_at LIMIT 20",[identity.propertyId])).rows);
   for(const row of ids)await cleanupBatch(identity,row.id);
 }
 async function reconcileStorage(client:PoolClient,identity:AdminIdentity) {
@@ -132,37 +126,43 @@ async function reconcileStorage(client:PoolClient,identity:AdminIdentity) {
 export async function reconcileMedia(identity:AdminIdentity,expectedRevision:number,requestKey:string,request?:Request) {
   if(!uuid.test(requestKey))throw new MediaError("Thiếu khóa idempotency hợp lệ.");
   const digest=await sha256(new TextEncoder().encode(JSON.stringify({action:'media.quota-reconcile',expectedRevision})));
-  return withTransaction(identity.id,async client=>{
+  return withAdminTransaction(identity,async client=>{
     const revision=await lockProperty(client,identity);
-    const prior=await client.query('SELECT request_sha256 FROM leasing.command_receipts WHERE property_id=$1 AND actor_user_id=$2 AND idempotency_key=$3',[identity.propertyId,identity.id,requestKey]);
-    if(prior.rows.length){if(prior.rows[0].request_sha256!==digest)throw new MediaError("Khóa idempotency đã được dùng.",409);return readWorkspaceInTransaction(client,identity,request);}
+    const prior=await client.query('SELECT request_sha256,result_revision,result_entity_id FROM leasing.command_receipts WHERE property_id=$1 AND actor_user_id=$2 AND idempotency_key=$3',[identity.propertyId,identity.id,requestKey]);
+    if(prior.rows.length){if(prior.rows[0].request_sha256!==digest)throw new MediaError("Khóa idempotency đã được dùng.",409);return {revision:Number(prior.rows[0].result_revision),entityId:prior.rows[0].result_entity_id as string};}
     if(revision!==expectedRevision)throw new WorkspaceError("Dữ liệu đã thay đổi. Tải lại trước khi đối soát.",409);
     await reconcileStorage(client,identity);
     await client.query('UPDATE leasing.properties SET workspace_revision=workspace_revision+1 WHERE id=$1',[identity.propertyId]);
     await client.query("INSERT INTO leasing.command_receipts(property_id,actor_user_id,idempotency_key,request_sha256,command_code,result_entity_id,result_revision) VALUES($1,$2,$3,$4,'media.quota-reconcile',$1,$5)",[identity.propertyId,identity.id,requestKey,digest,revision+1]);
-    return readWorkspaceInTransaction(client,identity,request);
+    return {revision:revision+1,entityId:identity.propertyId};
   });
 }
-export async function uploadMedia(identity:AdminIdentity,files:File[],scope:string,expectedRevision:number,requestKey:string,request?:Request) {
+async function uploadReceipt(client:PoolClient,identity:AdminIdentity,batchId:string):Promise<AdminUploadReceipt> {
+  const row=(await client.query<{result_revision:string;media_ids:string[]}>(`SELECT b.result_revision::text,array_agg(s.document_version_id ORDER BY s.document_version_id) AS media_ids FROM leasing.media_batches b JOIN leasing.media_object_state s ON s.batch_id=b.id AND s.property_id=b.property_id WHERE b.id=$1 AND b.property_id=$2 AND b.actor_user_id=$3 AND b.state='finalized' GROUP BY b.id`,[batchId,identity.propertyId,identity.id])).rows[0];
+  if(!row)throw new MediaError("Không tìm thấy biên nhận tải lên.",409);
+  return {revision:Number(row.result_revision),mediaIds:row.media_ids};
+}
+export async function uploadMedia(identity:AdminIdentity,files:File[],scope:string,expectedRevision:number,requestKey:string,request?:Request):Promise<AdminUploadReceipt> {
+  assertSessionActive(identity);
   if(!uuid.test(requestKey))throw new MediaError("Thiếu khóa idempotency hợp lệ.");
   const prepared=await prepareFiles(files);
   const requestHash=await sha256(new TextEncoder().encode(JSON.stringify({scope,expectedRevision,files:prepared.map(file=>[file.name,file.mime,file.sha256,file.bytes.length])})));
   await cleanupExpiredMedia(identity);
-  const checked=await withTransaction(identity.id,async client=>{
+  const checked=await withAdminTransaction(identity,async client=>{
     const revision=await lockProperty(client,identity);
-    const prior=(await client.query<{state:string;request_sha256:string}>('SELECT state,request_sha256 FROM leasing.media_batches WHERE property_id=$1 AND actor_user_id=$2 AND request_key=$3',[identity.propertyId,identity.id,requestKey])).rows[0];
+    const prior=(await client.query<{id:string;state:string;request_sha256:string}>('SELECT id,state,request_sha256 FROM leasing.media_batches WHERE property_id=$1 AND actor_user_id=$2 AND request_key=$3',[identity.propertyId,identity.id,requestKey])).rows[0];
     if(prior){
       if(prior.request_sha256!==requestHash)throw new MediaError("Khóa idempotency đã dùng cho nội dung khác.",409);
-      if(prior.state==='finalized')return {snapshot:await readWorkspaceInTransaction(client,identity,request),verified:true};
+      if(prior.state==='finalized')return {receipt:await uploadReceipt(client,identity,prior.id),verified:true};
       throw new MediaError("Lần tải này đang xử lý hoặc đã hủy. Tải lại dữ liệu trước khi thử tiếp.",409);
     }
     if(revision!==expectedRevision)throw new WorkspaceError("Dữ liệu đã thay đổi. Tải lại trước khi tải lên.",409);
-    return {snapshot:null,verified:await reconcileStorage(client,identity)};
+    return {receipt:null,verified:await reconcileStorage(client,identity)};
   });
-  if(checked.snapshot)return checked.snapshot;
+  if(checked.receipt)return checked.receipt;
   if(!checked.verified)throw new MediaError("Không xác nhận được toàn bộ dung lượng R2 hoặc số liệu khác ledger. Upload đã khóa; hãy đối soát và xử lý sai lệch.",503);
   const bytes=prepared.reduce((sum,file)=>sum+file.bytes.length,0);
-  const reservation=await withTransaction(identity.id,async client=>{
+  const reservation=await withAdminTransaction(identity,async client=>{
     const revision=await lockProperty(client,identity);
     const receipt=await client.query<{id:string;state:string;request_sha256:string}>('SELECT id,state,request_sha256 FROM leasing.media_batches WHERE property_id=$1 AND actor_user_id=$2 AND request_key=$3',[identity.propertyId,identity.id,requestKey]);
     if(receipt.rows.length){const prior=receipt.rows[0];if(prior.request_sha256!==requestHash)throw new MediaError("Khóa idempotency đã dùng cho nội dung khác.",409);if(prior.state==='finalized')return {done:true as const,id:prior.id,objects:[]};throw new MediaError("Lần tải này đang xử lý hoặc đã hủy. Tải lại dữ liệu trước khi thử tiếp.",409);}
@@ -184,10 +184,10 @@ export async function uploadMedia(identity:AdminIdentity,files:File[],scope:stri
     }
     return {done:false as const,id:batch.rows[0].id,objects};
   });
-  if(reservation.done)return withTransaction(identity.id,client=>readWorkspaceInTransaction(client,identity,request));
+  if(reservation.done)return withAdminTransaction(identity,client=>uploadReceipt(client,identity,reservation.id));
   try {
     for(let i=0;i<prepared.length;i++)await putObject(reservation.objects[i].location,prepared[i].bytes,prepared[i].mime);
-    return await withTransaction(identity.id,async client=>{
+    return await withAdminTransaction(identity,async client=>{
       const revision=await lockProperty(client,identity);
       if(revision!==expectedRevision)throw new WorkspaceError("Dữ liệu đã thay đổi trong lúc tải tệp. Tải lại trước khi lưu.",409);
       const batch=await client.query("SELECT state FROM leasing.media_batches WHERE id=$1 FOR UPDATE",[reservation.id]);
@@ -200,7 +200,7 @@ export async function uploadMedia(identity:AdminIdentity,files:File[],scope:stri
       await client.query('UPDATE leasing.properties SET workspace_revision=workspace_revision+1 WHERE id=$1',[identity.propertyId]);
       await client.query("UPDATE leasing.media_batches SET state='finalized',result_revision=$2 WHERE id=$1",[reservation.id,revision+1]);
       await client.query("INSERT INTO leasing.audit_events(property_id,actor_user_id,action_code,entity_type,entity_id,metadata) VALUES($1,$2,'media.upload','media_batch',$3,$4)",[identity.propertyId,identity.id,reservation.id,JSON.stringify({files:reservation.objects.map(row=>row.id),bytes})]);
-      return readWorkspaceInTransaction(client,identity,request);
+      return uploadReceipt(client,identity,reservation.id);
     });
   } catch(error) {
     // If COMMIT succeeded but its acknowledgement failed, finalized receipt protects objects from cleanup.
@@ -211,10 +211,10 @@ export async function uploadMedia(identity:AdminIdentity,files:File[],scope:stri
 export async function reviewMedia(identity:AdminIdentity,id:string,note:string,expectedRevision:number,requestKey:string,request?:Request) {
   if(!uuid.test(requestKey)||typeof note!=='string'||note.trim().length<10||note.length>2000)throw new MediaError("Ghi rõ kết quả kiểm tra bên ngoài (10–2000 ký tự).");
   const digest=await sha256(new TextEncoder().encode(JSON.stringify({id,note:note.trim(),expectedRevision})));
-  return withTransaction(identity.id,async client=>{
+  return withAdminTransaction(identity,async client=>{
     const revision=await lockProperty(client,identity);
-    const prior=await client.query('SELECT request_sha256 FROM leasing.command_receipts WHERE property_id=$1 AND actor_user_id=$2 AND idempotency_key=$3',[identity.propertyId,identity.id,requestKey]);
-    if(prior.rows.length){if(prior.rows[0].request_sha256!==digest)throw new MediaError("Khóa idempotency đã được dùng.",409);return readWorkspaceInTransaction(client,identity,request);}
+    const prior=await client.query('SELECT request_sha256,result_revision,result_entity_id FROM leasing.command_receipts WHERE property_id=$1 AND actor_user_id=$2 AND idempotency_key=$3',[identity.propertyId,identity.id,requestKey]);
+    if(prior.rows.length){if(prior.rows[0].request_sha256!==digest)throw new MediaError("Khóa idempotency đã được dùng.",409);return {revision:Number(prior.rows[0].result_revision),entityId:prior.rows[0].result_entity_id as string};}
     if(revision!==expectedRevision)throw new WorkspaceError("Dữ liệu đã thay đổi. Tải lại trước khi duyệt.",409);
     const row=await ownedMedia(client,identity,id);
     if(row.state!=='quarantine'||row.content_type!=='application/pdf')throw new MediaError("Chỉ duyệt tài liệu PDF đang cách ly.");
@@ -223,11 +223,11 @@ export async function reviewMedia(identity:AdminIdentity,id:string,note:string,e
     await client.query('UPDATE leasing.properties SET workspace_revision=workspace_revision+1 WHERE id=$1',[identity.propertyId]);
     await client.query("INSERT INTO leasing.audit_events(property_id,actor_user_id,action_code,entity_type,entity_id,metadata) VALUES($1,$2,'media.manual-review','document_version',$3,$4)",[identity.propertyId,identity.id,id,JSON.stringify({note:note.trim(),reviewMethod:'external-manual',virusScanPerformed:false,sha256:row.sha256})]);
     await client.query("INSERT INTO leasing.command_receipts(property_id,actor_user_id,idempotency_key,request_sha256,command_code,result_entity_id,result_revision) VALUES($1,$2,$3,$4,'media.manual-review',$5,$6)",[identity.propertyId,identity.id,requestKey,digest,id,revision+1]);
-    return readWorkspaceInTransaction(client,identity,request);
+    return {revision:revision+1,entityId:id};
   });
 }
 export async function viewMedia(identity:AdminIdentity,id:string,request:Request) {
-  const row=await withTransaction(identity.id,async client=>{await assertAdmin(client,identity);return ownedMedia(client,identity,id);});
+  const row=await withAdminTransaction(identity,client=>ownedMedia(client,identity,id));
   const reviewDownload=new URL(request.url).searchParams.get('review')==='1';
   if(row.state!=='ready'&&!(reviewDownload&&row.state==='quarantine'))throw new MediaError("Tệp đang cách ly. Cần kiểm tra bên ngoài và duyệt trước khi xem.",403);
   if(reviewDownload&&row.content_type!=='application/pdf')throw new MediaError("Tệp không thuộc quy trình duyệt.");

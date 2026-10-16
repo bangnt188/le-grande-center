@@ -1,10 +1,11 @@
 import "server-only";
-import { assertAdmin, withTransaction, WorkspaceError, type AdminIdentity } from "./database";
+import { withAdminTransaction, WorkspaceError, type AdminIdentity } from "./database";
+import { requireAdministrator } from "./admin-session";
 
 type StaffRole = "administrator" | "editor";
 type StaffStatus = "revoked" | "invited" | "active";
 function requireAccountManager(identity: AdminIdentity) {
-  if (identity.role !== "root" && identity.role !== "administrator") throw new WorkspaceError("Chỉ quản trị viên mới được quản lý tài khoản.", 403);
+  requireAdministrator(identity);
 }
 function normalizedEmail(value: unknown): string {
   if (typeof value !== "string") throw new WorkspaceError("Email không hợp lệ.");
@@ -14,8 +15,7 @@ function normalizedEmail(value: unknown): string {
 }
 export async function listStaffAccounts(identity: AdminIdentity) {
   requireAccountManager(identity);
-  return withTransaction(identity.id, async client => {
-    await assertAdmin(client, identity);
+  return withAdminTransaction(identity, async client => {
     const { rows } = await client.query(`SELECT a.id,a.email,a.role_code AS role,
       CASE WHEN a.revoked_at IS NOT NULL THEN 'revoked'
            WHEN a.user_id IS NULL THEN 'invited' ELSE 'active' END AS status
@@ -31,8 +31,7 @@ export async function saveStaffAccount(identity: AdminIdentity, emailValue: unkn
   if (email === "root@legrandecentre.vn") throw new WorkspaceError("Không thể thêm hoặc đổi tài khoản root tại đây.", 403);
   if (roleValue !== "administrator" && roleValue !== "editor") throw new WorkspaceError("Chọn vai trò Admin hoặc Editor.");
   const role = roleValue as StaffRole;
-  return withTransaction(identity.id, async client => {
-    await assertAdmin(client, identity);
+  return withAdminTransaction(identity, async client => {
     await client.query("SELECT id FROM leasing.properties WHERE id=$1 FOR UPDATE", [identity.propertyId]);
     if ((await client.query("SELECT 1 FROM leasing.root_allowlist WHERE property_id=$1 AND lower(email)=$2 AND deleted_at IS NULL", [identity.propertyId,email])).rows.length) throw new WorkspaceError("Tài khoản root không thể được quản lý trong danh sách nhân viên.", 409);
     const result = await client.query(`INSERT INTO leasing.admin_allowlist(property_id,email,role_code)
@@ -53,8 +52,7 @@ export async function saveStaffAccount(identity: AdminIdentity, emailValue: unkn
 export async function revokeStaffAccount(identity: AdminIdentity, emailValue: unknown) {
   requireAccountManager(identity);
   const email = normalizedEmail(emailValue);
-  return withTransaction(identity.id, async client => {
-    await assertAdmin(client, identity);
+  return withAdminTransaction(identity, async client => {
     const result = await client.query(`UPDATE leasing.admin_allowlist SET revoked_at=now()
       WHERE property_id=$1 AND email=$2 AND deleted_at IS NULL AND revoked_at IS NULL RETURNING id,user_id`, [identity.propertyId,email]);
     if (!result.rowCount) throw new WorkspaceError("Không tìm thấy tài khoản đang hoạt động.", 404);

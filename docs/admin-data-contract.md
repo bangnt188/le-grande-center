@@ -1,131 +1,73 @@
-# Architecture Decision — Dữ liệu admin và deploy demo dev
+# Admin nội bộ — session cache và dữ liệu theo màn hình
 
-## Hiểu
+Contract hiện hành 17/10/2026; thay cho snapshot/IndexedDB demo và thiết kế kiểm tra provider/quyền DB trên từng request. Khoảng ba người sử dụng, hai vai trò nghiệp vụ; hợp đồng gốc lưu ngoài ứng dụng. Source cần build, migrate và deploy theo quy trình; ghi chú này không tuyên bố đã deploy production.
 
-Người dùng yêu cầu push nhánh dev và deploy GitHub Pages để thử; giữ TSX có thể
-được nối backend về sau với ít thay đổi giao diện. GitHub Pages chỉ phục vụ static
-assets, không thực hiện authorization hay transaction ghi database.
+## Session và hai quyền
 
-## Thiết kế
+- Neon Auth xác thực email/password. Chỉ user có email verified, issuer/subject được bind đúng và allowlist/assignment active mới được mint app session.
+- `POST /api/admin/session/` kiểm tra provider và DB authoritative, ký cookie `__Host-lgc_admin`: `HttpOnly; Secure; SameSite=Lax; Path=/`, không Domain. Hạn cố định **900 giây**, không vượt provider expiry, không sliding. Key HKDF purpose-separated từ secret server, HS256/issuer/audience/type/version được kiểm tra.
+- `GET /api/admin/session/` và business APIs chỉ kiểm tra cookie chữ ký/expiry tại Worker, không gọi provider hoặc tra quyền DB. Cookie không hợp lệ/hết hạn trả 401 trước query nghiệp vụ.
+- **Chỉ thao tác chủ động** (login/navigation/tab/search/filter/page/save/upload/delete/reload) mới được renew khi thiếu/hết cache. Không timer, focus refresh, polling hoặc tự POST vì passive request gặp 401. Managed session còn hiệu lực thì renew không cần mật khẩu; provider/DB lỗi không được fallback expired session.
+- Thu hồi quyền/remote logout có thể chậm tối đa **15 phút**. Đây là tradeoff đã chọn, không có guarantee immediate remote revoke/in-flight revoke. Mutation kiểm expiry cục bộ trước commit.
+- Administrator quản lý tài khoản/cấu hình; Editor dùng nghiệp vụ nhưng bị chặn staff/system settings ở server. Owner/root là nội bộ, UI và app session hiển thị Administrator, giữ bảo vệ owner hiện hữu.
+- Logout xóa app cookie, provider session và browser cache. HTTP lỗi logout phải hiển thị, không khẳng định remote logout thành công khi chưa xác nhận. Identity đổi thì abort/discard request cũ và xóa dữ liệu private trong memory.
+- Không token/private data trong localStorage, không cache global role/Pool/socket, không thêm Redis/KV. API mutation vẫn kiểm Origin, input bounds và property scope.
 
-`AdminWorkspace.tsx → useAdminData → AdminRepository`.
+## HTTP contracts
 
-- `src/shared/admin/contracts.ts`: typed snapshot, command và repository interface.
-- `src/shared/admin/space-model.ts`: loại tầng/slot/group và hàm thuần hiện có.
-- `src/features/admin/demo/data.ts`: fixture riêng, lặp bản vẽ chưa xác định tầng.
-- `src/features/admin/demo/repository.ts`: adapter browser, validation, mutation, byte accounting và URL tạm; `indexed-db.ts` lưu snapshot/Blob trong cùng transaction. Memory chỉ dùng cho Node checks.
-- `src/features/admin/http-repository.ts`: adapter transport cho backend được triển khai riêng.
+Mọi API private dùng `Cache-Control: private, no-store`, canonical trailing slash. API lỗi có `status` và error `code`, không dùng localized message làm control flow.
 
-Ranh giới BE, DTO và storage: [Cấu trúc backend](backend-structure.md).
+| Endpoint | Success |
+| --- | --- |
+| GET/POST `/api/admin/session/` | `{actorId,propertyId,role,expiresAt}`; expiresAt epoch ms |
+| DELETE `/api/admin/session/` | 204 sau local/provider logout; clear cookie ngay cả khi provider lỗi |
+| GET `/api/admin/screens/[screen]/` | `{revision,...data của màn}` |
+| GET `/api/admin/collections/{companies,leads,appointments}/` | `{items,page,pageSize,totalItems,totalPages,revision}` |
+| GET collection `/:id/` | `{item,revision}` |
+| POST `/api/admin/commands/` | `{revision,entityId}` |
+| POST `/api/admin/media/` | `{revision,mediaIds}` |
+| POST media review/reconcile | `{revision,entityId}` |
+| GET `/api/admin/media/` | `{items,page,pageSize,totalItems,totalPages,revision,storage}` |
+| GET `/api/admin/media/:id/` | `{item,revision}` metadata; `/:id/view/` vẫn bảo vệ binary |
 
-TSX giữ selection, tìm/lọc và trình bày. Module dữ liệu sở hữu mutation và trả
-snapshot có revision; hook hiển thị pending/error, chặn submit đồng thời, chỉ cập
-nhật giao diện bằng state được adapter trả về. HTTP adapter chưa có server nhận
-request; kết nối DB/auth là công việc tiếp theo, không phải khả năng đã deploy.
+Command body chỉ `{command,expectedRevision}`; `Idempotency-Key` nằm ở header. Media upload multipart gồm files/scope/expectedRevision. Replay trả receipt đã commit, không đọc lại full workspace hoặc ghi mutation lần hai. Không còn aggregate `/api/admin/workspace/` production endpoint/full snapshot response.
 
-### Interface HTTP version 1
+## Tải theo màn
 
-Base URL: cấu hình build `NEXT_PUBLIC_ADMIN_API_URL`, HTTPS tuyệt đối (HTTP chỉ
-cho localhost). Không chứa secret. Adapter dùng `credentials: include`.
+Shell không đọc public/admin DB hoặc provider để render. Public projection/provider nằm trong layout nhóm public, URL public giữ nguyên. Heavy screen modules chỉ mount khi active.
 
-| Request | Input | Success |
-| --- | --- | --- |
-| GET `/workspace` | authenticated session | `AdminSnapshot` |
-| POST `/commands` | `{command, expectedRevision}` và `Idempotency-Key` | snapshot mới |
-| POST `/media` | multipart `files`, `scope`, `expectedRevision`; idempotency header | snapshot mới |
+- Floors: tầng và inventory cần tổng quan, không load leads/companies/media/staff.
+- Spaces: slots/groups theo tầng; Slot: hồ sơ liên quan đúng id.
+- Customers/Leads/Appointments: collection page/detail riêng, không chờ global workspace revision. Forms/pickers chỉ load dependencies khi mở.
+- Requests/Leases/Tenants: server pages có related labels của page, detail theo id dù ngoài trang hiện tại.
+- Settings: tải khi mở; staff chỉ tải khi mở phần tài khoản. Operational defaults cho form có endpoint nhỏ riêng.
+- Mỗi response mang revision được đọc cùng dữ liệu đó. Không dùng revision từ picker mới hơn để hợp thức hóa draft cũ; 409 giữ draft và yêu cầu người dùng tải lại, không tự overwrite.
 
-Snapshot gồm `revision`, `storage`, `floors`, `settings`, `slots`, `groups`, `leads`, `media`, `companies`, `requests`, `reservations`, `leases`, `appointments` theo contracts.ts. Mỗi floor có `purpose` nội bộ và `publicTitle`/`publicDescription` dùng chung trên trang chủ, nội dung 3D, tổng quan tầng và mặt bằng. HTTP consumer từ chối thiếu/sai cấu hình sáu tầng, settings hoặc trạng thái slot. ID ổn định; provider backend cấp URL riêng, không dùng tên nhóm làm khóa.
+Browser cache private trong memory **60 giây**, key theo session/property/screen/filter/page/id, in-flight dedupe + abort/stale response protection. Sau save đánh dấu cache stale, chỉ mounted active view refetch; không fetch tất cả tab. Loading/error/empty phải tách biệt; dữ liệu chưa đọc không được coi là catalog rỗng đã tải.
 
-Media dùng `scope` project/tầng, `slot:<id>`, `group:<id>` hoặc `lease:<id>` do lệnh nghiệp vụ gắn; byte size/MIME lấy từ tệp. `hasUploadedFile` phân biệt tệp upload hoàn tất với asset/mục mẫu; picker hợp đồng chỉ nhận PDF có tệp upload thật. Trong browser cờ này suy ra từ Blob store, không coi URL mẫu là bằng chứng upload; API phải trả cờ hợp lệ và vẫn kiểm tra quyền/tệp ở server. Blob URL chỉ phục vụ runtime, không ghi vào snapshot IndexedDB; URL asset tham chiếu tĩnh có thể có trong fixture.
-Media kind thêm Video/Model 3D/Tài nguyên; projectAsset/sourcePath phân biệt catalog từ public/R2 với upload local. Asset dự án chỉ xem: repository từ chối rename/link/delete. Reconcile catalog khi đọc cập nhật asset/loại bỏ mục mẫu thiếu file, không mất upload hoặc liên kết hợp đồng; byte ledger không tính asset. Danh mục được generate trước dev/build.
+## Media
 
-Command cấu hình: update-floor (công năng nội bộ + nội dung website dùng chung), update-settings (vận hành, giữ settings.website) và update-website-settings. Admin editor tầng dẫn tới đúng trang trong brochure PDF theo `sourcePage`. WebsiteSettings gồm logoMediaId, email, hotline, secondaryPhone, managementPhone, address, zaloUrl; kiểm tra email/phone/https zalo.me và logo phải là ảnh có file. Hồ sơ/mặt bằng/media giữ các command hiện có; không có create/delete floor hoặc luồng ký.
+- Pagination **server**, default24/max100; filters query/kind/source/scope được validate. Uploaded SQL COUNT + LIMIT/OFFSET, sort `uploaded_at DESC,id DESC`.
+- Project manifest ở server. `source=all` xếp uploads trước project catalog, tính đúng offset qua biên nguồn mà không query hết uploads. Không import/transmit full manifest trong admin bootstrap/client bundle.
+- Quota là DB aggregate, không storage inventory scan lúc render gallery. Reconcile là thao tác riêng; upload reservation/finalize/compensation và quota safety giữ nguyên.
+- Grid dùng thumbnail đã có; mục chưa có thumbnail hiện metadata tile. Không ảnh gốc vài MB làm thumbnail, không tự chọn item đầu; ảnh/video/PDF gốc chỉ mount sau click, đóng detail thì unmount.
+- Detail/picker theo id, không cần tải cả catalog. `canDelete/protectedReason` phía server không thay server-side protection của logo, linked documents, retention và property ownership.
+- Generic PDF/private historical media vẫn quarantine/review/ownership như cũ; bỏ upload hợp đồng không phải lệnh xóa mọi PDF.
 
-Slot chỉ Trống/Đang thuê, Đang chọn không lưu. Lead chỉ Mới/Đang tư vấn/Đã xử lý. Tên/công năng/liên hệ/thời gian có validation; upload PNG/JPEG/WebP/PDF tối đa 10 MiB, kiểm tra magic header. `record-lease` cần PDF đã upload và giữ chỗ chưa hết hạn; không ghi ngày ký hoặc xác nhận chữ ký.
-Website provider SSR dùng defaults, client đọc snapshot/Blob hiện có và lấy `publicTitle`/`publicDescription` từ cùng snapshot. Sau update-floor hoặc lưu website, hook phát window event/BroadcastChannel legrande-website-settings; tab website refresh khi nhận hoặc focus. URL Blob cũ được revoke khi thay/unmount. UI không tạo upload logo local mới; logo hiện có được giữ nguyên cho tới khi có luồng Neon được bảo vệ bằng auth thật. Browser cũ được migrate thêm defaults một lần, không reset dataset. Đây là preview cục bộ, không DB/API production hoặc publish toàn cầu.
+## Ghi nhận thuê không upload hợp đồng
 
-HTTP lỗi: 401 hết phiên, 403 thiếu quyền, 409 conflict revision, 413 tệp quá lớn;
-các lỗi khác báo tải/lưu thất bại. UI không tự retry mutation. Server phải lưu
-idempotency key theo actor và trả lại cùng kết quả khi nhận request trùng.
+`record-lease` nhận reservationId + rentNote/referenceNumber tùy chọn, **không mediaId**. Ghi lease version với actor/time/company/space/period snapshot thật, không fake PDF hoặc fake chữ ký. `attach-lease-document` không còn trong workflow mới.
 
-## Validate security
+Migration **011-metadata-only-leases.sql** thay điều kiện bắt private PDF bằng recorded lease metadata hợp lệ; giữ approved inventory, period, đủ member slots, transition và exclusivity constraints. Projection lease không phụ thuộc inner join document links; file/link/lịch sử cũ không bị xóa hoặc public hóa. Không sửa migration đã apply.
 
-GitHub Pages demo chỉ dùng fixture công khai, không gọi backend. Build demo
-fail nếu có API URL. `noindex` không phải authorization. Template workflow chỉ chạy `dev`,
-checkout không lưu git credential, action pin SHA, deploy job chỉ có Pages và
-OIDC permissions. Repo UI private dùng deploy key chỉ đọc qua GitHub Secret;
-known_hosts lấy từ GitHub meta API, không chấp nhận SSH host chưa xác nhận.
+## Verification và phát hành
 
-Production backend phải xác thực session, RBAC cho từng command, chống CSRF
-(Origin kiểm tra, cookie secure/same-site phù hợp topology), giới hạn CORS chính
-xác origin, retention PII và audit. Merge/split phải thực hiện transaction: khóa
-slot, so expectedRevision, kiểm tra adjacency và availability thực tế, ghi
-membership/group/media/audit và tăng revision. Nhãn `Trống` của demo không thay
-thế kiểm tra lease/reservation khi chạy thật.
-
-Upload production kiểm tra nội dung tệp phía server, quét tệp, lưu private object
-storage, cấp URL có thời hạn. HTTP adapter kiểm tra envelope snapshot; schema
-runtime chi tiết, quyền trên DTO và transport bảo mật vẫn phải xác nhận cùng
-backend, không suy ra an toàn từ TypeScript.
-
-## Trade-off và migration
-
-Snapshot thống nhất giúp UI có một interface nhỏ và dễ thay adapter. Với dữ liệu
-lớn, backend cần phân trang/filter server thay snapshot toàn bộ; thay hook/list
-query theo interface version tiếp theo, phần sơ đồ và form được giữ lại.
-
-1. Xác nhận inventory/bản vẽ từng tầng; `database/schema.sql` chưa apply và chưa có dữ liệu thật hay kết nối cloud.
-2. Triển khai schema cùng lease/reservation, auth, RBAC, audit và upload policy.
-3. Implement ba endpoint theo contract, transaction và idempotency; map FK thành
-   DTO; kiểm tra từng field và session trước khi trả dữ liệu.
-4. Deploy admin trên managed serverless runtime hoặc static frontend + backend
-   đã bảo vệ. Cấu hình API URL, session/CORS/CSRF; thử contract và quyền thực tế.
-5. Thay fixture bằng adapter HTTP qua cấu hình; kiểm tra tải/lưu, lỗi/xung đột và
-   người dùng đồng thời. GitHub Pages tiếp tục là môi trường demo fixture.
-
-## Thiết kế B2B kế nhiệm
-
-Nghiệp vụ đã chốt trong [Thiết kế B2B](b2b-leasing-design.md); baseline duy nhất ở
-[`database/schema.sql`](../database/schema.sql), chưa apply hoặc nối backend.
-
-V2 dùng version mặt bằng và allocation theo thời gian; status text không quyết
-định khả dụng. Revision theo aggregate thay singleton demo. Tài liệu hợp đồng
-xem qua [Worker + R2 private](private-documents-r2.md); signed link chỉ là phương
-án download có hạn khi policy cho phép. Trang public trả projection được duyệt.
-Endpoint/DTO v2 phải được triển khai riêng trước khi chuyển TSX sang dữ liệu thật.
-
-## Deploy hiện tại
-
-Code nguồn ở `dev`; `npm run deploy:dev` kiểm tra source commit đã push, build
-Next.js static export và push artifact vào `gh-pages` bằng commit thường. Pages
-phục vụ từ branch artifact với `.nojekyll`, theo
-[GitHub Pages publishing source](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
-
-Token hiện tại thiếu scope `workflow`, nên template Actions lưu tại
-`docs/deployment/dev-pages.yml` và chưa tự chạy khi push dev. Khi có credential
-phù hợp, đưa template vào `.github/workflows`, chuyển Pages sang Actions và đổi
-branch policy `github-pages` thành dev. Template tách build/deploy theo
-[GitHub Pages custom workflow](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
-Shared UI luôn lấy commit gitlink đã khóa, không tự nâng branch khi build.
-
-## Demo hành trình B2B (06/10/2026)
-
-Workspace có Tầng, Căn / Mặt bằng, Doanh nghiệp, Khách đang thuê, Khách tiềm năng, Yêu cầu & giữ chỗ, Hợp đồng, Lịch hẹn, Media và Cấu hình trong một sidebar chia nhóm.
-`/admin-preview/` là form đăng nhập demo username/password; `/admin-preview/workspace/` là workspace, bắt đầu tại Tầng.
-`AdminSnapshot` và `AdminRepository.execute` vẫn là contract dữ liệu; header mở website public thật, không còn mô phỏng public/portal.
-`src/shared/admin/b2b-model.ts` giữ DTO dùng thử, không phải bản sao đầy đủ SQL v2. Fixtures nằm riêng trong `demo/b2b-data.ts`; giữ chỗ/lịch hẹn và validation dùng thời gian hiện tại, giờ Việt Nam.
-
-- Các phân hệ cấu hình/mặt bằng/hồ sơ/yêu cầu/hợp đồng/lịch/media có form và command; khách đang thuê là projection từ hồ sơ thuê. Công năng tầng đồng bộ table/bộ chọn tầng/mặt bằng; settings đặt mặc định giữ chỗ/lịch hẹn, không publish website.
-- Yêu cầu kiểm tra toàn tổ hợp liền kề cùng tầng/cùng phía và đủ nhóm; diện tích lấy từ slot. Chưa quyết định mới được sửa; lỗi không tạo giữ chỗ một phần.
-- Giữ chỗ có hạn theo đồng hồ hiện tại, hủy cần lý do. Upload PDF và lưu hồ sơ từ giữ chỗ là thao tác chuyển thuê rõ ràng, không mô phỏng ký/eSign. Hợp đồng đã có cho upload/thay tệp; không tự coi upload là đã ký.
-- Lịch hẹn tạo/sửa thời gian, thời lượng và địa điểm; xác nhận/hủy có kiểm tra trạng thái và xung đột, độc lập giữ slot.
-
-### Lưu browser và xử lý lỗi
-
-IndexedDB `le-grande-admin-browser-v1`: store `state` có key `snapshot`, store `files` theo media ID. Snapshot/Blob thêm/xóa commit cùng transaction; chỉ báo thành công sau `oncomplete`. Byte ledger chỉ tính Blob local, không trừ dung lượng asset tĩnh khi xóa metadata. Revision CAS từ chối tab cũ; tải lại ngay trong form giữ nội dung đang nhập, chỉ lưu tiếp khi người dùng chủ động. Storage bị chặn, quota hết hoặc commit lỗi phải báo lỗi và giữ state/draft cũ, không fallback memory hoặc tự reset dataset.
-
-Reload/đăng xuất giữ dữ liệu đã lưu trên cùng origin/browser; đổi máy/origin không chia sẻ. Browser có thể từ chối/evict dữ liệu; hạn mức nghiệp vụ 8,5 GB không bảo đảm quota thiết bị/cloud. URL Blob được tạo lại sau đọc, giải phóng khi dispose. Draft chưa lưu chỉ trong bộ nhớ; hủy có xác nhận, điều hướng/đóng trang có cảnh báo.
-
-**Ranh giới bảo mật:** username/password chỉ trình diễn form, không gửi/lưu; sessionStorage chỉ giữ marker, không phải auth. Chỉ dùng dữ liệu thử nghiệm; bản Pages/IndexedDB không có phân quyền, intake website, private cloud hoặc API production. Production cần DTO theo quyền, verified session/membership, Origin/CSRF/CORS, transactions/revision/idempotency, upload scan/private delivery và chính sách hồ sơ được duyệt. Không dùng UI filter hoặc việc nhận PDF làm authorization/chứng nhận tài liệu.
-
-Chạy tại local: `NEXT_PUBLIC_SITE_URL=http://localhost:3106/ npm run dev -- --port 3106`, mở `/admin-preview/`. URL này đặt origin metadata local; mặc định domain production `https://legrandecentre.vn/` cũng không có base path.
+- `npm run test:admin`: **51 pass / 1 live skip**; `npm run test:backend`: **105 pass** (shared engine không đổi).
+- `npm run test:database`: **4 pass**. Runner tạo PostgreSQL disposable có ownership attestation, apply migrations/seed hai lần, kiểm CAS/replay/property/retention/pagination/no-PDF rồi xóa đúng cluster; không mutation Neon live.
+- TypeScript ứng dụng và production Next build pass; `npm run build:cloudflare` exit0, tạo `.open-next/worker.js`. Build dùng DTO public thật từ owned HTTPS runtime (6floors/81units), không production credentials hoặc provider fixture làm runtime fallback; script giấu envfiles và đã khôi phục `.env.local`.
+- Migration không tự chạy ở build/deploy. Operator phải apply 011 đúng DB đích trước release ứng dụng mới; không tự reset database/storage. `npm run db:migrate` dùng credential local thật, không phải sandbox.
+- Smoke HTTPS Next + PostgreSQL disposable + provider fixture: HTML admin200 với0DB/0provider; warm business APIs không provider/self-identity lookup/access-decision writes. Staff tab đọc một allowlist query để trả danh sách nhân viên, không re-authorize identity của caller. Cookie Secure/HttpOnly900s; tamper401/cross-origin403 trước DB/provider; receipt replay/CAS409; Editor staff/settings403; expired read401 không DB/provider, explicit renewal200, logout204.
+- Browser Chrome thực tế: Floors/Companies/Leads chỉ fetch màn được chọn; company classification/counts phản ánh lease thật; related requests load company-filtered page, detail theo id. Tạo request F.2→review→hold→ghi lease có reference/note và **0 input file / 0 media request**; tạo→confirm→cancel lịch hẹn thành công. Tenant search rỗng vẫn hiện empty state, giữ focus/input.
+- Media page1 **24** mục, page2 **7** mục đúng server slice; không iframe/video/ảnh gốc trước click. Click project-facade tải ảnh1200×800; rời màn unmount preview. Upload/link picker chỉ đọc `spaces?floor=2` sau chọn tầng, không tải toàn bộ inventory/catalog.
+- Settings chỉ GET settings lúc mở; Website tab đọc current-logo metadata, editor mới GET uploaded-image page20; Staff tab mới GET staff. Không upload bytes lên Neon/R2 trong smoke. Idle qua provider-bounded expiry không POST; click Media tiếp theo POST session **đúng1 lần**, không nhập mật khẩu. Logout browser chỉ DELETE session, xóa cookie; protected read sau đó401.
+- Runtime/Chrome/owned PostgreSQL, smoke config và scripts đã dọn; generated route types trở lại `.next`. Không deploy, không apply011 trên DB live, không đổi region/plan/secrets hoặc xóa media cũ. Provider fixture/Node smoke **không chứng minh Neon live latency, Workerd CPU quota, email delivery hoặc upload cloud**; cần HAR sau release để đo chênh lệch mili giây thật.

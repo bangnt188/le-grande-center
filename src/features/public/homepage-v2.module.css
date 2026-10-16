@@ -237,23 +237,23 @@
   margin: 0;
 }
 
-/* Standard large modal popup for Google Maps */
+/* Standard large modal popup for Google Maps (enlarged by 10%) */
 .locationMapHost [role="dialog"] {
-  inline-size: min(1160px, calc(100vw - 32px)) !important;
-  max-block-size: min(92vh, 880px) !important;
+  inline-size: min(1280px, calc(100vw - 24px)) !important;
+  max-block-size: min(95vh, 968px) !important;
   display: flex !important;
   flex-direction: column !important;
-  padding: 28px !important;
-  border-radius: 16px !important;
+  padding: 30px !important;
+  border-radius: 18px !important;
   background: var(--home-paper) !important;
   color: var(--home-green) !important;
   border: 1px solid rgba(164, 133, 60, 0.35) !important;
-  box-shadow: 0 28px 70px rgba(0, 33, 22, 0.35) !important;
+  box-shadow: 0 32px 80px rgba(0, 33, 22, 0.38) !important;
 }
 
 .locationMapHost [role="dialog"] h2 {
   font-family: var(--font-charis-sil), Georgia, serif !important;
-  font-size: clamp(20px, 2.2vw, 26px) !important;
+  font-size: clamp(22px, 2.4vw, 28px) !important;
   color: var(--home-deep) !important;
   font-weight: 600 !important;
   line-height: 1.35 !important;
@@ -295,7 +295,7 @@
 
 .modalMapFrame {
   width: 100%;
-  height: clamp(380px, 60vh, 580px);
+  height: clamp(420px, 66vh, 640px);
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid var(--home-line);
@@ -524,17 +524,17 @@
     min-height: 40px;
   }
   .locationMapHost [role="dialog"] {
-    inline-size: calc(100vw - 20px) !important;
+    inline-size: calc(100vw - 16px) !important;
     padding: 18px 14px !important;
     border-radius: 14px !important;
-    max-block-size: calc(100dvh - 24px) !important;
+    max-block-size: calc(100dvh - 16px) !important;
   }
   .locationMapHost [role="dialog"] h2 {
     font-size: 18px !important;
     padding-inline-end: 2.5rem !important;
   }
   .modalMapFrame {
-    height: clamp(300px, 55vh, 420px);
+    height: clamp(340px, 60vh, 460px);
   }
   .modalFooter {
     flex-direction: column;

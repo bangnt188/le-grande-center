@@ -1,7 +1,7 @@
 # Database PostgreSQL / Neon
 
 `schema.sql` remains the authoritative relational baseline; reviewed migrations
-`001-live-workspace.sql` through `009-shared-backend-crud.sql` evolve it.
+`001-live-workspace.sql` through `011-metadata-only-leases.sql` evolve it.
 There is no opaque stored workspace snapshot or browser persistence fallback.
 Runtime composition lives in `src/server/{database,workspace,public,public-data}.ts` and `media/`.
 
@@ -20,6 +20,14 @@ database configuration are not linked/verified here.
 Production and `lgc-bot-test` both have baseline+migrations **001–010**.
 Migration `010-lead-reference-codes.sql` was applied and verified on production;
 the stage2 Worker remains connected to the test branch.
+
+Source now includes **011-metadata-only-leases.sql**, tested only on owned
+disposable PostgreSQL during the admin latency implementation. It has **not**
+been applied to either live branch by this implementation. Apply it to the
+intended runtime DB before deploying the new application; build/deploy does not
+run migrations. It replaces the mandatory contract-document predicate with
+recorded lease metadata, retaining inventory/period/exclusivity rules and old
+private document links. No database/storage reset or historical file deletion.
 
 Application schemas `leasing` and `row_audit` were reset; baseline+migrations
 **001–009** were applied during reset, then migration **010** was applied during

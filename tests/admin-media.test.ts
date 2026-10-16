@@ -4,6 +4,7 @@ import { PhotonImage } from "@cf-wasm/photon";
 import { boundedMultipart, byteRange, fileType, imageDimensions, MAX_BATCH_BYTES, MediaError, mediaHeaders } from "../src/server/media/validation";
 import { prepareFiles } from "../src/server/media/prepare";
 import { decodeMediaRows } from "../src/server/media/repository";
+import { mediaSourceWindow, parseMediaQuery } from "../src/server/media/queries";
 
 function raster(mime:string) {
   const image=new PhotonImage(new Uint8Array([20,100,40,255]),1,1);
@@ -48,4 +49,13 @@ test("reviewed media retains its release timestamp after JSON aggregation", () =
   }], true);
   assert.equal(JSON.parse(JSON.stringify(media)).reviewedAt, "2026-10-15T11:18:04.984Z");
   assert.equal(media.uploadState, "ready");
+});
+
+test("media pages span upload/catalog boundaries without overlaps or missing entries", () => {
+  assert.deepEqual(mediaSourceWindow(61, 48, 24), { uploadOffset: 48, uploadLimit: 13, projectOffset: 0, projectLimit: 11 });
+  assert.deepEqual(mediaSourceWindow(61, 72, 24), { uploadOffset: 61, uploadLimit: 0, projectOffset: 11, projectLimit: 24 });
+  assert.deepEqual(mediaSourceWindow(48, 48, 24), { uploadOffset: 48, uploadLimit: 0, projectOffset: 0, projectLimit: 24 });
+  assert.deepEqual(mediaSourceWindow(0, 0, 24), { uploadOffset: 0, uploadLimit: 0, projectOffset: 0, projectLimit: 24 });
+  for (const query of ["page=0", "page=1&page=2", "pageSize=101", "page=9007199254740991&pageSize=24", "source=remote", "kind=html", "scope=slot:invalid", "query=%00"]) assert.throws(() => parseMediaQuery(new URLSearchParams(query)));
+  assert.deepEqual(parseMediaQuery(new URLSearchParams("page=3&pageSize=24&source=uploaded&kind=Ảnh")), { page: 3, pageSize: 24, source: "uploaded", kind: "Ảnh" });
 });

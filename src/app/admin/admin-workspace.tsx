@@ -1,30 +1,35 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { authClient } from "@/features/admin/auth-client";
 import type { ReactNode } from "react";
 import { FLOORS, SLOT_STATUSES, hasCommitment, isSlotStatus, mergeIssue } from "../../shared/admin/space-model";
 import type { Floor, Slot } from "../../shared/admin/space-model";
+import type { AdminScreenName, AdminScreenQuery } from "@/shared/admin/contracts";
 import { useAdminData } from "@/features/admin/use-admin-data";
-import { AdminSettingsWorkspace, LeadsWorkspace, MediaWorkspace } from "@/features/admin/admin-records";
+import { ensureSession, logoutSession, useAdminSession } from "@/features/admin/session";
 import { BROCHURE_FLOORS, BROCHURE_UNITS, BROCHURE_PATH } from "@/features/public/brochure-leasing";
 import { planStyle, planLabelStyle } from "@/features/public/leasing-plan-style";
 import planStyles from "@/features/public/canva-pages.module.css";
 import { r2AssetUrl } from "@/config/site";
-import SlotDetail, { type SlotRecordEntry } from "@/features/admin/slot-detail";
+import type { SlotRecordEntry } from "@/features/admin/slot-detail";
 
 import { useRecordDetail } from "@/features/admin/use-record-detail";
 import { useCompanyNotes } from "@/features/admin/use-company-notes";
 
-import B2BWorkspace from "./b2b-workspace";
-import { FloorOverview, TenantOverview } from "./content-overviews";
+import { FloorOverview } from "./content-overviews";
 import { LeGrandeAdminShell } from "@/features/admin/le-grande-admin-shell";
 import { AdminPanel, PaginatedContent, ConfirmDialog, Button, Input, Select, Checkbox, Badge, Table, Tabs, Breadcrumbs, LoadingIndicator, Alert, type ToastTone, type AdminNavigationItem } from "@mall/ui";
 import { AdminNotificationsProvider, useAdminNotifications } from "@/features/admin/admin-notifications";
 import { AdminPagination, useAdminPagination } from "@/features/admin/admin-pagination";
 import type { B2BView } from "./b2b-workspace";
-import { useAdminCollection } from "@/features/admin/admin-collections";
+
+const MediaWorkspace = lazy(() => import("@/features/admin/media-workspace").then(m => ({ default: m.MediaWorkspace })));
+const LeadsWorkspace = lazy(() => import("@/features/admin/admin-records").then(m => ({ default: m.LeadsWorkspace })));
+const AdminSettingsWorkspace = lazy(() => import("@/features/admin/admin-records").then(m => ({ default: m.AdminSettingsWorkspace })));
+const B2BWorkspace = lazy(() => import("./b2b-workspace"));
+const SlotDetail = lazy(() => import("@/features/admin/slot-detail"));
+const TenantOverview = lazy(() => import("./content-overviews").then(m => ({ default: m.TenantOverview })));
 
 type View = "slot" | "floors" | "tenants" | "spaces" | "leads" | "media" | "settings" | B2BView;
 type IconName = "plan" | "people" | "media" | "arrow" | "search" | "check" | "merge" | "split" | "file" | "close" | "menu" | "calendar" | "request";
@@ -54,18 +59,66 @@ const fmt = (value: number) => new Intl.NumberFormat("vi-VN").format(value);
 const labels: Record<View, string> = { slot: "Hồ sơ slot", floors: "Tầng", tenants: "Khách đang thuê", customers: "Doanh nghiệp", requests: "Yêu cầu & giữ chỗ", leases: "Hợp đồng", appointments: "Lịch hẹn", spaces: "Căn / Mặt bằng", leads: "Khách tiềm năng", media: "Media", settings: "Cấu hình" };
 
 
-export default function AdminWorkspace({ canManageAccounts }: { canManageAccounts: boolean }) {
-  return <AdminNotificationsProvider><AdminWorkspaceContent canManageAccounts={canManageAccounts}/></AdminNotificationsProvider>;
+export default function AdminWorkspace() {
+  return <AdminNotificationsProvider><AdminWorkspaceContent/></AdminNotificationsProvider>;
 }
-function AdminWorkspaceContent({ canManageAccounts }: { canManageAccounts: boolean }) {
+function AdminWorkspaceContent() {
   const router = useRouter();
   const [view, setActiveView] = useState<View>("floors");
   const [leavingSession, setLeavingSession] = useState(false);
   const [slotId, setSlotId] = useState("");
   const [recordEntry, setRecordEntry] = useState<SlotRecordEntry | undefined>();
   const [floor, setFloor] = useState<Floor>(2);
-  const admin = useAdminData();
-  const newLeads = useAdminCollection(admin, "leads", { status: "Mới" }, true, 1);
+  const liveSession = useAdminSession();
+  const [sessionResolving, setSessionResolving] = useState(true);
+  const [sessionError, setSessionError] = useState<string | null>(null);
+
+  const canManageAccounts = liveSession?.role === "administrator";
+
+  useEffect(() => {
+    let active = true;
+    ensureSession({ userAction: true })
+      .then(s => {
+        if (!active) return;
+        setSessionResolving(false);
+        if (!s) setSessionError("Phiên đăng nhập không tồn tại hoặc đã hết hạn.");
+      })
+      .catch(err => {
+        if (!active) return;
+        setSessionResolving(false);
+        setSessionError(err instanceof Error ? err.message : "Không thể xác thực phiên đăng nhập.");
+      });
+    return () => { active = false; };
+  }, []);
+
+  const [reqPage, setReqPage] = useState(1);
+  const [reqFilter, setReqFilter] = useState("");
+  const [lPage, setLPage] = useState(1);
+  const [lCompany, setLCompany] = useState("");
+  const [lQuery, setLQuery] = useState("");
+  const [tenantPage, setTenantPage] = useState(1);
+  const [tenantQuery, setTenantQuery] = useState("");
+
+  const activeScreen: AdminScreenName | null =
+    view === "floors" ? "floors" :
+    view === "spaces" ? "spaces" :
+    view === "slot" ? "slot" :
+    view === "tenants" ? "tenants" :
+    view === "requests" ? "requests" :
+    view === "leases" ? "leases" :
+    view === "settings" ? "settings" :
+    null;
+
+  const screenQuery = useMemo<AdminScreenQuery>(() => {
+    if (view === "spaces") return { floor };
+    if (view === "slot") return slotId ? { id: slotId } : {};
+    if (view === "requests") return { page: reqPage, status: reqFilter || undefined };
+    if (view === "leases") return { page: lPage, query: lQuery || undefined, companyId: lCompany || undefined };
+    if (view === "tenants") return { page: tenantPage, query: tenantQuery || undefined };
+    return {};
+  }, [view, floor, slotId, reqPage, reqFilter, lPage, lQuery, lCompany, tenantPage, tenantQuery]);
+
+  const admin = useAdminData(activeScreen, screenQuery);
   const details = useRecordDetail(view);
   const notes = useCompanyNotes(admin.execute, admin.hasUnsavedDrafts);
   const dialogContainer = useRef<HTMLDivElement>(null);
@@ -124,7 +177,10 @@ function AdminWorkspaceContent({ canManageAccounts }: { canManageAccounts: boole
       if (restoringHistory.current) { restoringHistory.current = false; return; }
       const delta = (window.history.state?.leasingIndex ?? historyIndex.current) - historyIndex.current;
       let proceeded = false;
-      notesRef.current.navigate(() => { proceeded = true; pendingHistoryDelta.current = 0; syncLocation(); });
+      notesRef.current.navigate(() => {
+        proceeded = true; pendingHistoryDelta.current = 0;
+        void ensureSession({ userAction: true }).then(syncLocation).catch(issue => setMessage(issue instanceof Error ? issue.message : "Không thể tải phiên.", "error"));
+      });
       if (!proceeded) pendingHistoryDelta.current = delta;
     };
     window.addEventListener("popstate", onHistory);
@@ -139,8 +195,14 @@ function AdminWorkspaceContent({ canManageAccounts }: { canManageAccounts: boole
     }
     previousView.current = view;
   }, [view, slotId, loading, details.scopeRef]);
-  function setView(next: View, entry?: SlotRecordEntry) {
+  async function setView(next: View, entry?: SlotRecordEntry) {
     if (next === "settings" && !canManageAccounts) return;
+    try {
+      await ensureSession({ userAction: true });
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Phiên đăng nhập hết hạn.", "error");
+      return;
+    }
     if (next !== view) {
       window.history.replaceState({ ...window.history.state, leasingView: view, leasingFloor: floor, leasingRecord: recordEntry }, "");
       window.history.pushState({ ...window.history.state, leasingIndex: ++historyIndex.current, leasingView: next, leasingFloor: floor, leasingRecord: entry }, "", "#admin-workspace");
@@ -149,7 +211,13 @@ function AdminWorkspaceContent({ canManageAccounts }: { canManageAccounts: boole
     setActiveView(next);
   }
   function openSlot(id: string) {
-    notes.navigate(() => {
+    notes.navigate(async () => {
+      try {
+        await ensureSession({ userAction: true });
+      } catch (err) {
+        setMessage(err instanceof Error ? err.message : "Phiên đăng nhập hết hạn.", "error");
+        return;
+      }
       if (view === "slot" && slotId === id) return;
       window.history.replaceState({ ...window.history.state, leasingView: view, leasingFloor: floor }, "");
       window.history.pushState({ ...window.history.state, leasingIndex: ++historyIndex.current, leasingView: "slot", leasingFloor: floor }, "", `#slot=${encodeURIComponent(id)}`);
@@ -166,8 +234,11 @@ function AdminWorkspaceContent({ canManageAccounts }: { canManageAccounts: boole
   const area = selectedSlots.reduce((sum, slot) => sum + slot.area, 0);
   const statusOptions = SLOT_STATUSES;
 
-  function changeFloor(next: Floor) {
+  async function changeFloor(next: Floor) {
+    try { await ensureSession({ userAction: true }); }
+    catch (issue) { setMessage(issue instanceof Error ? issue.message : "Không thể tải phiên.", "error"); return false; }
     setSpaceDirty(false); setFloor(next); setSelected([]); setSlotQuery(""); setSlotFilter(""); setGroupName("");
+    return true;
   }
   function choose(slot: Slot) {
     notes.navigate(() => {
@@ -216,16 +287,42 @@ function AdminWorkspaceContent({ canManageAccounts }: { canManageAccounts: boole
   const primaryViews: View[] = ["floors", "spaces", "customers", "leads", "requests", "appointments", "media", ...(canManageAccounts ? ["settings" as const] : [])];
   const companyView = view === "customers" || view === "tenants" || view === "leases";
   function openSpace(nextFloor: Floor, slotId?: string) {
-    notes.navigate(() => { changeFloor(nextFloor); if (slotId) setSelected([slotId]); setView("spaces"); });
+    notes.navigate(async () => {
+      if (!await changeFloor(nextFloor)) return;
+      if (slotId) setSelected([slotId]);
+      await setView("spaces");
+    });
+  }
+  async function openFloorSelection(nextFloor: Floor, ids: string[]) {
+    try {
+      await ensureSession({ userAction: true });
+      setFloor(nextFloor); setSelected(ids); await setView("spaces");
+    } catch (issue) { setMessage(issue instanceof Error ? issue.message : "Không thể tải phiên.", "error"); }
   }
   async function logout() {
     try {
-      const result = await authClient.signOut();
-      if (result.error) throw new Error(result.error.message || "Không thể đăng xuất.");
+      await logoutSession();
       router.replace("/admin/"); router.refresh();
     } catch (issue) { setMessage(issue instanceof Error ? issue.message : "Không thể đăng xuất.", "error"); }
   }
-  const navigation: AdminNavigationItem[] = primaryViews.map(item => ({ id: item, label: labels[item], group: item === "floors" || item === "spaces" ? "Mặt bằng" : item === "media" ? "Tài nguyên" : item === "settings" ? "Hệ thống" : "Kinh doanh", icon: <Icon name={item === "floors" || item === "spaces" ? "plan" : item === "settings" ? "menu" : item === "media" ? "media" : item === "appointments" ? "calendar" : item === "requests" ? "request" : item === "leases" ? "file" : "people"}/>, badge: item === "leads" && !newLeads.loading && !newLeads.error ? newLeads.total : undefined, destination: { kind: "action", onSelect: () => notes.navigate(() => { setView(item); }) } }));
+  const navigation: AdminNavigationItem[] = primaryViews.map(item => ({
+    id: item,
+    label: labels[item],
+    group: item === "floors" || item === "spaces" ? "Mặt bằng" : item === "media" ? "Tài nguyên" : item === "settings" ? "Hệ thống" : "Kinh doanh",
+    icon: <Icon name={item === "floors" || item === "spaces" ? "plan" : item === "settings" ? "menu" : item === "media" ? "media" : item === "appointments" ? "calendar" : item === "requests" ? "request" : item === "leases" ? "file" : "people"}/>,
+    badge: item === "leads" && admin.collections?.leads ? admin.collections.leads.totalItems : undefined,
+    destination: { kind: "action", onSelect: () => notes.navigate(() => { void setView(item); }) }
+  }));
+
+  const sessionGate = sessionResolving ? <LoadingIndicator label="Đang kiểm tra quyền truy cập…"/> : !liveSession ? <Alert tone="error">
+    {sessionError || "Phiên đăng nhập không tồn tại hoặc đã hết hạn."}
+    <Button onClick={() => {
+      setSessionResolving(true);
+      void ensureSession({ userAction: true }).then(() => setSessionError(null)).catch(issue => setSessionError(issue instanceof Error ? issue.message : "Không thể tải phiên.")).finally(() => setSessionResolving(false));
+    }}>Tiếp tục phiên</Button>
+    <a href="/admin/">Đăng nhập</a>
+  </Alert> : null;
+
   return <LeGrandeAdminShell propertyName={admin.settings?.propertyName} navigation={navigation} activeItemId={view === "slot" ? "spaces" : companyView ? "customers" : view} onLogout={() => { setLeavingSession(true); notes.navigate(() => { void logout(); }); }} location={<Breadcrumbs label="Vị trí quản trị" items={[{ label: "Quản trị", href: "#admin-workspace", linkProps: { onClick: (event: React.MouseEvent<HTMLAnchorElement>) => { event.preventDefault(); notes.navigate(() => setView("floors")); } } }, ...(view === "slot" ? [{ label: `Căn / Mặt bằng · Tầng ${floor}`, href: "#admin-workspace", linkProps: { onClick: (event: React.MouseEvent<HTMLAnchorElement>) => { event.preventDefault(); notes.navigate(() => setView("spaces")); } } }, { label: slotId || "Slot không xác định", href: `#slot=${encodeURIComponent(slotId)}`, current: true }] : companyView ? [{ label: "Doanh nghiệp", href: "#admin-workspace", linkProps: { onClick: (event: React.MouseEvent<HTMLAnchorElement>) => { event.preventDefault(); notes.navigate(() => setView("customers")); } } }, { label: view === "customers" ? "Tất cả" : labels[view], href: "#admin-workspace", current: true }] : [{ label: labels[view], href: "#admin-workspace", current: true }])]}/>}>
         <div ref={dialogContainer} className="admin-dialog-host"/>
         <ConfirmDialog open={splitOpen && !!activeGroup} title="Tách mặt bằng ghép?" description={activeGroup ? `${activeGroup.name} sẽ trở về ${selectedSlots.length} slot gốc. Media liên kết nhóm chuyển về tầng ${floor}; trạng thái được giữ nguyên.` : ""} confirmLabel="Xác nhận tách" cancelLabel="Giữ nhóm" onClose={() => { if (!pending) setSplitOpen(false); }} onConfirm={() => void split()} portalContainer={dialogContainer}/>
@@ -237,20 +334,24 @@ function AdminWorkspaceContent({ canManageAccounts }: { canManageAccounts: boole
           setLeavingSession(false);
         }} onConfirm={notes.continue} portalContainer={dialogContainer}/>
         <div ref={details.scopeRef}>
+        {sessionGate}
+        {liveSession && <>
 
 
         {view === "floors" && !loading && slots.length > 0 && <FloorOverview data={admin} onSpace={openSpace} onMessage={setMessage}/>}
 
         {view !== "slot" && loading && <LoadingIndicator label="Đang tải dữ liệu…"/>}
-        {view !== "slot" && error && !slots.length && <Button variant="secondary" onClick={reload}>Thử lại</Button>}
+        {view !== "slot" && error && <Alert tone="error">{error}<Button variant="secondary" onClick={reload}>Thử lại</Button></Alert>}
 
-        {view === "slot" && <SlotDetail key={slotId} id={slotId} data={admin} onBack={() => notes.navigate(() => setView("spaces"))} onSlot={openSlot} onMessage={setMessage} onRecord={entry => notes.navigate(() => setView(entry.view, entry))} onMedia={(id, scope) => notes.navigate(() => { setActiveMedia(id); setUploadScope(scope ?? "Toàn dự án"); setView("media"); })}/>}
-        {companyView && <Tabs className="company-module-tabs" label="Các phần quản lý doanh nghiệp" scrollable value={view} onValueChange={value => { if (value === "customers" || value === "tenants" || value === "leases") notes.navigate(() => setView(value)); }} items={[
-          { value: "customers", label: "Tất cả", content: <B2BWorkspace view="customers" entry={recordEntry} data={admin} notes={notes} onView={setView} onMessage={setMessage} onFloor={(nextFloor, ids) => notes.navigate(() => { setFloor(nextFloor); setSelected(ids); setView("spaces"); })}/> },
-          { value: "tenants", label: "Khách đang thuê", content: !loading && slots.length > 0 ? <TenantOverview data={admin} onSpace={openSpace} onMessage={setMessage}/> : null },
-          { value: "leases", label: "Hợp đồng", content: <B2BWorkspace view="leases" entry={recordEntry} data={admin} notes={notes} onView={setView} onMessage={setMessage} onFloor={(nextFloor, ids) => notes.navigate(() => { setFloor(nextFloor); setSelected(ids); setView("spaces"); })}/> },
-        ]}/>}
-        {(view === "requests" || view === "appointments") && <B2BWorkspace view={view} entry={recordEntry} data={admin} notes={notes} onView={setView} onMessage={setMessage} onFloor={(nextFloor, ids) => notes.navigate(() => { setFloor(nextFloor); setSelected(ids); setView("spaces"); })}/>}
+        <Suspense fallback={<LoadingIndicator label="Đang tải dữ liệu…" />}>
+          {view === "slot" && <SlotDetail key={slotId} id={slotId} data={admin} onBack={() => notes.navigate(() => setView("spaces"))} onSlot={openSlot} onMessage={setMessage} onRecord={entry => notes.navigate(() => setView(entry.view, entry))} onMedia={(id, scope) => notes.navigate(() => { setActiveMedia(id); setUploadScope(scope ?? "Toàn dự án"); setView("media"); })}/>}
+          {companyView && <Tabs className="company-module-tabs" label="Các phần quản lý doanh nghiệp" scrollable value={view} onValueChange={value => { if (value === "customers" || value === "tenants" || value === "leases") notes.navigate(() => { void setView(value); }); }} items={[
+            { value: "customers", label: "Tất cả", content: <B2BWorkspace view="customers" entry={recordEntry} data={admin} notes={notes} onView={setView} onMessage={setMessage} onFloor={(nextFloor, ids) => notes.navigate(() => openFloorSelection(nextFloor, ids))}/> },
+            { value: "tenants", label: "Khách đang thuê", content: <TenantOverview data={admin} onSpace={openSpace} onMessage={setMessage} tenantPage={tenantPage} setTenantPage={setTenantPage} tenantQuery={tenantQuery} setTenantQuery={setTenantQuery}/> },
+            { value: "leases", label: "Hợp đồng", content: <B2BWorkspace view="leases" entry={recordEntry} data={admin} notes={notes} onView={setView} onMessage={setMessage} onFloor={(nextFloor, ids) => notes.navigate(() => openFloorSelection(nextFloor, ids))} leasePage={lPage} setLeasePage={setLPage} leaseCompany={lCompany} setLeaseCompany={setLCompany} leaseQuery={lQuery} setLeaseQuery={setLQuery}/> },
+          ]}/>}
+          {(view === "requests" || view === "appointments") && <B2BWorkspace view={view} entry={recordEntry} data={admin} notes={notes} onView={setView} onMessage={setMessage} onFloor={(nextFloor, ids) => notes.navigate(() => openFloorSelection(nextFloor, ids))} requestPage={reqPage} setRequestPage={setReqPage} requestFilter={reqFilter} setRequestFilter={setReqFilter} leasePage={lPage} setLeasePage={setLPage} leaseCompany={lCompany} setLeaseCompany={setLCompany} leaseQuery={lQuery} setLeaseQuery={setLQuery}/>}
+        </Suspense>
 
         {view === "spaces" && <>
           <div className="floor-nav" role="group" aria-label="Chọn tầng">{admin.floors.map(item => <Button variant="quiet" className={`floor-tab ${floor === item.number ? "is-active" : ""}`} aria-pressed={floor === item.number} key={item.number} onClick={() => notes.navigate(() => changeFloor(item.number))}><span>Tầng {item.number}</span><small>{item.purpose}</small></Button>)}</div>
@@ -307,9 +408,12 @@ function AdminWorkspaceContent({ canManageAccounts }: { canManageAccounts: boole
           </AdminPanel>
         </>}
 
-        {view === "leads" && !loading && <LeadsWorkspace data={admin} onMessage={setMessage} onFloor={next => openSpace(next)}/>}
-        {view === "media" && !loading && <MediaWorkspace data={admin} onMessage={setMessage} initialMediaId={activeMedia} initialScope={uploadScope}/>}
-        {view === "settings" && canManageAccounts && !loading && <AdminSettingsWorkspace data={admin} onMessage={setMessage} canManageAccounts={canManageAccounts}/>}
+        <Suspense fallback={<LoadingIndicator label="Đang tải dữ liệu…" />}>
+          {view === "leads" && !loading && <LeadsWorkspace data={admin} onMessage={setMessage} onFloor={next => openSpace(next)}/>}
+          {view === "media" && !loading && <MediaWorkspace data={admin} onMessage={setMessage} initialMediaId={activeMedia} initialScope={uploadScope}/>}
+          {view === "settings" && canManageAccounts && !loading && <AdminSettingsWorkspace data={admin} onMessage={setMessage} canManageAccounts={canManageAccounts}/>}
+        </Suspense>
+        </>}
         </div>
     </LeGrandeAdminShell>;
 }
