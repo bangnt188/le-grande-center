@@ -6,6 +6,7 @@ import { useLayerStackMotion, type LayerStackGeometry } from "@mall/ui/motion";
 import { BROCHURE_FLOORS, BROCHURE_UNITS } from "./brochure-leasing";
 import { Arrow } from "./homepage-v2-interactive";
 import { useWebsiteSettings } from "./website-settings";
+import { responsiveImageProps } from "./responsive-images";
 import styles from "./homepage-v2.module.css";
 const CANVAS = { width: 1440, height: 960 };
 const CONNECTOR = { desktop: { x: 1296, y: 456 }, mobile: { x: 720, y: 1040 } };
@@ -117,7 +118,7 @@ export function FloorShowcase({ assetBase }: { assetBase: string }) {
           className={styles.floorLayer}
           data-ui-layer={layer.name}
           style={{ "--ui-layer-stack-closed-y": `${layer.closedY}%` } as CSSProperties}
-          src={`${assetBase}/images/home-v2/floor-${layer.name}.webp`}
+          {...responsiveImageProps(`/images/home-v2/floor-${layer.name}.webp`, assetBase, "(max-width: 1000px) 88vw, (max-width: 1340px) 71vw, 944px")}
           width={CANVAS.width}
           height={CANVAS.height}
           alt=""

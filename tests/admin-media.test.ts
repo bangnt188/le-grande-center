@@ -3,6 +3,7 @@ import test from "node:test";
 import { PhotonImage } from "@cf-wasm/photon";
 import { boundedMultipart, byteRange, fileType, imageDimensions, MAX_BATCH_BYTES, MediaError, mediaHeaders } from "../src/server/media/validation";
 import { prepareFiles } from "../src/server/media/prepare";
+import { decodeMediaRows } from "../src/server/media/repository";
 
 function raster(mime:string) {
   const image=new PhotonImage(new Uint8Array([20,100,40,255]),1,1);
@@ -37,4 +38,14 @@ test("single byte ranges and private response policy are exact",()=>{
   for(const value of ['bytes=10-','bytes=4-2','bytes=-0','bytes=0-1,3-4','bytes=999999999999999999-'])assert.throws(()=>byteRange(value,10),{status:416});
   const headers=mediaHeaders('application/pdf','hợp đồng.pdf',10,{offset:2,length:3});
   assert.equal(headers.get('content-range'),'bytes 2-4/10');assert.equal(headers.get('content-length'),'3');assert.equal(headers.get('cache-control'),'private, no-store');assert.equal(headers.get('x-content-type-options'),'nosniff');assert.match(headers.get('content-security-policy')!,/^sandbox;/);
+});
+
+test("reviewed media retains its release timestamp after JSON aggregation", () => {
+  const [media] = decodeMediaRows([{
+    id: "5b085f24-c486-4464-b081-e095a7d6ea9c", title: "Reviewed PDF",
+    content_type: "application/pdf", media_scope: "Toàn dự án", byte_size: "629",
+    state: "ready", public_url: null, manual_reviewed_at: "2026-10-15T11:18:04.984+00:00",
+  }], true);
+  assert.equal(JSON.parse(JSON.stringify(media)).reviewedAt, "2026-10-15T11:18:04.984Z");
+  assert.equal(media.uploadState, "ready");
 });

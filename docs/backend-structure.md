@@ -33,10 +33,12 @@ src/
       neon-function.ts     # x-secret protected known-key image storage origin
 database/
   schema.sql               # relational baseline
-  migrations/              # 001–004 reviewed incremental evolution
+  migrations/              # 001–009 reviewed incremental evolution
 scripts/
   migrate-database.ts      # operator migrations + approved project seed
-  dev-live.mjs             # explicit --env CLI; avoid Next --env-file spawn bug
+  dev-live.mjs             # canonical .env.local via loader, then Next dev
+  load-local-env.mjs       # local values override inherited shell values
+  test-live-database.mjs   # owned disposable local PostgreSQL, no Neon branch
   build-cloudflare.mjs     # prevent standard envfiles entering Worker bundle
 packages/
   backend/                 # @shared/backend private pinned submodule
@@ -57,12 +59,16 @@ Generated project media catalog contains read-only approved public assets, not d
 
 ## Storage and transfer
 
-Approved public images/video/brochure use R2 `mall-assets`. Uploaded raster images and branding use Neon `media`; logo never falls back to static/R2/browser Blob. PDF uses R2 `mall-documents`, stage2 `mall-documents-stage2`; quarantine requires **manual external review**, not antivirus-clean or online signature. Inventory public + tracked Neon/private + reservations enforces app quota; unknown/mismatch locks upload.
+Approved public images/video/brochure use R2 `mall-assets`. Uploaded raster images and branding use Neon `media`; logo never falls back to static/R2/browser Blob. PDF uses private R2 **`mall-documents`** for local and the existing Worker; quarantine requires **manual external review**, not antivirus-clean or online signature. Inventory public + tracked Neon/private + reservations enforces app quota; unknown/mismatch locks upload.
 
-Migrations 001–004 have been applied to stage2, disposable regression branches and the production backend. Production initialization contains only 6 approved brochure floors/81 slots, the configured owner allowlist and verified approved Neon logo; no fabricated customer/financial transactions or frontend cutover. Production Auth OTP/verification settings are configured, not proof of email delivery. Transfer means schema+migrations, relational records, object keys/catalog and verified size/hash metadata, then copied/verified bytes and audited locator changes. Do not transfer opaque snapshots, credentials or presigned URLs. See [portability](database-portability.md), [quota](storage-quota.md) and [private documents](private-documents-r2.md).
+After the owner-approved reset on 15/10/2026, only Neon **`production` (`br-tiny-butterfly-b3uuw92p`)** remains, with baseline+migrations **001–009**. Local `.env.local` and the existing Worker share this production DB/Auth; local is not a sandbox. Application `leasing`/`row_audit` were reset; approved 6 floors/81 slots, root allowlist and verified Neon logo were restored, with no old customer/lease/request/lead/appointment business data. Provider Auth/storage were preserved; only root Auth user remains. Worker/cache names retaining `stage2` are hosting/cache resource identifiers, not another DB branch. Snapshot/private backup evidence is in the [database guide](../database/README.md).
+
+Transfer means schema+migrations, relational records, object keys/catalog and verified size/hash metadata, then copied/verified bytes and audited locator changes. Do not transfer opaque snapshots, credentials or presigned URLs. See [portability](database-portability.md), [quota](storage-quota.md) and [private documents](private-documents-r2.md).
 
 ## Runtime limits and checks
 
-Next `output: standalone` supports Node SSR; OpenNext packages a Worker. Native Worker → Neon S3/Functions currently returns 403 HTML before provider while Node works; no all-Worker media readiness claim. Production frontend is not deployed/cut over; domain/DNS explicitly deferred by user.
+Next `output: standalone` supports Node SSR; OpenNext packages the existing Worker. Earlier native Worker → Neon S3/Functions probes returned 403 HTML while Node worked; no all-Worker media readiness claim. The Worker now uses the one production backend; custom-domain/DNS remain explicitly deferred and the Worker remains noindex. Cache invalidation/performance are tracked separately in readiness, not claimed complete.
 
-Build CI runs shared integrity/types/tests plus application pure tests/typecheck and Next/OpenNext builds without cloud secrets. Cloud integration uses `test:database` on an isolated Neon branch with operator permissions, never a fake provider in the secretless CI job. New docs/CI edits were not built/tested in this documentation slice; [readiness](backend-readiness.md) distinguishes prior runtime observations from unrun checks.
+Canonical operator commands are `npm run dev`, `npm start`, `npm run db:migrate`, `npm run auth:set-password` (load `.env.local`) and `npm run deploy` (build/deploy the existing Worker with separately supplied runtime secrets); no multi-profile setup or deploy aliases.
+
+Build CI runs shared integrity/types/tests plus application pure tests/typecheck and Next/OpenNext builds without cloud secrets. `npm run test:database` requires local PostgreSQL `postgres`/`initdb`/`pg_ctl` binaries (Homebrew on macOS), creates its own empty loopback cluster and removes only that owned cluster. It neither creates Neon branches nor uses live credentials. No build/test was run for this documentation slice; [readiness](backend-readiness.md) distinguishes prior evidence and current cutover results.

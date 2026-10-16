@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "le-grande-centre",
+  "name": "le-grande-centre-stage2",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-10-13",
   "compatibility_flags": [
@@ -8,10 +8,19 @@
     "global_fetch_strictly_public"
   ],
   "workers_dev": true,
+  "placement": {
+    "region": "aws:ap-southeast-1"
+  },
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "le-grande-centre-stage2"
+    }
+  ],
   "r2_buckets": [
     {
       "binding": "PRIVATE_DOCUMENTS",
@@ -22,44 +31,42 @@
       "binding": "PUBLIC_ASSETS",
       "bucket_name": "mall-assets",
       "remote": true
+    },
+    {
+      "binding": "NEXT_INC_CACHE_R2_BUCKET",
+      "bucket_name": "le-grande-centre-stage2-next-cache"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "NEXT_CACHE_DO_QUEUE",
+        "class_name": "DOQueueHandler"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "next-cache-v1",
+      "new_sqlite_classes": ["DOQueueHandler"]
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "NEXT_TAG_CACHE_D1",
+      "database_name": "le-grande-centre-stage2-next-tags",
+      "database_id": "97532319-d580-4718-8960-3ca38123468a"
     }
   ],
   "vars": {
+    "NEON_BRANCH": "production",
     "NEXT_PUBLIC_SITE_URL": "https://legrandecentre.vn/",
-    "SEO_INDEXABLE": "true",
+    "SEO_INDEXABLE": "false",
     "R2_PRIVATE_BUCKET": "mall-documents",
     "R2_ACCOUNT_ID": "4e577220abb44fa926f2a11b8cf10b55"
   },
   "build": {
-    "command": "set -eu\nif [ ! -f packages/ui/package.json ] || [ ! -f packages/backend/package.json ]; then\n  if [ -z \"${SUBMODULE_READ_TOKEN:-}\" ]; then echo \"Set SUBMODULE_READ_TOKEN as a build secret for private submodules\"; exit 1; fi\n  git -c \"url.https://x-access-token:$SUBMODULE_READ_TOKEN@github.com/.insteadOf=https://github.com/\" submodule update --init --recursive --depth=1 -- packages/ui packages/backend\nfi\nnpm ci\nnpm run build:cloudflare"
-  },
-  "env": {
-    "stage2": {
-      "name": "le-grande-centre-stage2",
-      "workers_dev": true,
-      "assets": {
-        "directory": ".open-next/assets",
-        "binding": "ASSETS"
-      },
-      "r2_buckets": [
-        {
-          "binding": "PRIVATE_DOCUMENTS",
-          "bucket_name": "mall-documents-stage2",
-          "remote": true
-        },
-        {
-          "binding": "PUBLIC_ASSETS",
-          "bucket_name": "mall-assets",
-          "remote": true
-        }
-      ],
-      "vars": {
-        "NEXT_PUBLIC_SITE_URL": "https://legrandecentre.vn/",
-        "SEO_INDEXABLE": "false",
-        "R2_PRIVATE_BUCKET": "mall-documents-stage2",
-        "R2_ACCOUNT_ID": "4e577220abb44fa926f2a11b8cf10b55"
-      }
-    }
+    "command": "set -eu\nif [ \"${OPEN_NEXT_DEPLOY:-}\" = \"true\" ]; then exit 0; fi\nif [ ! -f packages/ui/package.json ] || [ ! -f packages/backend/package.json ]; then\n  if [ -z \"${SUBMODULE_READ_TOKEN:-}\" ]; then echo \"Set SUBMODULE_READ_TOKEN as a build secret for private submodules\"; exit 1; fi\n  git -c \"url.https://x-access-token:$SUBMODULE_READ_TOKEN@github.com/.insteadOf=https://github.com/\" submodule update --init --recursive --depth=1 -- packages/ui packages/backend\nfi\nnpm ci\nnpm run build:cloudflare"
   },
   "minify": true
 }

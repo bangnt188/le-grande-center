@@ -10,6 +10,7 @@ import { AdminEditor } from "@/features/admin/admin-editor";
 import { AdminPagination, useAdminPagination } from "@/features/admin/admin-pagination";
 import styles from "@/features/admin/admin-records.module.css";
 import { tenantRecords } from "@/features/admin/tenant-records";
+import { CollectionFeedback, useRelatedCompanies } from "@/features/admin/admin-collections";
 
 type Props = { data: AdminData; onSpace: (floor: Floor, slotId?: string) => void; onMessage: (message: string, tone?: ToastTone) => void };
 const number = (value: number) => new Intl.NumberFormat("vi-VN").format(value);
@@ -54,10 +55,12 @@ export function FloorOverview({ data, onSpace, onMessage }: Props) {
 
 export function TenantOverview({ data, onSpace }: Props) {
   const [query, setQuery] = useState("");
-  const rows = tenantRecords(data).filter(row => `${row.name} ${row.leases} ${row.slots.map(slot => slot.code).join(" ")}`.toLocaleLowerCase("vi").includes(query.trim().toLocaleLowerCase("vi")));
+  const companies = useRelatedCompanies(data, data.leases.map(lease => lease.companyId));
+  const rows = tenantRecords({ ...data, companies: companies.items }).filter(row => `${row.name} ${row.leases} ${row.slots.map(slot => slot.code).join(" ")}`.toLocaleLowerCase("vi").includes(query.trim().toLocaleLowerCase("vi")));
   const pages = useAdminPagination(rows, query);
   return <AdminPanel className="records-panel company-tenants-panel" labelledBy="tenant-overview-heading">
     <div className="register-heading"><h2 id="tenant-overview-heading">Đối tác thuê mặt bằng</h2><label className="search-field"><span className="sr-only">Tìm đối tác, hợp đồng hoặc slot</span><Input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Tìm đối tác, hợp đồng, slot…"/></label></div>
+    <CollectionFeedback state={companies}/>
     <Table viewportLabel="Đối tác và mặt bằng thuê, có thể cuộn ngang" rows={pages.rows} getRowKey={row => row.id} emptyLabel="Không có đối tác thuê phù hợp." columns={[
       { id: "name", header: "Bên thuê", cell: row => <><strong>{row.name}</strong><small className={styles.secondary}>{row.label}</small></> },
       { id: "lease", header: "Hồ sơ thuê", cell: row => row.leases },

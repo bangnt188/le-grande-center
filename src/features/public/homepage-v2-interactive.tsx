@@ -3,7 +3,8 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ExpandingGallery, LayeredScrollStory } from "@mall/ui";
-import { RevealLifecycle, ScrollMotion, VideoPlaybackMotion } from "@mall/ui/motion";
+import { RevealLifecycle, ScrollMotion } from "@mall/ui/motion";
+import { responsiveImageProps } from "./responsive-images";
 
 import styles from "./homepage-v2.module.css";
 
@@ -14,7 +15,6 @@ export function Arrow() {
 export function HomeScrollStory({ hero, children }: { hero: ReactNode; children: ReactNode }) {
   return <>
     <ScrollMotion refreshKey="homepage-v2" revealSelector={`#main-content [data-ui-layered-surface] > section:not([aria-label]):not(#phan-khu):not(#gioi-thieu):not(.${styles.location})`}/>
-    <VideoPlaybackMotion selector={`.${styles.film} video`}/>
     <RevealLifecycle
       rootSelector="#main-content"
       entranceSelector={`.${styles.hero} [data-reveal]`}
@@ -54,7 +54,7 @@ const views = [
 export function OverviewGallery({ assetBase }: { assetBase: string }) {
   const [selected, setSelected] = useState(0);
   return <div className={styles.overviewGallery}>
-    <div className={styles.viewChoices} aria-label="Chọn góc nhìn dự án">{views.map((view, index) => <button key={view.title} aria-pressed={selected === index} aria-controls="project-view" onClick={() => setSelected(index)}><img src={`${assetBase}${view.path}`} alt="" loading="lazy" decoding="async"/><span>{view.title}</span></button>)}</div>
-    <figure id="project-view"><img src={`${assetBase}${views[selected].path}`} alt={views[selected].caption} width="2400" height="1350" loading="lazy" decoding="async"/><figcaption aria-live="polite">{views[selected].caption}</figcaption></figure>
+    <div className={styles.viewChoices} aria-label="Chọn góc nhìn dự án">{views.map((view, index) => <button key={view.title} aria-pressed={selected === index} aria-controls="project-view" onClick={() => setSelected(index)}><img {...responsiveImageProps(view.path, assetBase, "(max-width: 720px) 36vw, (max-width: 1340px) 29vw, 382px")} alt="" loading="lazy" decoding="async"/><span>{view.title}</span></button>)}</div>
+    <figure id="project-view"><img {...responsiveImageProps(views[selected].path, assetBase, "(max-width: 1340px) 88vw, 1180px")} alt={views[selected].caption} loading="lazy" decoding="async"/><figcaption aria-live="polite">{views[selected].caption}</figcaption></figure>
   </div>;
 }

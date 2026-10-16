@@ -1,14 +1,12 @@
 import { hashPassword, verifyPassword } from "@better-auth/utils/password";
 import { Pool } from "@neondatabase/serverless";
-import { readFile, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
 
 /**
  * Script cập nhật mật khẩu cho tài khoản root (hoặc bất kỳ tài khoản nào) trong Neon Auth.
- * Tự động gắn tiền tố PASSWORD_PREFIX từ .env trước khi hash bằng scrypt.
+ * Nạp ROOT_ADMIN_PASSWORD và PASSWORD_PREFIX từ .env.local qua npm command.
  *
  * Cách sử dụng:
- *   node --env-file=.env.root-admin.local scripts/set-root-password.mjs [email]
+ *   npm run auth:set-password -- root@legrandecentre.vn
  */
 
 const newPassword = process.env.ROOT_ADMIN_PASSWORD;
@@ -16,7 +14,7 @@ const email = (process.argv[2]?.trim() || process.env.ROOT_ADMIN_EMAIL || "root@
 
 if (!newPassword || newPassword.length < 8) {
   console.error("❌ Lỗi: Vui lòng cung cấp mật khẩu mới (tối thiểu 8 ký tự).");
-  console.error("👉 Ví dụ: node --env-file=.env.local scripts/set-root-password.mjs \"MatKhauMoi@2026\"");
+  console.error("Đặt ROOT_ADMIN_PASSWORD trong .env.local rồi chạy npm run auth:set-password.");
   process.exit(1);
 }
 
@@ -69,17 +67,6 @@ try {
 
   console.log(`✅ Cập nhật mật khẩu trong cơ sở dữ liệu thành công cho ${email}!`);
 
-  // Nếu là root account, đồng bộ file .env.root-admin.local
-  if (email === "root@legrandecentre.vn") {
-    try {
-      const rootEnvPath = resolve(process.cwd(), ".env.root-admin.local");
-      const content = `ROOT_ADMIN_EMAIL="${email}"\nROOT_ADMIN_PASSWORD="${newPassword}"\n`;
-      await writeFile(rootEnvPath, content, { encoding: "utf8", mode: 0o600 });
-      console.log(`📄 Đã lưu mật khẩu mới vào .env.root-admin.local (mode 0600)`);
-    } catch {
-      // Bỏ qua nếu không ghi được file local
-    }
-  }
 
   console.log(`\n🎉 XONG! Bạn có thể đăng nhập ngay với mật khẩu mới.`);
 } finally {

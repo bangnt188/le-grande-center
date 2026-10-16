@@ -1,5 +1,6 @@
 .frame[data-ui-theme] { background: var(--ui-color-canvas); color: var(--ui-color-text-primary); }
 .page { --reference-green: var(--ui-color-action); --reference-paper: var(--ui-color-canvas); --reference-muted: var(--ui-color-text-secondary); --reference-line: var(--ui-color-border); max-width: 1320px; margin: auto; padding: 32px clamp(20px, 4vw, 56px) 64px; background: var(--ui-color-canvas); color: var(--ui-color-text-primary); font-family: var(--ui-font-body); color-scheme: light; }
+.loadingState { display: grid; place-items: center; min-height: 65svh; padding: calc(var(--public-header-height, 88px) + 32px) 20px 48px; }
 .page ::selection { background: var(--ui-color-accent); color: var(--ui-color-accent-foreground); }
 .page a:focus-visible, .page button:focus-visible { outline: 2px solid var(--ui-color-focus); outline-offset: 4px; }
 .breadcrumb { font-size: var(--ui-font-size-sm); margin-bottom: 28px; padding-top: 56px; }

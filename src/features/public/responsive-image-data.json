@@ -1,0 +1,683 @@
+{
+  "/images/le-grande-aerial-context.webp": {
+    "width": 2400,
+    "height": 1350,
+    "previews": [
+      {
+        "path": "/images/responsive/images/le-grande-aerial-context-preview-160-8a3cfaea205f61d2.webp",
+        "width": 160,
+        "height": 90
+      },
+      {
+        "path": "/images/responsive/images/le-grande-aerial-context-preview-320-2e6b5096ef353ff2.webp",
+        "width": 320,
+        "height": 180
+      },
+      {
+        "path": "/images/responsive/images/le-grande-aerial-context-preview-480-88a5c422f66de41b.webp",
+        "width": 480,
+        "height": 270
+      },
+      {
+        "path": "/images/responsive/images/le-grande-aerial-context-preview-768-f5bff841158021f3.webp",
+        "width": 768,
+        "height": 432
+      },
+      {
+        "path": "/images/responsive/images/le-grande-aerial-context-preview-1080-4e775f384bce4f8c.webp",
+        "width": 1080,
+        "height": 607
+      },
+      {
+        "path": "/images/responsive/images/le-grande-aerial-context-preview-1440-e78113d7d965da32.webp",
+        "width": 1440,
+        "height": 810
+      },
+      {
+        "path": "/images/responsive/images/le-grande-aerial-context-preview-1920-c6902eda713dc11c.webp",
+        "width": 1920,
+        "height": 1080
+      },
+      {
+        "path": "/images/responsive/images/le-grande-aerial-context-preview-2400-d7f52d2f37e8b5ba.webp",
+        "width": 2400,
+        "height": 1350
+      }
+    ],
+    "thumbnails": [
+      {
+        "path": "/images/responsive/images/le-grande-aerial-context-thumbnail-64-dacf2b422982cf4e.webp",
+        "width": 64,
+        "height": 64
+      },
+      {
+        "path": "/images/responsive/images/le-grande-aerial-context-thumbnail-128-77ef709286bf0d46.webp",
+        "width": 128,
+        "height": 128
+      },
+      {
+        "path": "/images/responsive/images/le-grande-aerial-context-thumbnail-192-93b0a5dcb765cd07.webp",
+        "width": 192,
+        "height": 192
+      },
+      {
+        "path": "/images/responsive/images/le-grande-aerial-context-thumbnail-256-0d9f864ec635d988.webp",
+        "width": 256,
+        "height": 256
+      }
+    ]
+  },
+  "/images/le-grande-aerial-close.webp": {
+    "width": 2400,
+    "height": 1350,
+    "previews": [
+      {
+        "path": "/images/responsive/images/le-grande-aerial-close-preview-160-109b09bd961a6cdb.webp",
+        "width": 160,
+        "height": 90
+      },
+      {
+        "path": "/images/responsive/images/le-grande-aerial-close-preview-320-fbf5af86e880c9b5.webp",
+        "width": 320,
+        "height": 180
+      },
+      {
+        "path": "/images/responsive/images/le-grande-aerial-close-preview-480-91bac5dfd3874bf6.webp",
+        "width": 480,
+        "height": 270
+      },
+      {
+        "path": "/images/responsive/images/le-grande-aerial-close-preview-768-b242d0485380c289.webp",
+        "width": 768,
+        "height": 432
+      },
+      {
+        "path": "/images/responsive/images/le-grande-aerial-close-preview-1080-c88b88db53c257a6.webp",
+        "width": 1080,
+        "height": 607
+      },
+      {
+        "path": "/images/responsive/images/le-grande-aerial-close-preview-1440-e9f1cc6c9f60a2f0.webp",
+        "width": 1440,
+        "height": 810
+      },
+      {
+        "path": "/images/responsive/images/le-grande-aerial-close-preview-1920-a230e6156602abd9.webp",
+        "width": 1920,
+        "height": 1080
+      },
+      {
+        "path": "/images/responsive/images/le-grande-aerial-close-preview-2400-dfa5942f38bc772d.webp",
+        "width": 2400,
+        "height": 1350
+      }
+    ],
+    "thumbnails": [
+      {
+        "path": "/images/responsive/images/le-grande-aerial-close-thumbnail-64-68d34cd19a27d7ce.webp",
+        "width": 64,
+        "height": 64
+      },
+      {
+        "path": "/images/responsive/images/le-grande-aerial-close-thumbnail-128-ab072799431236a0.webp",
+        "width": 128,
+        "height": 128
+      },
+      {
+        "path": "/images/responsive/images/le-grande-aerial-close-thumbnail-192-968555a27cbcded5.webp",
+        "width": 192,
+        "height": 192
+      },
+      {
+        "path": "/images/responsive/images/le-grande-aerial-close-thumbnail-256-9b6191a0d96b59ef.webp",
+        "width": 256,
+        "height": 256
+      }
+    ]
+  },
+  "/images/home-v2/architecture-detail.jpg": {
+    "width": 1600,
+    "height": 900,
+    "previews": [
+      {
+        "path": "/images/responsive/images/home-v2/architecture-detail-preview-160-40973363a9d1c742.webp",
+        "width": 160,
+        "height": 90
+      },
+      {
+        "path": "/images/responsive/images/home-v2/architecture-detail-preview-320-5019caf2de360ee7.webp",
+        "width": 320,
+        "height": 180
+      },
+      {
+        "path": "/images/responsive/images/home-v2/architecture-detail-preview-480-700e44cf6c3e5037.webp",
+        "width": 480,
+        "height": 270
+      },
+      {
+        "path": "/images/responsive/images/home-v2/architecture-detail-preview-768-c6ebb058ecf7f7e1.webp",
+        "width": 768,
+        "height": 432
+      },
+      {
+        "path": "/images/responsive/images/home-v2/architecture-detail-preview-1080-44d34cb4c3c767ed.webp",
+        "width": 1080,
+        "height": 608
+      },
+      {
+        "path": "/images/responsive/images/home-v2/architecture-detail-preview-1440-6dacbe88ca54a610.webp",
+        "width": 1440,
+        "height": 810
+      },
+      {
+        "path": "/images/responsive/images/home-v2/architecture-detail-preview-1600-a46246cd089ae932.webp",
+        "width": 1600,
+        "height": 900
+      }
+    ],
+    "thumbnails": [
+      {
+        "path": "/images/responsive/images/home-v2/architecture-detail-thumbnail-64-ec86a997455cd0eb.webp",
+        "width": 64,
+        "height": 64
+      },
+      {
+        "path": "/images/responsive/images/home-v2/architecture-detail-thumbnail-128-77a37fa1a5c0ca40.webp",
+        "width": 128,
+        "height": 128
+      },
+      {
+        "path": "/images/responsive/images/home-v2/architecture-detail-thumbnail-192-1cabed8bf78f88cc.webp",
+        "width": 192,
+        "height": 192
+      },
+      {
+        "path": "/images/responsive/images/home-v2/architecture-detail-thumbnail-256-b89ef97922a7afd4.webp",
+        "width": 256,
+        "height": 256
+      }
+    ]
+  },
+  "/images/home-v2/facade-detail.jpg": {
+    "width": 1600,
+    "height": 900,
+    "previews": [
+      {
+        "path": "/images/responsive/images/home-v2/facade-detail-preview-160-f68c8771206e944e.webp",
+        "width": 160,
+        "height": 90
+      },
+      {
+        "path": "/images/responsive/images/home-v2/facade-detail-preview-320-7a8c8272e630880b.webp",
+        "width": 320,
+        "height": 180
+      },
+      {
+        "path": "/images/responsive/images/home-v2/facade-detail-preview-480-7500385bd559340a.webp",
+        "width": 480,
+        "height": 270
+      },
+      {
+        "path": "/images/responsive/images/home-v2/facade-detail-preview-768-b637b1273e24f046.webp",
+        "width": 768,
+        "height": 432
+      },
+      {
+        "path": "/images/responsive/images/home-v2/facade-detail-preview-1080-ada60ccaf768f6c9.webp",
+        "width": 1080,
+        "height": 608
+      },
+      {
+        "path": "/images/responsive/images/home-v2/facade-detail-preview-1440-1f3e8ce2fe5aa7bc.webp",
+        "width": 1440,
+        "height": 810
+      },
+      {
+        "path": "/images/responsive/images/home-v2/facade-detail-preview-1600-920031dffd9b4c68.webp",
+        "width": 1600,
+        "height": 900
+      }
+    ],
+    "thumbnails": [
+      {
+        "path": "/images/responsive/images/home-v2/facade-detail-thumbnail-64-2d21032987e15f45.webp",
+        "width": 64,
+        "height": 64
+      },
+      {
+        "path": "/images/responsive/images/home-v2/facade-detail-thumbnail-128-5aca726d6b36e354.webp",
+        "width": 128,
+        "height": 128
+      },
+      {
+        "path": "/images/responsive/images/home-v2/facade-detail-thumbnail-192-f014d3e0d2a69485.webp",
+        "width": 192,
+        "height": 192
+      },
+      {
+        "path": "/images/responsive/images/home-v2/facade-detail-thumbnail-256-ed7c957069863d58.webp",
+        "width": 256,
+        "height": 256
+      }
+    ]
+  },
+  "/images/home-v2/upper-detail.jpg": {
+    "width": 1600,
+    "height": 900,
+    "previews": [
+      {
+        "path": "/images/responsive/images/home-v2/upper-detail-preview-160-f2eb06cd38e266cf.webp",
+        "width": 160,
+        "height": 90
+      },
+      {
+        "path": "/images/responsive/images/home-v2/upper-detail-preview-320-6cad920c3abeb1f0.webp",
+        "width": 320,
+        "height": 180
+      },
+      {
+        "path": "/images/responsive/images/home-v2/upper-detail-preview-480-7842b38cf32eacf1.webp",
+        "width": 480,
+        "height": 270
+      },
+      {
+        "path": "/images/responsive/images/home-v2/upper-detail-preview-768-2807ec35c7307248.webp",
+        "width": 768,
+        "height": 432
+      },
+      {
+        "path": "/images/responsive/images/home-v2/upper-detail-preview-1080-4317dc5751f41e30.webp",
+        "width": 1080,
+        "height": 608
+      },
+      {
+        "path": "/images/responsive/images/home-v2/upper-detail-preview-1440-ab0be0350a358211.webp",
+        "width": 1440,
+        "height": 810
+      },
+      {
+        "path": "/images/responsive/images/home-v2/upper-detail-preview-1600-868c737eee8efaa9.webp",
+        "width": 1600,
+        "height": 900
+      }
+    ],
+    "thumbnails": [
+      {
+        "path": "/images/responsive/images/home-v2/upper-detail-thumbnail-64-5adaeaf292bd60dd.webp",
+        "width": 64,
+        "height": 64
+      },
+      {
+        "path": "/images/responsive/images/home-v2/upper-detail-thumbnail-128-876cae55d61b9a9e.webp",
+        "width": 128,
+        "height": 128
+      },
+      {
+        "path": "/images/responsive/images/home-v2/upper-detail-thumbnail-192-3597f487f8c0747a.webp",
+        "width": 192,
+        "height": 192
+      },
+      {
+        "path": "/images/responsive/images/home-v2/upper-detail-thumbnail-256-0aafd79031b20ca7.webp",
+        "width": 256,
+        "height": 256
+      }
+    ]
+  },
+  "/images/home-v2/introduction.webp": {
+    "width": 1121,
+    "height": 631,
+    "previews": [
+      {
+        "path": "/images/responsive/images/home-v2/introduction-preview-160-9911ed4d7685bd33.webp",
+        "width": 160,
+        "height": 90
+      },
+      {
+        "path": "/images/responsive/images/home-v2/introduction-preview-320-30bd431cf4cebe5a.webp",
+        "width": 320,
+        "height": 180
+      },
+      {
+        "path": "/images/responsive/images/home-v2/introduction-preview-480-087735fbf72b0405.webp",
+        "width": 480,
+        "height": 270
+      },
+      {
+        "path": "/images/responsive/images/home-v2/introduction-preview-768-d17a82c993764ef9.webp",
+        "width": 768,
+        "height": 432
+      },
+      {
+        "path": "/images/responsive/images/home-v2/introduction-preview-1080-e75474977eea4071.webp",
+        "width": 1080,
+        "height": 608
+      },
+      {
+        "path": "/images/responsive/images/home-v2/introduction-preview-1121-b2643e4e0e70b22f.webp",
+        "width": 1121,
+        "height": 631
+      }
+    ],
+    "thumbnails": [
+      {
+        "path": "/images/responsive/images/home-v2/introduction-thumbnail-64-8f1d483e85c05437.webp",
+        "width": 64,
+        "height": 64
+      },
+      {
+        "path": "/images/responsive/images/home-v2/introduction-thumbnail-128-dd585ef0747aef54.webp",
+        "width": 128,
+        "height": 128
+      },
+      {
+        "path": "/images/responsive/images/home-v2/introduction-thumbnail-192-d9a2e204ca3deefa.webp",
+        "width": 192,
+        "height": 192
+      },
+      {
+        "path": "/images/responsive/images/home-v2/introduction-thumbnail-256-da2cafee5fe0c3ae.webp",
+        "width": 256,
+        "height": 256
+      }
+    ]
+  },
+  "/images/home-v2/hero.webp": {
+    "width": 1842,
+    "height": 854,
+    "previews": [
+      {
+        "path": "/images/responsive/images/home-v2/hero-preview-160-430f7b294e761a9f.webp",
+        "width": 160,
+        "height": 74
+      },
+      {
+        "path": "/images/responsive/images/home-v2/hero-preview-320-348040065bb4b1de.webp",
+        "width": 320,
+        "height": 148
+      },
+      {
+        "path": "/images/responsive/images/home-v2/hero-preview-480-e42ddf9b54f49692.webp",
+        "width": 480,
+        "height": 223
+      },
+      {
+        "path": "/images/responsive/images/home-v2/hero-preview-768-8739a2e257da0617.webp",
+        "width": 768,
+        "height": 356
+      },
+      {
+        "path": "/images/responsive/images/home-v2/hero-preview-1080-4a127f5bdd176713.webp",
+        "width": 1080,
+        "height": 501
+      },
+      {
+        "path": "/images/responsive/images/home-v2/hero-preview-1440-bfababf746fd4078.webp",
+        "width": 1440,
+        "height": 668
+      },
+      {
+        "path": "/images/responsive/images/home-v2/hero-preview-1842-7f2e32925b189048.webp",
+        "width": 1842,
+        "height": 854
+      }
+    ],
+    "thumbnails": [
+      {
+        "path": "/images/responsive/images/home-v2/hero-thumbnail-64-79b9670881879e5e.webp",
+        "width": 64,
+        "height": 64
+      },
+      {
+        "path": "/images/responsive/images/home-v2/hero-thumbnail-128-d0d18a30c75518c7.webp",
+        "width": 128,
+        "height": 128
+      },
+      {
+        "path": "/images/responsive/images/home-v2/hero-thumbnail-192-dbd5f214c36bd76c.webp",
+        "width": 192,
+        "height": 192
+      },
+      {
+        "path": "/images/responsive/images/home-v2/hero-thumbnail-256-022abd4be400264b.webp",
+        "width": 256,
+        "height": 256
+      }
+    ],
+    "mobileHero": [
+      {
+        "path": "/images/responsive/images/home-v2/hero-mobile-hero-480-eb8e3ae4dd4fc55a.webp",
+        "width": 480,
+        "height": 460
+      },
+      {
+        "path": "/images/responsive/images/home-v2/hero-mobile-hero-720-5f77821e8b9ec5f4.webp",
+        "width": 720,
+        "height": 690
+      },
+      {
+        "path": "/images/responsive/images/home-v2/hero-mobile-hero-891-18e47854e0b6e048.webp",
+        "width": 891,
+        "height": 854
+      }
+    ]
+  },
+  "/images/home-v2/reasons-background.webp": {
+    "width": 1147,
+    "height": 488,
+    "previews": [
+      {
+        "path": "/images/responsive/images/home-v2/reasons-background-preview-160-74a3195866955f73.webp",
+        "width": 160,
+        "height": 68
+      },
+      {
+        "path": "/images/responsive/images/home-v2/reasons-background-preview-320-c55c9cf1fb985345.webp",
+        "width": 320,
+        "height": 136
+      },
+      {
+        "path": "/images/responsive/images/home-v2/reasons-background-preview-480-dc08d45ce9271c9a.webp",
+        "width": 480,
+        "height": 204
+      },
+      {
+        "path": "/images/responsive/images/home-v2/reasons-background-preview-768-53375323c2d26d3d.webp",
+        "width": 768,
+        "height": 327
+      },
+      {
+        "path": "/images/responsive/images/home-v2/reasons-background-preview-1080-8ad02c8b2eda1d98.webp",
+        "width": 1080,
+        "height": 459
+      },
+      {
+        "path": "/images/responsive/images/home-v2/reasons-background-preview-1147-5344244d00a1407b.webp",
+        "width": 1147,
+        "height": 488
+      }
+    ],
+    "thumbnails": []
+  },
+  "/images/home-v2/floor-base.webp": {
+    "width": 1440,
+    "height": 960,
+    "previews": [
+      {
+        "path": "/images/responsive/images/home-v2/floor-base-preview-480-4a8ebd67a9c2b865.webp",
+        "width": 480,
+        "height": 320
+      },
+      {
+        "path": "/images/responsive/images/home-v2/floor-base-preview-768-2c1bba1c3994026e.webp",
+        "width": 768,
+        "height": 512
+      },
+      {
+        "path": "/images/responsive/images/home-v2/floor-base-preview-1080-c0a8e84226a2a0aa.webp",
+        "width": 1080,
+        "height": 720
+      },
+      {
+        "path": "/images/responsive/images/home-v2/floor-base-preview-1440-faf1f86b92513302.webp",
+        "width": 1440,
+        "height": 960
+      }
+    ],
+    "thumbnails": []
+  },
+  "/images/home-v2/floor-middle.webp": {
+    "width": 1440,
+    "height": 960,
+    "previews": [
+      {
+        "path": "/images/responsive/images/home-v2/floor-middle-preview-480-5e0ae0dedf409cd4.webp",
+        "width": 480,
+        "height": 320
+      },
+      {
+        "path": "/images/responsive/images/home-v2/floor-middle-preview-768-6edb1c8d190ffbb6.webp",
+        "width": 768,
+        "height": 512
+      },
+      {
+        "path": "/images/responsive/images/home-v2/floor-middle-preview-1080-4e83e46cc59d56bd.webp",
+        "width": 1080,
+        "height": 720
+      },
+      {
+        "path": "/images/responsive/images/home-v2/floor-middle-preview-1440-9b1d8914707b6c00.webp",
+        "width": 1440,
+        "height": 960
+      }
+    ],
+    "thumbnails": []
+  },
+  "/images/home-v2/floor-roof.webp": {
+    "width": 1440,
+    "height": 960,
+    "previews": [
+      {
+        "path": "/images/responsive/images/home-v2/floor-roof-preview-480-fd219b82a0fbaf1b.webp",
+        "width": 480,
+        "height": 320
+      },
+      {
+        "path": "/images/responsive/images/home-v2/floor-roof-preview-768-10016594eebc1a38.webp",
+        "width": 768,
+        "height": 512
+      },
+      {
+        "path": "/images/responsive/images/home-v2/floor-roof-preview-1080-41d66df4314f4a98.webp",
+        "width": 1080,
+        "height": 720
+      },
+      {
+        "path": "/images/responsive/images/home-v2/floor-roof-preview-1440-b267897143109a77.webp",
+        "width": 1440,
+        "height": 960
+      }
+    ],
+    "thumbnails": []
+  },
+  "/client-reference/canva/project-perspective.jpg": {
+    "width": 1400,
+    "height": 788,
+    "previews": [
+      {
+        "path": "/images/responsive/client-reference/canva/project-perspective-preview-160-e7b6e184c32d5fdc.webp",
+        "width": 160,
+        "height": 90
+      },
+      {
+        "path": "/images/responsive/client-reference/canva/project-perspective-preview-320-9beb671e4f707d0a.webp",
+        "width": 320,
+        "height": 180
+      },
+      {
+        "path": "/images/responsive/client-reference/canva/project-perspective-preview-480-1f07199a28fffa8e.webp",
+        "width": 480,
+        "height": 270
+      },
+      {
+        "path": "/images/responsive/client-reference/canva/project-perspective-preview-768-5e2a222d6d0b996f.webp",
+        "width": 768,
+        "height": 432
+      },
+      {
+        "path": "/images/responsive/client-reference/canva/project-perspective-preview-1080-a704e2cfdfa29ae9.webp",
+        "width": 1080,
+        "height": 608
+      },
+      {
+        "path": "/images/responsive/client-reference/canva/project-perspective-preview-1400-cf131dca8cf0e82e.webp",
+        "width": 1400,
+        "height": 788
+      }
+    ],
+    "thumbnails": [
+      {
+        "path": "/images/responsive/client-reference/canva/project-perspective-thumbnail-64-edd9ea74224fe805.webp",
+        "width": 64,
+        "height": 64
+      },
+      {
+        "path": "/images/responsive/client-reference/canva/project-perspective-thumbnail-128-0af79caab352bde7.webp",
+        "width": 128,
+        "height": 128
+      },
+      {
+        "path": "/images/responsive/client-reference/canva/project-perspective-thumbnail-192-e6bce2fd624f6e6e.webp",
+        "width": 192,
+        "height": 192
+      },
+      {
+        "path": "/images/responsive/client-reference/canva/project-perspective-thumbnail-256-4598702a7640b1d7.webp",
+        "width": 256,
+        "height": 256
+      }
+    ]
+  },
+  "/client-reference/legacy/letter-background.jpg": {
+    "width": 1920,
+    "height": 1280,
+    "previews": [
+      {
+        "path": "/images/responsive/client-reference/legacy/letter-background-preview-160-e5a5edb79f43a12a.webp",
+        "width": 160,
+        "height": 107
+      },
+      {
+        "path": "/images/responsive/client-reference/legacy/letter-background-preview-320-f84f0664576fa232.webp",
+        "width": 320,
+        "height": 213
+      },
+      {
+        "path": "/images/responsive/client-reference/legacy/letter-background-preview-480-542b228406f4cd7c.webp",
+        "width": 480,
+        "height": 320
+      },
+      {
+        "path": "/images/responsive/client-reference/legacy/letter-background-preview-768-0094c0067ca76f5c.webp",
+        "width": 768,
+        "height": 512
+      },
+      {
+        "path": "/images/responsive/client-reference/legacy/letter-background-preview-1080-8bf85eca86bf6cf0.webp",
+        "width": 1080,
+        "height": 720
+      },
+      {
+        "path": "/images/responsive/client-reference/legacy/letter-background-preview-1440-cd7aab4b9fd0fecf.webp",
+        "width": 1440,
+        "height": 960
+      },
+      {
+        "path": "/images/responsive/client-reference/legacy/letter-background-preview-1920-7470d25fb7e8686d.webp",
+        "width": 1920,
+        "height": 1280
+      }
+    ],
+    "thumbnails": []
+  }
+}

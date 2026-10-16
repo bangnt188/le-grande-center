@@ -14,6 +14,7 @@ import { StorageUsagePanel } from "./storage-usage-panel";
 import { WebsiteSettingsPanel } from "./website-settings-panel";
 import { StaffAccountsPanel } from "./staff-accounts-panel";
 import { BUSINESS_OPTIONS, AREA_OPTIONS, TIMING_OPTIONS } from "@/features/contact/contact-model";
+import { CollectionFeedback, CompanyPicker, useAdminCollection, useAdminRecord } from "./admin-collections";
 
 type Props = { data: AdminData; onMessage: (message: string, tone?: ToastTone) => void };
 const field = (form: FormData, name: string) => String(form.get(name) ?? "").trim();
@@ -24,16 +25,38 @@ export function LeadsWorkspace({ data, onFloor, onMessage }: Props & { onFloor: 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editing, setEditing] = useState<Lead | "new" | null>(null);
   const details = useRecordDetail("leads");
-  const rows = data.leads.filter(item => (!filter || item.status === filter) && `${item.name} ${item.interest} ${item.email ?? ""} ${item.phone ?? ""} ${item.source} ${data.companies.find(company => company.id === item.companyId)?.name ?? ""}`.toLocaleLowerCase("vi").includes(query.trim().toLocaleLowerCase("vi")));
-  const pages = useAdminPagination(rows, `${query}|${filter}`);
-  const lead = rows.find(item => item.id === selectedId) ?? rows[0];
+  const pages = useAdminCollection(data, "leads", { query, status: filter });
+  const selected = useAdminRecord(data, "leads", selectedId);
+  const lead = selectedId ? selected.item : pages.rows[0];
+  const company = useAdminRecord(data, "companies", lead?.companyId);
   const original = editing && editing !== "new" ? editing : undefined;
+  const contact = lead?.contactDetails;
   return <div ref={details.scopeRef} className={styles.workspace}>
     <div className={styles.toolbar}><p>Ghi nhận và theo dõi nhu cầu tư vấn. Thông tin được lưu trên hệ thống nội bộ, bao gồm yêu cầu gửi từ website.</p><Button disabled={data.pending} onClick={() => setEditing("new")}>Thêm khách quan tâm</Button></div>
+    <CollectionFeedback state={pages}/><CollectionFeedback state={selected}/><CollectionFeedback state={company}/>
     <WorkspaceLayout className={`records-layout ${styles.layout}`} mobilePresentation="drilldown" detailOpen={details.open} onDetailOpenChange={details.setOpen} returnFocusRef={details.returnFocusRef} detailLabel="Chi tiết khách quan tâm" backLabel="Quay lại danh sách khách" primary={<AdminPanel className="records-panel">
-      <div className="register-heading"><h2>Khách quan tâm</h2><div className={styles.filters}><label><span className="sr-only">Tìm khách quan tâm</span><Input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Tìm tên, liên hệ, nhu cầu…"/></label><label><span className="sr-only">Lọc trạng thái tư vấn</span><Select value={filter} onChange={event => setFilter(event.target.value)}><option value="">Tất cả trạng thái</option>{LEAD_STATUSES.map(status => <option key={status}>{status}</option>)}</Select></label></div></div>
-      <PaginatedContent layoutKey={pages.pageSize}><div className={styles.list}>{pages.rows.map(item => <Button key={item.id} variant="quiet" className={styles.row} aria-pressed={lead?.id === item.id} onClick={event => { setSelectedId(item.id); details.openDetail("leads", event.currentTarget); }}><span className="lead-avatar">{item.initials}</span><span className={styles.rowText}><strong>{item.name}</strong><span>{item.interest}</span><small>{item.source} · Tầng {item.floor}</small><Badge tone={item.status === "Đã xử lý" ? "success" : item.status === "Mới" ? "warning" : "action"}>{item.status}</Badge></span></Button>)}</div>{!rows.length && <EmptyState title="Không có khách phù hợp" action={<Button variant="quiet" onClick={() => { setQuery(""); setFilter(""); }}>Xóa bộ lọc</Button>}>Thêm khách quan tâm hoặc điều chỉnh tìm kiếm.</EmptyState>}</PaginatedContent><AdminPagination state={pages} label="khách quan tâm"/>
-    </AdminPanel>} detail={<AdminPanel className={`records-panel ${styles.detail}`}>{lead ? <><div className={styles.heading}><h2>{lead.name}</h2><Badge tone={lead.status === "Đã xử lý" ? "success" : "neutral"}>{lead.status}</Badge></div><dl className={styles.facts}><dt>Mã hồ sơ</dt><dd>{lead.id}</dd><dt>Nhu cầu</dt><dd>{lead.interest}</dd><dt>Doanh nghiệp</dt><dd>{data.companies.find(company => company.id === lead.companyId)?.name ?? "Chưa liên kết"}</dd>{lead.contactDetails && <><dt>Loại yêu cầu website</dt><dd>{lead.contactDetails.intent === "visit" ? "Đề nghị tham quan · chưa xác nhận" : lead.contactDetails.intent === "callback" ? "Yêu cầu gọi lại" : "Yêu cầu tư vấn"}</dd><dt>Doanh nghiệp khách cung cấp</dt><dd>{lead.contactDetails.company || "Chưa cung cấp"}</dd><dt>Loại hình</dt><dd>{BUSINESS_OPTIONS.find(item => item.value === lead.contactDetails?.business)?.label || lead.contactDetails.business || "Cần tư vấn"}</dd><dt>Diện tích quan tâm</dt><dd>{AREA_OPTIONS.find(item => item.value === lead.contactDetails?.area)?.label || lead.contactDetails.area || "Chưa cung cấp"}</dd><dt>Thời gian dự kiến</dt><dd>{TIMING_OPTIONS.find(item => item.value === lead.contactDetails?.timing)?.label || lead.contactDetails.timing || "Chưa cung cấp"}</dd><dt>Mặt bằng quan tâm</dt><dd>{lead.contactDetails.space || "Chưa chọn"}{lead.contactDetails.scope === "pair" && " · Kết hợp cặp shophouse"}</dd>{lead.contactDetails.intent === "visit" && <><dt>Ngày tham quan mong muốn</dt><dd>{lead.contactDetails.visitDate || "Chưa cung cấp"}</dd><dt>Buổi tham quan mong muốn</dt><dd>{lead.contactDetails.visitTime === "morning" ? "Buổi sáng" : lead.contactDetails.visitTime === "afternoon" ? "Buổi chiều" : "Chưa cung cấp"}</dd></>}</>}<dt>Email</dt><dd>{lead.email || "Chưa cung cấp"}</dd><dt>Điện thoại</dt><dd>{lead.phone || "Chưa cung cấp"}</dd><dt>Nguồn</dt><dd>{lead.source}</dd><dt>Ghi nhận</dt><dd>{lead.time}</dd><dt>Ghi chú</dt><dd className={styles.note}>{lead.note || "Chưa có ghi chú"}</dd></dl><div className={styles.actions}><Button disabled={data.pending} onClick={() => setEditing(lead)}>Sửa thông tin</Button><Button variant="secondary" onClick={() => onFloor(lead.floor)}>Xem tầng {lead.floor}</Button></div></> : <EmptyState title="Chưa có hồ sơ">Chọn hoặc thêm khách quan tâm để xem chi tiết.</EmptyState>}</AdminPanel>}/>
+      <div className="register-heading"><h2>Khách quan tâm</h2><div className={styles.filters}>
+        <label><span className="sr-only">Tìm khách quan tâm</span><Input type="search" maxLength={200} value={query} onChange={event => setQuery(event.target.value)} placeholder="Tìm tên, liên hệ, nhu cầu…"/></label>
+        <label><span className="sr-only">Lọc trạng thái tư vấn</span><Select value={filter} onChange={event => setFilter(event.target.value)}><option value="">Tất cả trạng thái</option>{LEAD_STATUSES.map(status => <option key={status}>{status}</option>)}</Select></label>
+      </div></div>
+      <PaginatedContent layoutKey={pages.pageSize}><div className={styles.list}>{pages.rows.map(item => <Button key={item.id} variant="quiet" className={styles.row} aria-pressed={lead?.id === item.id} onClick={event => { setSelectedId(item.id); details.openDetail("leads", event.currentTarget); }}>
+        <span className="lead-avatar">{item.initials}</span><span className={styles.rowText}><strong>{item.name}</strong><span>{item.interest}</span><small>{item.source} · Tầng {item.floor}</small><Badge tone={item.status === "Đã xử lý" ? "success" : item.status === "Mới" ? "warning" : "action"}>{item.status}</Badge></span>
+      </Button>)}</div>{!pages.loading && !pages.error && !pages.rows.length && <EmptyState title="Không có khách phù hợp" action={<Button variant="quiet" onClick={() => { setQuery(""); setFilter(""); }}>Xóa bộ lọc</Button>}>Thêm khách quan tâm hoặc điều chỉnh tìm kiếm.</EmptyState>}</PaginatedContent><AdminPagination state={pages} label="khách quan tâm"/>
+    </AdminPanel>} detail={<AdminPanel className={`records-panel ${styles.detail}`}>{lead ? <>
+      <div className={styles.heading}><h2>{lead.name}</h2><Badge tone={lead.status === "Đã xử lý" ? "success" : "neutral"}>{lead.status}</Badge></div>
+      <dl className={styles.facts}><dt>Mã hồ sơ</dt><dd>{lead.id}</dd><dt>Nhu cầu</dt><dd>{lead.interest}</dd><dt>Doanh nghiệp</dt><dd>{company.item?.name ?? (lead.companyId ? company.loading ? "Đang tải doanh nghiệp…" : `Chưa tải được hồ sơ (${lead.companyId})` : "Chưa liên kết")}</dd>
+        {contact && <>
+          <dt>Loại yêu cầu website</dt><dd>{contact.intent === "visit" ? "Đề nghị tham quan · chưa xác nhận" : contact.intent === "callback" ? "Yêu cầu gọi lại" : "Yêu cầu tư vấn"}</dd>
+          <dt>Doanh nghiệp khách cung cấp</dt><dd>{contact.company || "Chưa cung cấp"}</dd>
+          <dt>Loại hình</dt><dd>{BUSINESS_OPTIONS.find(item => item.value === contact.business)?.label || contact.business || "Cần tư vấn"}</dd>
+          <dt>Diện tích quan tâm</dt><dd>{AREA_OPTIONS.find(item => item.value === contact.area)?.label || contact.area || "Chưa cung cấp"}</dd>
+          <dt>Thời gian dự kiến</dt><dd>{TIMING_OPTIONS.find(item => item.value === contact.timing)?.label || contact.timing || "Chưa cung cấp"}</dd>
+          <dt>Mặt bằng quan tâm</dt><dd>{contact.space || "Chưa chọn"}{contact.scope === "pair" && " · Kết hợp cặp shophouse"}</dd>
+          {contact.intent === "visit" && <><dt>Ngày tham quan mong muốn</dt><dd>{contact.visitDate || "Chưa cung cấp"}</dd><dt>Buổi tham quan mong muốn</dt><dd>{contact.visitTime === "morning" ? "Buổi sáng" : contact.visitTime === "afternoon" ? "Buổi chiều" : "Chưa cung cấp"}</dd></>}
+        </>}
+        <dt>Email</dt><dd>{lead.email || "Chưa cung cấp"}</dd><dt>Điện thoại</dt><dd>{lead.phone || "Chưa cung cấp"}</dd><dt>Nguồn</dt><dd>{lead.source}</dd><dt>Ghi nhận</dt><dd>{lead.time}</dd><dt>Ghi chú</dt><dd className={styles.note}>{lead.note || "Chưa có ghi chú"}</dd>
+      </dl><div className={styles.actions}><Button disabled={data.pending || selected.loading} onClick={() => setEditing(lead)}>Sửa thông tin</Button><Button variant="secondary" onClick={() => onFloor(lead.floor)}>Xem tầng {lead.floor}</Button></div>
+    </> : !selected.loading && !selected.error && <EmptyState title="Chưa có hồ sơ">Chọn hoặc thêm khách quan tâm để xem chi tiết.</EmptyState>}</AdminPanel>}/>
     {editing && <AdminEditor data={data} title={original ? `Sửa khách ${original.name}` : "Thêm khách quan tâm"} description="Lưu hồ sơ tư vấn nội bộ; không tạo giữ chỗ hoặc hợp đồng." onClose={() => setEditing(null)} onSave={async form => {
       const floor = FLOORS.find(value => value === Number(form.get("floor")));
       const status = LEAD_STATUSES.find(value => value === field(form, "status"));
@@ -41,7 +64,17 @@ export function LeadsWorkspace({ data, onFloor, onMessage }: Props & { onFloor: 
       const saved = await data.execute({ type: "save-lead", leadId: original?.id, values: { name: field(form, "name"), interest: field(form, "interest"), floor, source: field(form, "source"), status, note: field(form, "note"), companyId: field(form, "companyId") || undefined, email: field(form, "email") || undefined, phone: field(form, "phone") || undefined } });
       if (saved) onMessage("Đã lưu khách quan tâm trên hệ thống.");
       return saved;
-    }}><label>Tên khách<Input name="name" required maxLength={100} defaultValue={original?.name}/></label><label>Doanh nghiệp (không bắt buộc)<Select name="companyId" defaultValue={original?.companyId ?? ""}><option value="">Chưa liên kết</option>{data.companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}</Select></label><label>Email (không bắt buộc)<Input name="email" type="email" maxLength={254} defaultValue={original?.email}/></label><label>Điện thoại (không bắt buộc)<Input name="phone" type="tel" maxLength={32} defaultValue={original?.phone}/></label><label>Nhu cầu<Input name="interest" required maxLength={160} defaultValue={original?.interest}/></label><label>Tầng quan tâm<Select name="floor" defaultValue={original?.floor ?? 1}>{FLOORS.map(floor => <option key={floor} value={floor}>Tầng {floor}</option>)}</Select></label><label>Nguồn tiếp nhận<Input name="source" required maxLength={80} defaultValue={original?.source}/></label><label>Trạng thái<Select name="status" defaultValue={original?.status ?? "Mới"}>{LEAD_STATUSES.map(status => <option key={status}>{status}</option>)}</Select></label><label>Ghi chú<Textarea name="note" rows={4} maxLength={2000} defaultValue={original?.note}/></label></AdminEditor>}
+    }}>
+      <label>Tên khách<Input name="name" required maxLength={100} defaultValue={original?.name}/></label>
+      <CompanyPicker data={data} name="companyId" label="Doanh nghiệp (không bắt buộc)" defaultValue={original?.companyId ?? ""} emptyLabel="Chưa liên kết"/>
+      <label>Email (không bắt buộc)<Input name="email" type="email" maxLength={254} defaultValue={original?.email}/></label>
+      <label>Điện thoại (không bắt buộc)<Input name="phone" type="tel" maxLength={32} defaultValue={original?.phone}/></label>
+      <label>Nhu cầu<Input name="interest" required maxLength={160} defaultValue={original?.interest}/></label>
+      <label>Tầng quan tâm<Select name="floor" defaultValue={original?.floor ?? 1}>{FLOORS.map(floor => <option key={floor} value={floor}>Tầng {floor}</option>)}</Select></label>
+      <label>Nguồn tiếp nhận<Input name="source" required maxLength={80} defaultValue={original?.source}/></label>
+      <label>Trạng thái<Select name="status" defaultValue={original?.status ?? "Mới"}>{LEAD_STATUSES.map(status => <option key={status}>{status}</option>)}</Select></label>
+      <label>Ghi chú<Textarea name="note" rows={4} maxLength={2000} defaultValue={original?.note}/></label>
+    </AdminEditor>}
   </div>;
 }
 

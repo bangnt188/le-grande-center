@@ -2,9 +2,9 @@
 
 ## Runtime hiện tại
 
-Mall dùng Neon PostgreSQL thật qua `@neondatabase/serverless` Pool. `src/server/database.ts` tạo pool theo request, pin client trong transaction, `SET LOCAL ROLE leasing_runtime` và actor context; không giữ socket xuyên Worker requests. Workspace ghi quan hệ với property lock, revision CAS, idempotency receipts, audit và RLS. `AdminSnapshot` là DTO đọc, không phải persistence format.
+Mall dùng Neon PostgreSQL thật qua `@neondatabase/serverless`. Admin/write dùng Pool: `src/server/database.ts` tạo pool theo request, pin client trong transaction, `SET LOCAL ROLE leasing_runtime` và actor context; không giữ socket xuyên Worker requests. Public uncached reader trong `src/server/public-data.ts` dùng một HTTP transaction bốn statement và projection riêng, cùng role/actor/property share lock; không thay transport của interactive writes. Public render cache không phải nguồn dữ liệu cho authorization/intake. Workspace giữ property lock, revision CAS, idempotency receipts, audit và RLS; `AdminSnapshot` là DTO đọc, không phải persistence format.
 
-`database/schema.sql` là baseline; `database/migrations/001`–`004` là incremental evolution có hash tracking. Đã áp dụng trên stage2, regression disposable và backend production. Production seed gồm 6 tầng/81 căn brochure được duyệt, configured owner allowlist và verified Neon logo, không giả customer/contract/financials. Frontend production chưa deploy/cutover. Migration operator-only qua `npm run db:migrate`, direct URL, không pooler và không bước build. Xem [database guide](../database/README.md).
+`database/schema.sql` là baseline; migrations **001–009** có hash tracking đã áp dụng trên Neon branch duy nhất **`production` (`br-tiny-butterfly-b3uuw92p`)** sau reset owner duyệt ngày 15/10/2026. Local `.env.local` và Worker hiện có cùng dùng production; hậu tố `stage2` trong tên Worker/cache chỉ là định danh resource lịch sử, không là DB thứ hai. Catalog approved 6 tầng/81 căn, root allowlist và verified Neon logo được giữ/khôi phục, business data cũ đã xóa; provider Auth/storage giữ nguyên, Auth chỉ root. Snapshot/private backup xem [database guide](../database/README.md). Migration operator-only qua `npm run db:migrate` nạp `.env.local`, direct `DATABASE_URL_UNPOOLED`, không bước build/deploy. Regression DB dùng owned disposable local PostgreSQL, không tạo Neon branch.
 
 ## Đổi provider
 
@@ -20,11 +20,11 @@ Mall dùng Neon PostgreSQL thật qua `@neondatabase/serverless` Pool. `src/serv
 3. Copy object bytes R2/Neon theo stable object keys/catalog. Verify bytes/size/hash; chuyển metadata provider/bucket/key/visibility/review/retention có audit. Không lưu/copy presigned URLs như locator.
 4. Cấu hình runtime secrets và public URLs mới; kiểm tra authorized/private/public projection. **Không import/export opaque browser snapshots** và không tạo demo data khi DB lỗi.
 
-Provider credentials và API quản trị không phải browser SQL credential. Tách runtime/migration URL/role theo môi trường; không đưa DB URL vào `NEXT_PUBLIC_*` hoặc bundle. Migrations/restore là operator action, không CI build/deploy tự động.
+Provider credentials và API quản trị không phải browser SQL credential. Giữ pooled runtime URL và direct migration URL đúng cùng production branch; local loader ghi đè inherited shell values bằng `.env.local`. Không đưa DB URL vào `NEXT_PUBLIC_*` hoặc bundle. Migrations/restore là operator action, không CI build/deploy tự động. `npm run deploy` là deployment duy nhất tới Worker hiện có; không deploy aliases hoặc profile khác.
 
 ## Giới hạn đã biết
 
-Native Cloudflare Worker → Neon S3/Functions hiện 403 HTML trước provider, Node requests được; đây không phải lỗi SQL portability đã được giải quyết. Local real-cloud runtime không chứng minh all-Worker media ready. Frontend production chưa deploy/cutover, domain/DNS do người dùng hoãn. [Readiness](backend-readiness.md) ghi bằng chứng và giới hạn riêng; không có live cloud verification mới trong lần chỉnh docs này.
+Các probe trước đây ghi nhận native Cloudflare Worker → Neon S3/Functions 403 HTML trước provider, Node requests được; đây không phải lỗi SQL portability đã được giải quyết. Local real-cloud runtime không chứng minh all-Worker media ready. Worker hiện có đã dùng production backend duy nhất; custom-domain/DNS vẫn do người dùng hoãn. [Readiness](backend-readiness.md) tách bằng chứng lịch sử, trạng thái sau reset và cache/performance đang chẩn đoán; không có live cloud verification mới trong lần chỉnh docs này.
 
 ## Nguồn chính thức
 

@@ -24,6 +24,7 @@ import { AdminPanel, PaginatedContent, ConfirmDialog, Button, Input, Select, Che
 import { AdminNotificationsProvider, useAdminNotifications } from "@/features/admin/admin-notifications";
 import { AdminPagination, useAdminPagination } from "@/features/admin/admin-pagination";
 import type { B2BView } from "./b2b-workspace";
+import { useAdminCollection } from "@/features/admin/admin-collections";
 
 type View = "slot" | "floors" | "tenants" | "spaces" | "leads" | "media" | "settings" | B2BView;
 type IconName = "plan" | "people" | "media" | "arrow" | "search" | "check" | "merge" | "split" | "file" | "close" | "menu" | "calendar" | "request";
@@ -64,10 +65,11 @@ function AdminWorkspaceContent({ canManageAccounts }: { canManageAccounts: boole
   const [recordEntry, setRecordEntry] = useState<SlotRecordEntry | undefined>();
   const [floor, setFloor] = useState<Floor>(2);
   const admin = useAdminData();
+  const newLeads = useAdminCollection(admin, "leads", { status: "Mới" }, true, 1);
   const details = useRecordDetail(view);
-  const notes = useCompanyNotes(admin.companies, admin.execute, admin.hasUnsavedDrafts);
+  const notes = useCompanyNotes(admin.execute, admin.hasUnsavedDrafts);
   const dialogContainer = useRef<HTMLDivElement>(null);
-  const { slots, groups, leads, pending, loading, error, execute, reload } = admin;
+  const { slots, groups, pending, loading, error, execute, reload } = admin;
   const [selected, setSelected] = useState<string[]>([]);
   const [groupName, setGroupName] = useState("");
   const [spaceDirty, setSpaceDirty] = useState(false);
@@ -223,7 +225,7 @@ function AdminWorkspaceContent({ canManageAccounts }: { canManageAccounts: boole
       router.replace("/admin/"); router.refresh();
     } catch (issue) { setMessage(issue instanceof Error ? issue.message : "Không thể đăng xuất.", "error"); }
   }
-  const navigation: AdminNavigationItem[] = primaryViews.map(item => ({ id: item, label: labels[item], group: item === "floors" || item === "spaces" ? "Mặt bằng" : item === "media" ? "Tài nguyên" : item === "settings" ? "Hệ thống" : "Kinh doanh", icon: <Icon name={item === "floors" || item === "spaces" ? "plan" : item === "settings" ? "menu" : item === "media" ? "media" : item === "appointments" ? "calendar" : item === "requests" ? "request" : item === "leases" ? "file" : "people"}/>, badge: item === "leads" ? leads.filter(lead => lead.status === "Mới").length : undefined, destination: { kind: "action", onSelect: () => notes.navigate(() => { setView(item); }) } }));
+  const navigation: AdminNavigationItem[] = primaryViews.map(item => ({ id: item, label: labels[item], group: item === "floors" || item === "spaces" ? "Mặt bằng" : item === "media" ? "Tài nguyên" : item === "settings" ? "Hệ thống" : "Kinh doanh", icon: <Icon name={item === "floors" || item === "spaces" ? "plan" : item === "settings" ? "menu" : item === "media" ? "media" : item === "appointments" ? "calendar" : item === "requests" ? "request" : item === "leases" ? "file" : "people"}/>, badge: item === "leads" && !newLeads.loading && !newLeads.error ? newLeads.total : undefined, destination: { kind: "action", onSelect: () => notes.navigate(() => { setView(item); }) } }));
   return <LeGrandeAdminShell propertyName={admin.settings?.propertyName} navigation={navigation} activeItemId={view === "slot" ? "spaces" : companyView ? "customers" : view} onLogout={() => { setLeavingSession(true); notes.navigate(() => { void logout(); }); }} location={<Breadcrumbs label="Vị trí quản trị" items={[{ label: "Quản trị", href: "#admin-workspace", linkProps: { onClick: (event: React.MouseEvent<HTMLAnchorElement>) => { event.preventDefault(); notes.navigate(() => setView("floors")); } } }, ...(view === "slot" ? [{ label: `Căn / Mặt bằng · Tầng ${floor}`, href: "#admin-workspace", linkProps: { onClick: (event: React.MouseEvent<HTMLAnchorElement>) => { event.preventDefault(); notes.navigate(() => setView("spaces")); } } }, { label: slotId || "Slot không xác định", href: `#slot=${encodeURIComponent(slotId)}`, current: true }] : companyView ? [{ label: "Doanh nghiệp", href: "#admin-workspace", linkProps: { onClick: (event: React.MouseEvent<HTMLAnchorElement>) => { event.preventDefault(); notes.navigate(() => setView("customers")); } } }, { label: view === "customers" ? "Tất cả" : labels[view], href: "#admin-workspace", current: true }] : [{ label: labels[view], href: "#admin-workspace", current: true }])]}/>}>
         <div ref={dialogContainer} className="admin-dialog-host"/>
         <ConfirmDialog open={splitOpen && !!activeGroup} title="Tách mặt bằng ghép?" description={activeGroup ? `${activeGroup.name} sẽ trở về ${selectedSlots.length} slot gốc. Media liên kết nhóm chuyển về tầng ${floor}; trạng thái được giữ nguyên.` : ""} confirmLabel="Xác nhận tách" cancelLabel="Giữ nhóm" onClose={() => { if (!pending) setSplitOpen(false); }} onConfirm={() => void split()} portalContainer={dialogContainer}/>

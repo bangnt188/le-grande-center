@@ -2,14 +2,24 @@
 
 import { useEffect, useState } from "react";
 import type { Company } from "../../shared/admin/b2b-model";
-import type { useAdminData } from "./use-admin-data";
+import type { AdminData } from "./use-admin-data";
 
+export type CompanyNotes = {
+  value: (company: Company) => string;
+  dirty: (company: Company) => boolean;
+  update: (company: Company, value: string) => void;
+  navigate: (action: () => void) => void;
+  pendingNavigation: (() => void) | null;
+  stay: () => void;
+  continue: () => void;
+  save: (company: Company) => Promise<boolean>;
+};
 /** Drafts live above the view switch so a remounted dossier does not lose edits. */
-export function useCompanyNotes(companies: Company[], execute: ReturnType<typeof useAdminData>["execute"], hasOtherDrafts = false) {
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
+export function useCompanyNotes(execute: AdminData["execute"], hasOtherDrafts = false): CompanyNotes {
+  const [drafts, setDrafts] = useState<Record<string, { value: string; original: string }>>({});
   const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
-  const dirty = (company: Company) => drafts[company.id] !== undefined && drafts[company.id] !== company.note;
-  const hasUnsaved = companies.some(dirty) || hasOtherDrafts;
+  const dirty = (company: Company) => drafts[company.id] !== undefined && drafts[company.id].value !== company.note;
+  const hasUnsaved = Object.values(drafts).some(draft => draft.value !== draft.original) || hasOtherDrafts;
 
   useEffect(() => {
     if (!hasUnsaved) return;
@@ -19,9 +29,9 @@ export function useCompanyNotes(companies: Company[], execute: ReturnType<typeof
   }, [hasUnsaved]);
 
   return {
-    value: (company: Company) => drafts[company.id] ?? company.note,
+    value: (company: Company) => drafts[company.id]?.value ?? company.note,
     dirty,
-    update: (id: string, value: string) => setDrafts(current => ({ ...current, [id]: value })),
+    update: (company: Company, value: string) => setDrafts(current => ({ ...current, [company.id]: { value, original: current[company.id]?.original ?? company.note } })),
     navigate: (action: () => void) => {
       if (hasUnsaved) setPendingNavigation(() => action);
       else action();
@@ -30,10 +40,10 @@ export function useCompanyNotes(companies: Company[], execute: ReturnType<typeof
     stay: () => setPendingNavigation(null),
     continue: () => { const action = pendingNavigation; setPendingNavigation(null); action?.(); },
     save: async (company: Company) => {
-      const note = drafts[company.id] ?? company.note;
+      const note = drafts[company.id]?.value ?? company.note;
       if (!await execute({ type: "save-company", companyId: company.id, note })) return false;
       setDrafts(current => {
-        if (current[company.id] !== note) return current;
+        if (current[company.id]?.value !== note) return current;
         const next = { ...current };
         delete next[company.id];
         return next;

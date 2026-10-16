@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation";
 
 export type AdminData = Pick<AdminSnapshot, "floors" | "slots" | "groups" | "leads" | "media" | "companies" | "requests" | "reservations" | "leases" | "appointments" | "storage"> & {
   settings: AdminSnapshot["settings"] | null;
+  revision: number | null;
+  collections: AdminSnapshot["collections"] | null;
   markDraft: (key: string, dirty: boolean) => void;
   hasUnsavedDrafts: boolean;
   pending: boolean; loading: boolean; error: string;
@@ -59,6 +61,7 @@ export function useAdminData(): AdminData {
     } finally { lock.current = false; if (alive.current) { setPending(false); setLoading(false); } }
   }
   return {
+    revision: data?.revision ?? null, collections: data?.collections ?? null,
     floors: data?.floors ?? [], settings: data?.settings ?? null, markDraft, hasUnsavedDrafts: Object.keys(drafts).length > 0,
     slots: data?.slots ?? [], groups: data?.groups ?? [], leads: data?.leads ?? [], media: data?.media ?? [],
     companies: data?.companies ?? [], requests: data?.requests ?? [], reservations: data?.reservations ?? [], leases: data?.leases ?? [], appointments: data?.appointments ?? [],
@@ -75,15 +78,7 @@ export function useAdminData(): AdminData {
       return repository.upload(files, scope);
     }),
     reload: () => run(() => repository.read()),
-    reviewMedia: (id, note) => run(async () => {
-      const response = await fetch(`/api/admin/media/${encodeURIComponent(id)}/review`, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() }, body: JSON.stringify({ confirmedExternalReview: true, note, expectedRevision: data?.revision }) });
-      if (!response.ok) throw new Error(response.status === 409 ? "Dữ liệu đã thay đổi. Tải lại trước khi duyệt." : "Không thể duyệt tài liệu.");
-      return repository.read();
-    }),
-    reconcileStorage: () => run(async () => {
-      const response = await fetch("/api/admin/media/reconcile", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() }, body: JSON.stringify({ expectedRevision: data?.revision }) });
-      if (!response.ok) throw new Error(response.status === 409 ? "Dữ liệu đã thay đổi. Tải lại trước khi đối soát." : "Không thể đối soát dung lượng. Tải lên vẫn bị khóa khi số liệu chưa xác định.");
-      return repository.read();
-    }),
+    reviewMedia: (id, note) => run(() => repository.reviewMedia(id, note)),
+    reconcileStorage: () => run(() => repository.reconcileStorage()),
   };
 }

@@ -13,8 +13,7 @@ export async function withTransaction<T>(actorId: string, work: (client: PoolCli
   const pool = getDatabase();let client:PoolClient|undefined;
   try {
     client=await pool.connect();
-    await client.query("BEGIN");
-    await client.query("SET LOCAL ROLE leasing_runtime");
+    await client.query("BEGIN; SET LOCAL ROLE leasing_runtime");
     await client.query("SELECT set_config('app.actor_id',$1,true)", [actorId]);
     const result = await work(client);
     await client.query("COMMIT");

@@ -7,6 +7,7 @@ import type { AdminData } from "@/features/admin/use-admin-data";
 import type { Appointment, B2BCommand, Company, Lease, LeasingRequest, Reservation } from "@/shared/admin/b2b-model";
 import { FLOORS, hasCommitment, type Floor } from "@/shared/admin/space-model";
 import type { MediaItem } from "@/shared/admin/contracts";
+import { CompanyPicker } from "@/features/admin/admin-collections";
 
 export type BusinessEditor =
   | { kind: "company"; record?: Company }
@@ -36,7 +37,6 @@ export function BusinessRecordEditor({ editor, data, onClose, onSaved }: { edito
     const uploaded = data.media.find(item => !uploadBefore.current!.has(item.id) && isStoredPdf(item));
     if (uploaded) { setMediaId(uploaded.id); setFile(null); uploadBefore.current = null; }
   }, [data.media]);
-  const companyOptions = <><option value="">Chọn doanh nghiệp</option>{data.companies.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</>;
   const record = "record" in editor ? editor.record : undefined;
   const titles = { company: record ? "Sửa doanh nghiệp" : "Thêm doanh nghiệp", request: record ? "Sửa yêu cầu thuê" : "Thêm yêu cầu thuê", appointment: record ? "Sửa lịch hẹn" : "Thêm lịch hẹn", document: "Lưu tệp hợp đồng", approve: "Duyệt yêu cầu & giữ chỗ", reject: "Từ chối yêu cầu", "cancel-hold": "Hủy giữ chỗ" };
   async function save(values: FormData) {
@@ -75,7 +75,7 @@ export function BusinessRecordEditor({ editor, data, onClose, onSaved }: { edito
         <label>Ghi chú nội bộ<Textarea name="note" rows={3} maxLength={600} defaultValue={editor.record?.note}/></label>
       </>}
       {editor.kind === "request" && <>
-        <label>Doanh nghiệp<Select name="companyId" required defaultValue={editor.record?.companyId ?? editor.companyId ?? ""}>{companyOptions}</Select></label>
+        <CompanyPicker data={data} name="companyId" required defaultValue={editor.record?.companyId ?? editor.companyId ?? ""}/>
         <label>Tầng<Select name="floor" value={floor} onChange={event => { setFloor(Number(event.target.value) as Floor); setSelectedSlots([]); }}>{data.floors.map(item => <option key={item.number} value={item.number}>Tầng {item.number} · {item.purpose}</option>)}</Select></label>
         <fieldset className="b2b-slot-options"><legend>Slot · chọn tổ hợp liền kề cùng phía</legend>{data.slots.filter(item => item.floor === floor).map(item => { const unavailable = item.status === "Đang thuê" || hasCommitment(data, [item.id]); return <label key={item.id}><Checkbox name="slotIds" value={item.id} checked={selectedSlots.includes(item.id)} disabled={unavailable} onChange={event => setSelectedSlots(current => event.target.checked ? [...current, item.id] : current.filter(id => id !== item.id))}/><span>{item.code} · {item.area} m²{unavailable ? " · Đã có cam kết" : ""}</span></label>; })}</fieldset>
         <p className="panel-note">Chọn ít nhất một slot; mặt bằng ghép phải được chọn đủ các slot thành viên. Diện tích được tính từ dữ liệu mặt bằng.</p>
@@ -83,7 +83,7 @@ export function BusinessRecordEditor({ editor, data, onClose, onSaved }: { edito
         <label>Ghi chú nhu cầu<Textarea name="note" maxLength={600} rows={3} defaultValue={editor.record?.note}/></label>
       </>}
       {editor.kind === "appointment" && <>
-        <label>Doanh nghiệp<Select name="companyId" required defaultValue={editor.record?.companyId ?? editor.companyId ?? ""}>{companyOptions}</Select></label>
+        <CompanyPicker data={data} name="companyId" required defaultValue={editor.record?.companyId ?? editor.companyId ?? ""}/>
         <TextField id="appointment-purpose" name="purpose" label="Nội dung hẹn" required maxLength={80} defaultValue={editor.record?.purpose ?? "Khảo sát mặt bằng"}/>
         <TextField id="appointment-start" name="startsAt" label="Ngày giờ · giờ Việt Nam (UTC+07)" type="datetime-local" min={now} required defaultValue={editor.record ? vietnamDateTime(editor.record.startsAt) : vietnamDateTime(new Date(Date.now() + 3600000).toISOString())}/>
         <TextField id="appointment-location" name="location" label="Địa điểm" required maxLength={160} defaultValue={editor.record?.location ?? data.settings?.appointmentLocation}/>

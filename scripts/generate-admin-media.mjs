@@ -6,7 +6,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const formats = { ".png": ["Ảnh", "image/png"], ".jpg": ["Ảnh", "image/jpeg"], ".jpeg": ["Ảnh", "image/jpeg"], ".webp": ["Ảnh", "image/webp"], ".gif": ["Ảnh", "image/gif"], ".avif": ["Ảnh", "image/avif"], ".svg": ["Ảnh", "image/svg+xml"], ".pdf": ["Tài liệu", "application/pdf"], ".mp4": ["Video", "video/mp4"], ".webm": ["Video", "video/webm"], ".glb": ["Model 3D", "model/gltf-binary"], ".gltf": ["Model 3D", "model/gltf+json"], ".hdr": ["Tài nguyên", "image/vnd.radiance"] };
 const files = await readdir(resolve(root, "public"), { recursive: true, withFileTypes: true });
 const rows = [];
-const approved = path => !path.startsWith("/admin-demo/") && !["/client-reference/legacy/logo-without-text.png", "/client-reference/legacy/icon.png"].includes(path);
+const approved = path => !path.startsWith("/admin-demo/") && !path.startsWith("/images/responsive/") && !["/client-reference/legacy/logo-without-text.png", "/client-reference/legacy/icon.png"].includes(path);
 for (const file of files) {
   if (!file.isFile()) continue;
   const format = formats[extname(file.name).toLowerCase()];

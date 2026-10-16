@@ -1,10 +1,11 @@
 import "server-only";
 import {
   AccessError, BackendError, createAccessBackend, createCrud, createPostgresRepository,
-  type AccessAdapters, type CrudRepository, type CrudRow, type CrudUnit, type PgQuery,
+  type AccessAdapters, type AccessBackend, type AccessOperation, type CrudService, type CrudRepository, type CrudRow, type CrudUnit, type PgQuery, type PostgresOptions,
 } from "@shared/backend";
 import type { Company, CompanyInput, Appointment, AppointmentInput } from "../shared/admin/b2b-model";
 import type { Lead, LeadInput } from "../shared/admin/contracts";
+import type { AdminCollectionName, AdminCollectionQuery } from "../shared/admin/collection-contracts";
 import { parseAppointmentInput, parseCompanyInput, parseCompanyPatch, parseLeadInput } from "../shared/admin/parse-command";
 import { initials } from "../shared/admin/validation";
 import { assertAdmin, withTransaction, type AdminIdentity, type PoolClient } from "./database";
@@ -42,12 +43,15 @@ function accessFor(identity: AdminIdentity, client: PoolClient, reverifySession:
   const permissions = ["companies", "leads", "appointments"].flatMap(type => ["view", "create", "update", "delete"].map(action => ({
     permission: `${type}:${action}`, effect: "allow" as const, scope: { tenantId: identity.propertyId },
   })));
+  permissions.push({ permission: "workspace:write", effect: "allow", scope: { tenantId: identity.propertyId } });
+  if (identity.role !== "editor") permissions.push({ permission: "workspace:configure", effect: "allow", scope: { tenantId: identity.propertyId } });
   const recordDecisions: NonNullable<AccessAdapters["recordDecisions"]> = async events => {
     try {
       await withTransaction(identity.id, async auditClient => {
-        for (const event of events) await auditClient.query(`INSERT INTO leasing.backend_access_decisions
+        await auditClient.query(`INSERT INTO leasing.backend_access_decisions
           (property_id,actor_user_id,policy_version,permission,resource_type,resource_id,allowed,reason,recorded_at)
-          VALUES($1,$2,$3,$4,$5,$6,$7,$8,to_timestamp($9 / 1000.0))`, [identity.propertyId,event.actorId,event.policyVersion,event.permission,event.resource.type,event.resource.id ?? null,event.allowed,event.reason,event.at]);
+          SELECT $1,e."actorId"::uuid,coalesce(e."policyVersion",'unresolved'),e.permission,e.resource->>'type',nullif(e.resource->>'id','')::uuid,e.allowed,e.reason,to_timestamp(e.at / 1000.0)
+          FROM jsonb_to_recordset($2::jsonb) AS e("actorId" text,"policyVersion" text,permission text,resource jsonb,allowed boolean,reason text,at double precision)`, [identity.propertyId,JSON.stringify(events)]);
       });
     } catch { throw new AccessError("UNAVAILABLE"); }
   };
@@ -66,6 +70,23 @@ function accessFor(identity: AdminIdentity, client: PoolClient, reverifySession:
     recordDecision: async event => recordDecisions([event]),
     recordDecisions,
   });
+}
+
+function collectionFilter(collection: AdminCollectionName, filter: AdminCollectionQuery): NonNullable<PostgresOptions<CrudRow>["listFilter"]> {
+  return (_scope, bind) => {
+    const conditions: string[] = [];
+    const idColumn = collection === "companies" ? "organization_id" : "id";
+    if (filter.ids) conditions.push(`${idColumn}=ANY(${bind(filter.ids)}::uuid[])`);
+    if (filter.companyId) conditions.push(`organization_id=${bind(filter.companyId)}::uuid`);
+    if (filter.status) conditions.push(`status=${bind(filter.status)}`);
+    if (filter.query) {
+      const pattern = bind(`%${filter.query.replace(/[\\%_]/g, "\\$&")}%`);
+      if (collection === "companies") conditions.push(`EXISTS(SELECT 1 FROM leasing.organizations search_org WHERE search_org.id=property_customers.organization_id AND (search_org.legal_name ILIKE ${pattern} OR search_org.industry ILIKE ${pattern}))`);
+      else if (collection === "leads") conditions.push(`(name ILIKE ${pattern} OR interest ILIKE ${pattern} OR email ILIKE ${pattern} OR phone ILIKE ${pattern} OR source ILIKE ${pattern} OR EXISTS(SELECT 1 FROM leasing.organizations search_org WHERE search_org.id=leads.organization_id AND search_org.legal_name ILIKE ${pattern}) OR EXISTS(SELECT 1 FROM leasing.contact_intake search_intake WHERE search_intake.property_id=leads.property_id AND search_intake.lead_id=leads.id AND search_intake.company_name ILIKE ${pattern}))`);
+      else conditions.push(`(purpose ILIKE ${pattern} OR meeting_location ILIKE ${pattern} OR EXISTS(SELECT 1 FROM leasing.organizations search_org WHERE search_org.id=appointments.organization_id AND search_org.legal_name ILIKE ${pattern}))`);
+    }
+    return conditions.join(" AND ");
+  };
 }
 
 export type CompanyRow = Company & { tenantId: string };
@@ -92,11 +113,12 @@ async function loadCompanies(client: PoolClient, scopeId: string, ids: string[])
       owner:text(row.owner),note:text(row.note),taxId:nullableText(row.tax_id),address:nullableText(row.address) };
   });
 }
-function companyRepository(client: PoolClient): CrudRepository<CompanyRow, CompanyInput, Partial<CompanyInput>> {
+function companyRepository(client: PoolClient, filter: AdminCollectionQuery): CrudRepository<CompanyRow, CompanyInput, Partial<CompanyInput>> {
   const query=clientQuery(client);
   const links=createPostgresRepository<CompanyLink,CompanyLinkChange,CompanyLinkChange>({
     query,schema:"leasing",table:"property_customers",idColumn:"organization_id",versionColumn:"revision",
     columns:{updatedAt:"updated_at"},scopeColumns:{tenantId:"property_id"},softDelete:{column:"deleted_at"},decode:decodeCompanyLink,
+    listFilter:collectionFilter("companies",filter),
   });
   const expand=async (rows:CompanyLink[],scope:{tenantId:string})=>{
     const mapped=await loadCompanies(client,scope.tenantId,rows.map(row=>row.id));
@@ -153,11 +175,12 @@ function decodeLead(input: unknown): LeadRow {
 }
 type LeadStored = {name:string;interest:string;floor:Lead["floor"];source:string;status:Lead["status"];note:string;organizationId:string|null;email:string;phone:string};
 const storedLead=(input:LeadInput):LeadStored=>({name:input.name,interest:input.interest,floor:input.floor,source:input.source,status:input.status,note:input.note,organizationId:input.companyId??null,email:input.email??"",phone:input.phone??""});
-function leadRepository(client: PoolClient): CrudRepository<LeadRow,LeadInput,LeadInput> {
+function leadRepository(client: PoolClient, filter: AdminCollectionQuery): CrudRepository<LeadRow,LeadInput,LeadInput> {
   const stored=createPostgresRepository<LeadRow,LeadStored,LeadStored>({
     query:clientQuery(client),schema:"leasing",table:"leads",versionColumn:"revision",scopeColumns:{tenantId:"property_id"},
     columns:{name:"name",interest:"interest",floor:"floor_number",source:"source",status:"status",note:"note",organizationId:"organization_id",email:"email",phone:"phone"},
     softDelete:{column:"deleted_at"},decode:decodeLead,
+    listFilter:collectionFilter("leads",filter),listOrder:[{column:"created_at",direction:"DESC"}],
   });
   return {...stored,insert:(data,scope)=>stored.insert(storedLead(data),scope),update:(id,data,version,scope)=>stored.update(id,storedLead(data),version,scope),delete:async(id,version,scope)=>{
     const protectedRecord=await client.query("SELECT EXISTS(SELECT 1 FROM leasing.contact_intake WHERE property_id=$1 AND lead_id=$2) AS referenced",[scope.tenantId,id]);
@@ -186,12 +209,13 @@ function decodeAppointment(input: unknown): AppointmentRow {
 }
 type AppointmentStored = {companyId:string;purpose:string;scheduledPeriod:string;location:string};
 const storedAppointment=(input:AppointmentInput,scheduledPeriod:string):AppointmentStored=>({companyId:input.companyId,purpose:input.purpose,scheduledPeriod,location:input.location});
-function appointmentRepository(client:PoolClient):CrudRepository<AppointmentRow,AppointmentInput,AppointmentInput> {
+function appointmentRepository(client:PoolClient,filter:AdminCollectionQuery):CrudRepository<AppointmentRow,AppointmentInput,AppointmentInput> {
   const query=clientQuery(client);
   const stored=createPostgresRepository<AppointmentRow,AppointmentStored,AppointmentStored>({
     query,schema:"leasing",table:"appointments",versionColumn:"revision",scopeColumns:{tenantId:"property_id"},
     columns:{companyId:"organization_id",purpose:"purpose",scheduledPeriod:"scheduled_period",location:"meeting_location"},
     softDelete:{column:"deleted_at"},decode:decodeAppointment,
+    listFilter:collectionFilter("appointments",filter),listOrder:[{column:"scheduled_period",direction:"ASC"}],
   });
   const checkTime=async(input:AppointmentInput,id:string|undefined,scope:{tenantId:string})=>{
     const start=Date.parse(input.startsAt);if(start<=Date.now())throw new BackendError("INVALID_INPUT");
@@ -209,25 +233,34 @@ function appointmentRepository(client:PoolClient):CrudRepository<AppointmentRow,
   };
 }
 
-function transactionFor<Row extends CrudRow,Create,Update>(scope:{tenantId:string},access:ReturnType<typeof createAccessBackend>,repository:CrudRepository<Row,Create,Update>) {
-  return async <Result>(_request:Request,work:(unit:CrudUnit<Row,Create,Update>)=>Promise<Result>)=>work({scope,access,repository});
+export interface AdminCrudServices { request:Request; companies:CrudService<Company>; leads:CrudService<Lead>; appointments:CrudService<Appointment> }
+type CrudOptions = { operation?: AccessOperation; access?: AccessBackend; query?: AdminCollectionQuery };
+function transactionFor<Row extends CrudRow,Create,Update>(scope:{tenantId:string},access:AccessBackend,repository:CrudRepository<Row,Create,Update>,operation?:AccessOperation) {
+  return async <Result>(_request:Request,work:(unit:CrudUnit<Row,Create,Update>)=>Promise<Result>)=>work({scope,access,repository,operation});
 }
-export function createAdminCrudServices(identity: AdminIdentity, client: PoolClient, request?:Request) {
-  const scope={tenantId:identity.propertyId};
-  const access=accessFor(identity,client,!!request);
-  const companies=createCrud<CompanyRow,CompanyInput,Partial<CompanyInput>,Company>({type:"companies",transaction:transactionFor(scope,access,companyRepository(client)),parseCreate:parseCompanyInput,parseUpdate:parseCompanyPatch,project:row=>{const {tenantId:_,...company}=row;return company;}});
-  const leads=createCrud<LeadRow,LeadInput,LeadInput,Lead>({type:"leads",transaction:transactionFor(scope,access,leadRepository(client)),parseCreate:parseLeadInput,parseUpdate:parseLeadInput,project:async row=>{
-    const {rows}=await client.query(`SELECT jsonb_strip_nulls(jsonb_build_object('intent',intent,'company',company_name,'business',business,'area',area_preference,'timing',timing,'space',space_code,'scope',scope,'visitDate',visit_date::text,'visitTime',visit_time)) AS details FROM leasing.contact_intake WHERE lead_id=$1 ORDER BY consented_at DESC LIMIT 1`,[row.id]);
-    const details=rows[0]?dbRow(rows[0]).details:undefined;
+async function projectLeads(client:PoolClient,propertyId:string,rows:readonly LeadRow[]):Promise<Lead[]> {
+  if (!rows.length) return [];
+  const intake=(await client.query(`SELECT DISTINCT ON (lead_id) lead_id,jsonb_strip_nulls(jsonb_build_object('intent',intent,'company',company_name,'business',business,'area',area_preference,'timing',timing,'space',space_code,'scope',scope,'visitDate',visit_date::text,'visitTime',visit_time)) AS details
+    FROM leasing.contact_intake WHERE property_id=$1 AND lead_id=ANY($2::uuid[]) ORDER BY lead_id,consented_at DESC,id DESC`,[propertyId,rows.map(row=>row.id)])).rows;
+  const details=new Map(intake.map(row=>[row.lead_id,decodeContactDetails(row.details)]));
+  return rows.map(row=>{
     const {tenantId:_,propertyId:__,organizationId:___,ownerId:____,dimensions:_____,...lead}=row;
-    return {...lead,...(details?{contactDetails:decodeContactDetails(details)}:{})};
-  }});
-  const appointments=createCrud<AppointmentRow,AppointmentInput,AppointmentInput,Appointment>({type:"appointments",transaction:transactionFor(scope,access,appointmentRepository(client)),parseCreate:parseAppointmentInput,parseUpdate:parseAppointmentInput,project:row=>{const {tenantId:_,propertyId:__,organizationId:___,ownerId:____,dimensions:_____,...appointment}=row;return appointment;}});
+    return {...lead,...(details.has(row.id)?{contactDetails:details.get(row.id)!}:{})};
+  });
+}
+export function createAdminCrudServices(identity: AdminIdentity, client: PoolClient, request?:Request, options:CrudOptions={}):AdminCrudServices {
+  const scope={tenantId:identity.propertyId},filter=options.query??{};
+  const access=options.access??accessFor(identity,client,!!request);
+  const companies=createCrud<CompanyRow,CompanyInput,Partial<CompanyInput>,Company>({type:"companies",transaction:transactionFor(scope,access,companyRepository(client,filter),options.operation),parseCreate:parseCompanyInput,parseUpdate:parseCompanyPatch,project:row=>{const {tenantId:_,...company}=row;return company;}});
+  const leads=createCrud<LeadRow,LeadInput,LeadInput,Lead>({type:"leads",transaction:transactionFor(scope,access,leadRepository(client,filter),options.operation),parseCreate:parseLeadInput,parseUpdate:parseLeadInput,project:async row=>(await projectLeads(client,identity.propertyId,[row]))[0]!,projectMany:rows=>projectLeads(client,identity.propertyId,rows)});
+  const appointments=createCrud<AppointmentRow,AppointmentInput,AppointmentInput,Appointment>({type:"appointments",transaction:transactionFor(scope,access,appointmentRepository(client,filter),options.operation),parseCreate:parseAppointmentInput,parseUpdate:parseAppointmentInput,project:row=>{const {tenantId:_,propertyId:__,organizationId:___,ownerId:____,dimensions:_____,...appointment}=row;return appointment;}});
   return {request:request??new Request(siteUrl),companies,leads,appointments};
 }
-
-export async function listAll<Row>(service:{list(request:Request,pagination:{page?:number;pageSize?:number}):Promise<{items:Row[];totalPages:number}>},request:Request):Promise<Row[]> {
-  const items:Row[]=[];let page=1,totalPages=1;
-  do {const result=await service.list(request,{page,pageSize:100});items.push(...result.items);totalPages=result.totalPages;page++;} while(page<=totalPages);
-  return items;
+export async function withAdminCrudOperation<T>(identity:AdminIdentity,client:PoolClient,request:Request|undefined,work:(crud:AdminCrudServices)=>Promise<T>,query?:AdminCollectionQuery,permission:"companies:view"|"workspace:write"|"workspace:configure"="companies:view"):Promise<T> {
+  const access=accessFor(identity,client,!!request),operationRequest=request??new Request(siteUrl);
+  const initial={permission,resource:{kind:"collection" as const,type:permission.startsWith("workspace:")?"workspace":"companies",tenantId:identity.propertyId}};
+  return access.withOperation(operationRequest,initial,async operation=>{
+    await operation.requireAccess(initial);
+    return work(createAdminCrudServices(identity,client,request,{access,operation,query}));
+  });
 }

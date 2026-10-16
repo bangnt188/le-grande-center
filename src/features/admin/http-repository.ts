@@ -12,7 +12,7 @@ export function createHttpRepository(baseUrl: string): AdminRepository {
   }
   let revision: number | null = null;
   async function request(path: string, init?: RequestInit): Promise<AdminSnapshot> {
-    const response = await fetch(`${relative ? "/api/admin" : base.href.replace(/\/$/, "")}/${path}`, {
+    const response = await fetch(`${relative ? "/api/admin" : base.href.replace(/\/$/, "")}/${path}/`, {
       ...init, credentials: "include", cache: "no-store",
     });
     if (!response.ok) {
@@ -41,6 +41,10 @@ export function createHttpRepository(baseUrl: string): AdminRepository {
     for (const key of ["companies", "requests", "reservations", "leases", "appointments"]) {
       if (!(key in value) || !Array.isArray((value as Record<string, unknown>)[key])) throw new Error("Backend chưa hỗ trợ dữ liệu B2B. Cập nhật workspace contract trước khi kết nối.");
     }
+    if (!("collections" in value) || !value.collections || typeof value.collections !== "object" || ["companies", "leads", "appointments"].some(key => {
+      const metadata = (value.collections as Record<string, unknown>)[key];
+      return !metadata || typeof metadata !== "object" || ["page", "pageSize", "totalItems", "totalPages"].some(field => !(field in metadata) || !Number.isInteger((metadata as Record<string, unknown>)[field]));
+    })) throw new Error("Backend chưa cung cấp phân trang hồ sơ hợp lệ.");
     if (!("storage" in value) || (value.storage !== null && !isStorageUsage(value.storage))) throw new Error("Backend chưa cung cấp số liệu dung lượng hợp lệ. Upload đã khóa.");
     if (value.slots.some(item => !item || typeof item !== "object" || !isSlotStatus(item.status)) || value.groups.some(item => !item || typeof item !== "object" || !isSlotStatus(item.status))) throw new Error("Backend phải trả trạng thái slot Còn trống, Liên hệ hoặc Đã thuê.");
     if (!("floors" in value) || !isFloorConfigurations(value.floors) || !("settings" in value) || !isAdminSettings(value.settings)) throw new Error("Backend chưa cung cấp cấu hình tầng và vận hành hợp lệ.");
@@ -65,6 +69,14 @@ export function createHttpRepository(baseUrl: string): AdminRepository {
       body.set("scope", scope); body.set("expectedRevision", String(currentRevision()));
       return request("media", { method: "POST", headers: { "Idempotency-Key": crypto.randomUUID() }, body });
     },
+    reviewMedia: (id, note) => request(`media/${encodeURIComponent(id)}/review`, {
+      method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() },
+      body: JSON.stringify({ confirmedExternalReview: true, note, expectedRevision: currentRevision() }),
+    }),
+    reconcileStorage: () => request("media/reconcile", {
+      method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() },
+      body: JSON.stringify({ expectedRevision: currentRevision() }),
+    }),
     dispose() {},
   };
 }

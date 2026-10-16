@@ -1,14 +1,16 @@
 # Architecture Decision: Admin Le Grande Centre
 
-## Trạng thái hiện tại — 14/10/2026
+## Trạng thái hiện tại — 15/10/2026
 
 Phase2 đã thay phương án prototype/static ở phần lịch sử dưới đây: Next SSR standalone/OpenNext, `/admin/` Neon Auth verified email + DB active staff allowlist, cùng-origin API; không demo login/IndexedDB fallback. Relational Neon commands có property lock/CAS/idempotency/audit/RLS. Public đọc projection tối thiểu; live form tạo lead/intake, không booking.
 
 Sidebar chỉ **Doanh nghiệp**; outer shared Tabs **Tất cả / Khách đang thuê / Hợp đồng**, không sidebar tenants/contracts riêng. Card category suy ra recorded lease trước, rồi unexpired active hold, rồi submitted/reviewing request, cuối cùng Chưa thuê; không persisted category. Dossier→contract chuyển đúng record ID; unsaved notes có confirm; arrows focus/Enter activate. Bỏ global AdminPageHeader title/description/reload trên mọi screen, giữ panel headings và error-only Thử lại phục hồi empty workspace.
 
-Logo/raster upload Neon-only, PDF R2 private quarantine + manual external review; không antivirus-clean, online signature hoặc fake financials. Baseline+migrations001–004 đã áp dụng stage2/regression/production backend; production seed chỉ approved 6 tầng/81 slot, owner allowlist và verified Neon logo. Production Auth verification/OTP đã cấu hình, chưa chứng minh delivery. Frontend production/domain/DNS vẫn hoãn; Worker→Neon S3/Functions 403 trước provider chưa được chứng minh sửa.
+Logo/raster upload Neon-only, PDF R2 private `mall-documents` quarantine + manual external review; không antivirus-clean, online signature hoặc fake financials. Owner-approved reset/hợp nhất đã hoàn tất: chỉ Neon **`production` (`br-tiny-butterfly-b3uuw92p`)**, baseline+migrations **001–009**, catalog approved 6 tầng/81 slot, root allowlist và verified Neon logo. Business data cũ đã xóa; provider Auth/storage giữ nguyên, chỉ root Auth user còn lại. Local `.env.local` và Worker hiện có cùng dùng production; hậu tố `stage2` trong tên Worker/cache không phải DB thứ hai. Root login đã trả HTTP 200; snapshot/private backup xem [database guide](../database/README.md).
 
-Main browser 1440/390/320px: không page overflow, tenant table min720 cuộn nội bộ; latest admin tests23pass/1liveskip, isolatedDB2/2pass, typecheck/backend integrity/backend tests/OpenNext build pass. Không rerun trong doc edit. Xem [readiness](backend-readiness.md).
+Operator dùng `npm run dev`, `npm start`, `npm run db:migrate`, `npm run auth:set-password` với canonical `.env.local`; `npm run deploy` build/deploy Worker hiện có, không deploy aliases/profile. Regression `npm run test:database` nay dùng owned disposable local PostgreSQL (`postgres`, `initdb`, `pg_ctl` trên PATH, macOS có thể cài Homebrew), không tạo Neon branch; đã quan sát 2/2 pass. Worker giữ noindex, custom-domain/DNS hoãn; media Worker→Neon và cache invalidation/performance không được tuyên bố hoàn tất.
+
+**Bằng chứng lịch sử trước reset:** browser 1440/390/320px không page overflow, tenant table min720 cuộn nội bộ; admin tests23pass/1liveskip, isolated Neon DB2/2pass, typecheck/backend integrity/backend tests/OpenNext build pass. Không rerun trong doc edit; không coi các kết quả đó là trạng thái mới sau reset. Xem [readiness](backend-readiness.md).
 
 ## Lịch sử quyết định ban đầu — đã bị phase2 thay thế
 

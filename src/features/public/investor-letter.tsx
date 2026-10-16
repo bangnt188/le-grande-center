@@ -1,9 +1,11 @@
 import { r2AssetBase } from "@/config/site";
 import styles from "./investor-letter.module.css";
+import { responsiveImageProps } from "./responsive-images";
 
 export function InvestorLetter({ paragraphs, backgroundPath }: { paragraphs: readonly string[]; backgroundPath: string }) {
   const assetBase = r2AssetBase;
-  const backgroundImage = `linear-gradient(rgba(250, 248, 240, .91), rgba(250, 248, 240, .91)), url("${assetBase}${backgroundPath}")`;
+  const background = responsiveImageProps(backgroundPath, assetBase, "100vw", 1920);
+  const backgroundImage = `linear-gradient(rgba(250, 248, 240, .91), rgba(250, 248, 240, .91)), url("${background.src}")`;
   return <section id="letter" className={styles.letter} aria-labelledby="investor-letter-heading" style={{ backgroundImage }}>
     <div className={styles.inner}>
       <p className={styles.label}>Thư Ngỏ Từ Chủ Đầu Tư</p>

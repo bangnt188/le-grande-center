@@ -1,10 +1,10 @@
 # Private documents trên R2 — phase 2
 
-Cập nhật 14/10/2026. Private PDF pipeline đã có implementation và local real-cloud proof; không còn design-only. Không soạn thảo hợp đồng, online signing/eSign hoặc tự xác nhận chữ ký. Frontend production chưa deploy/cutover.
+Cập nhật 15/10/2026. Private PDF pipeline đã có implementation và bằng chứng lịch sử local real-cloud; không còn design-only. Không soạn thảo hợp đồng, online signing/eSign hoặc tự xác nhận chữ ký. Worker hiện có đã dùng production DB duy nhất; custom-domain/DNS chưa cutover.
 
 ## Storage và quyền
 
-PDF giữ nguyên bytes trong R2 **private** `mall-documents`, stage2 `mall-documents-stage2`; không public r2.dev/custom bucket domain. `PRIVATE_DOCUMENTS` Wrangler binding là `remote: true` cả khi Next dev; public `mall-assets` không phải fallback private storage.
+PDF giữ nguyên bytes trong R2 **private `mall-documents`** cho local và Worker hiện có; không public r2.dev/custom bucket domain. `PRIVATE_DOCUMENTS` Wrangler binding là `remote: true` cả khi Next dev; public `mall-assets` không phải fallback private storage. Hậu tố `stage2` còn trong tên Worker/cache là resource hosting/cache lịch sử, không chọn một bucket PDF hay Neon branch khác. Local chỉ dùng `.env.local`, cùng production DB/Auth thật.
 
 Browser dùng cùng origin `/api/admin/media/{id}/view`, không truyền object key/presigned bearer URL. Server kiểm tra Neon Auth session mới, emailVerified, DB active administrator allowlist/assignment và property-owned document version trước resolve provider/bucket/key. Hiện chỉ staff administrator được hỗ trợ; không tuyên bố customer portal/document grants UI đã triển khai. GET/HEAD/Range đều cùng guard.
 
@@ -40,9 +40,9 @@ Không tự bật bucket indefinite lock hoặc tuyên bố R2 là WORM không t
 
 ## Bằng chứng và giới hạn
 
-Local Node Next localhost:3100 với Neon/R2 remote đã quan sát PDF upload 200 → ordinary quarantine read 403 → manual external review 200 → authorized Range 206. Đây không phải proof antivirus/signature hoặc deployment Worker production. Test fixture emailVerified không chứng minh OTP delivery. Không có build/test/cloud smoke mới trong lần chỉnh docs này.
+**Bằng chứng lịch sử trước reset:** local Node Next localhost:3100 với Neon/R2 remote đã quan sát PDF upload 200 → ordinary quarantine read 403 → manual external review 200 → authorized Range 206. Đây không phải proof antivirus/signature hoặc private-media flow trên Worker sau hợp nhất. Test fixture emailVerified không chứng minh OTP delivery. Không có build/test/cloud smoke mới trong lần chỉnh docs này.
 
-Native Cloudflare Worker fetch tới Neon S3/Functions hiện 403 HTML trước provider; R2 binding không chứng minh Neon path ready. Protected Neon image origin chưa chứng minh sửa cross-zone denial. Production frontend chưa deploy/cutover; người dùng đã hoãn domain/DNS, không có yêu cầu nối domain để hoàn thành code hiện tại. Xem [readiness](backend-readiness.md).
+Các probe trước đây ghi nhận native Cloudflare Worker fetch tới Neon S3/Functions 403 HTML trước provider; R2 binding không chứng minh Neon path ready. Protected Neon image origin chưa chứng minh sửa cross-zone denial. Worker hiện có đã deploy dùng production DB/Auth duy nhất; custom-domain/DNS vẫn hoãn. Reset app DB đã xóa business data cũ nhưng giữ provider Auth/storage; không suy rằng private bucket đã trống. Snapshot/private backup ở [database guide](../database/README.md); [readiness](backend-readiness.md) tách trạng thái hiện tại và bằng chứng lịch sử.
 
 Khi chuyển storage: giữ schema+migrations/relational IDs, copy object keys/catalog cùng verified metadata và bytes/hash; đổi locator có audit sau đối soát. Không export/import opaque snapshots hoặc biến hợp đồng thành public để đơn giản migration.
 

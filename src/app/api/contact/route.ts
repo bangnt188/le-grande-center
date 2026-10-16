@@ -1,6 +1,7 @@
 import { assertSameOrigin, AuthError } from "@/server/auth";
 import { parseContactInput } from "@/server/contact-input";
-import { readPublicWebsite, submitContact } from "@/server/public";
+import { submitContact } from "@/server/public";
+import { readPublicWebsiteData } from "@/server/public-data";
 export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   try {
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
     try { input = parseContactInput(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(body))); }
     catch (error) { return Response.json({ error: error instanceof Error ? error.message : "Thông tin không hợp lệ." }, { status: 400 }); }
     if (input.unitId) {
-      const published = await readPublicWebsite();
+      const published = await readPublicWebsiteData();
       if (!published.units.some(unit => unit.code === input.unitId)) return Response.json({ error: "Mặt bằng không tồn tại." }, { status: 400 });
       if (input.scope === "pair" && !/^[AB]\.\d+$/.test(input.unitId)) return Response.json({ error: "Mặt bằng không có cặp shophouse." }, { status: 400 });
     } else if (input.scope === "pair") return Response.json({ error: "Thiếu mặt bằng quan tâm." }, { status: 400 });

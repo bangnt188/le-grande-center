@@ -13,7 +13,7 @@ export async function POST(request:Request) {
     const body=request.body.pipeThrough(new TransformStream<Uint8Array,Uint8Array>({transform(chunk,controller){bytes+=chunk.length;if(bytes>1024)throw new MediaError("Nội dung đối soát quá dài.",413);controller.enqueue(chunk);}}));
     const data:unknown=await new Response(body).json();
     if(!data||typeof data!=='object'||!('expectedRevision' in data)||typeof data.expectedRevision!=='number'||!Number.isSafeInteger(data.expectedRevision)||data.expectedRevision<0||Object.keys(data).length!==1)throw new MediaError("Phiên bản dữ liệu đối soát không hợp lệ.");
-    return Response.json(await reconcileMedia(identity,data.expectedRevision,key),{headers:{'cache-control':'private, no-store'}});
+    return Response.json(await reconcileMedia(identity,data.expectedRevision,key,request),{headers:{'cache-control':'private, no-store'}});
   } catch(error) {
     const known=error instanceof AuthError||error instanceof MediaError||error instanceof WorkspaceError;
     return Response.json({error:{message:known?error.message:"Không hoàn tất được đối soát. Không xác nhận dung lượng trống."}},{status:known?error.status:503,headers:{'cache-control':'private, no-store'}});

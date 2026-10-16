@@ -41,6 +41,8 @@ const nextConfig: NextConfig = {
   basePath: basePath || undefined,
   trailingSlash: true,
   images: { unoptimized: true },
+  // Full prefetch is limited to adjacent units; do not retain their status for the default five minutes.
+  experimental: { staleTimes: { dynamic: 0, static: 60 } },
   async headers() {
     return [
       {

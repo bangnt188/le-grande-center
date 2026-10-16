@@ -13,7 +13,7 @@ export function useAdminPagination<T>(items: readonly T[], resetKey: string, ini
   return { rows: items.slice(start, start + pageSize), page, pageCount, pageSize, total: items.length, start, setPage,
     setPageSize: (size: number) => { setPageSize(size); setPage(1); } };
 }
-export type AdminPaginationState = Omit<ReturnType<typeof useAdminPagination<unknown>>, "rows">;
+export type AdminPaginationState = { page: number; pageCount: number; pageSize: number; total: number; start: number; setPage: (page: number) => void; setPageSize: (size: number) => void };
 export function AdminPagination({ state, label }: { state: AdminPaginationState; label: string }) {
   return <div className="admin-pagination">
     <span className="admin-pagination-summary" aria-live="polite">{state.total ? `${state.start + 1}–${Math.min(state.start + state.pageSize, state.total)}` : "0"} / {state.total} bản ghi</span>

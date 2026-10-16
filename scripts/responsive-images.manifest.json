@@ -1,0 +1,1278 @@
+{
+  "generator": "node scripts/generate-responsive-images.mjs",
+  "sharpVersion": "0.35.5",
+  "origin": "https://pub-d9ed63c9208840ee87c1595f4a1077de.r2.dev",
+  "sources": [
+    {
+      "key": "images/le-grande-aerial-context.webp",
+      "sha256": "fa3e95ddf98d8de8e083308e5217585f1022dfe97348f3216435192097c48c47",
+      "bytes": 696926,
+      "width": 2400,
+      "height": 1350
+    },
+    {
+      "key": "images/le-grande-aerial-close.webp",
+      "sha256": "0d75f51cd72b9925a6ad3f5cd8ec2ad5904321d116c8616c7ef9a9ac42499afe",
+      "bytes": 641426,
+      "width": 2400,
+      "height": 1350
+    },
+    {
+      "key": "images/home-v2/architecture-detail.jpg",
+      "sha256": "58e74ea1d55ce1abbfe1d02fa994d602b4c01776839674d1a6a096ba0ce6c77b",
+      "bytes": 285251,
+      "width": 1600,
+      "height": 900
+    },
+    {
+      "key": "images/home-v2/facade-detail.jpg",
+      "sha256": "445fc2e99d59820203c4e5382a51e9db833dbb708131cd5f86f5ac8a3cc47051",
+      "bytes": 334689,
+      "width": 1600,
+      "height": 900
+    },
+    {
+      "key": "images/home-v2/upper-detail.jpg",
+      "sha256": "ec1f7bc1d88a0f8b601d498d80b4d07e45395d2fc76260a30c707419681c1724",
+      "bytes": 353143,
+      "width": 1600,
+      "height": 900
+    },
+    {
+      "key": "images/home-v2/introduction.webp",
+      "sha256": "e54678ad581a4862baab30a09af3de044f776ad56b59a19baa791550a7052128",
+      "bytes": 245096,
+      "width": 1121,
+      "height": 631
+    },
+    {
+      "key": "images/home-v2/hero.webp",
+      "sha256": "19d1fb7fef673c7d56fa5217a95c09671fdd1bf7925386f45d7e8fbd73fbb523",
+      "bytes": 467890,
+      "width": 1842,
+      "height": 854
+    },
+    {
+      "key": "images/home-v2/reasons-background.webp",
+      "sha256": "b90b0ba35e549090eb671041c12c8b177f5c8ad1d9c4a9bb5d4fe6abed27f247",
+      "bytes": 68148,
+      "width": 1147,
+      "height": 488
+    },
+    {
+      "key": "images/home-v2/floor-base.webp",
+      "sha256": "f783322ae80eb399146ea8a09b33b5d72222e3953b68f6972404844b5868047a",
+      "bytes": 600370,
+      "width": 1440,
+      "height": 960
+    },
+    {
+      "key": "images/home-v2/floor-middle.webp",
+      "sha256": "cf2321cb7adb14f155f713d32fec23cacdbf937ddb6d813f27844144ac8e7660",
+      "bytes": 188020,
+      "width": 1440,
+      "height": 960
+    },
+    {
+      "key": "images/home-v2/floor-roof.webp",
+      "sha256": "728d914ac27a5740de489397973ef31e9b3232101396f93dabc9a7d655c9bba2",
+      "bytes": 230190,
+      "width": 1440,
+      "height": 960
+    },
+    {
+      "key": "client-reference/canva/project-perspective.jpg",
+      "sha256": "10d3d4958f701ba2d97614f5c23cc69539e62667dabe19698346d164059a0c67",
+      "bytes": 410419,
+      "width": 1400,
+      "height": 788
+    },
+    {
+      "key": "client-reference/legacy/letter-background.jpg",
+      "sha256": "7b6af560fb501696c476b5677d4e1812ba8992328fd1c156fc6625466bead18e",
+      "bytes": 400823,
+      "width": 1920,
+      "height": 1280
+    }
+  ],
+  "assets": [
+    {
+      "source": "images/le-grande-aerial-context.webp",
+      "key": "images/responsive/images/le-grande-aerial-context-preview-160-8a3cfaea205f61d2.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-context-preview-160-8a3cfaea205f61d2.webp",
+      "kind": "preview",
+      "width": 160,
+      "height": 90,
+      "bytes": 6432,
+      "sha256": "8a3cfaea205f61d270580228a168ae5b133b67be5f0b1d0855d1c242f2a90ad6"
+    },
+    {
+      "source": "images/le-grande-aerial-context.webp",
+      "key": "images/responsive/images/le-grande-aerial-context-preview-320-2e6b5096ef353ff2.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-context-preview-320-2e6b5096ef353ff2.webp",
+      "kind": "preview",
+      "width": 320,
+      "height": 180,
+      "bytes": 21622,
+      "sha256": "2e6b5096ef353ff29c8972a74f92e6ee367f919b6f30a98ed0b688d85e46ca44"
+    },
+    {
+      "source": "images/le-grande-aerial-context.webp",
+      "key": "images/responsive/images/le-grande-aerial-context-preview-480-88a5c422f66de41b.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-context-preview-480-88a5c422f66de41b.webp",
+      "kind": "preview",
+      "width": 480,
+      "height": 270,
+      "bytes": 45134,
+      "sha256": "88a5c422f66de41b2109ba9098f5461b18ad6ecc11207151c09bbfbd6cac6e67"
+    },
+    {
+      "source": "images/le-grande-aerial-context.webp",
+      "key": "images/responsive/images/le-grande-aerial-context-preview-768-f5bff841158021f3.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-context-preview-768-f5bff841158021f3.webp",
+      "kind": "preview",
+      "width": 768,
+      "height": 432,
+      "bytes": 102440,
+      "sha256": "f5bff841158021f36376a0320a6bb76a06cfa1f01671c5742efb76ce594c302c"
+    },
+    {
+      "source": "images/le-grande-aerial-context.webp",
+      "key": "images/responsive/images/le-grande-aerial-context-preview-1080-4e775f384bce4f8c.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-context-preview-1080-4e775f384bce4f8c.webp",
+      "kind": "preview",
+      "width": 1080,
+      "height": 607,
+      "bytes": 186846,
+      "sha256": "4e775f384bce4f8c3b9bbf1bbb8db32b369754986c85926a926bc9695c908fc2"
+    },
+    {
+      "source": "images/le-grande-aerial-context.webp",
+      "key": "images/responsive/images/le-grande-aerial-context-preview-1440-e78113d7d965da32.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-context-preview-1440-e78113d7d965da32.webp",
+      "kind": "preview",
+      "width": 1440,
+      "height": 810,
+      "bytes": 312524,
+      "sha256": "e78113d7d965da320991e8a6415d8e4f203c4c188d6b5e278d2cb71af30fd869"
+    },
+    {
+      "source": "images/le-grande-aerial-context.webp",
+      "key": "images/responsive/images/le-grande-aerial-context-preview-1920-c6902eda713dc11c.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-context-preview-1920-c6902eda713dc11c.webp",
+      "kind": "preview",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 485352,
+      "sha256": "c6902eda713dc11c3d5565342cbbca38f1ff02443d400940b89accf572a3e5d6"
+    },
+    {
+      "source": "images/le-grande-aerial-context.webp",
+      "key": "images/responsive/images/le-grande-aerial-context-preview-2400-d7f52d2f37e8b5ba.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-context-preview-2400-d7f52d2f37e8b5ba.webp",
+      "kind": "preview",
+      "width": 2400,
+      "height": 1350,
+      "bytes": 769124,
+      "sha256": "d7f52d2f37e8b5bac932950921e7c915c37d8f1ea60b4af4d593992d5dca575b"
+    },
+    {
+      "source": "images/le-grande-aerial-context.webp",
+      "key": "images/responsive/images/le-grande-aerial-context-thumbnail-64-dacf2b422982cf4e.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-context-thumbnail-64-dacf2b422982cf4e.webp",
+      "kind": "thumbnail",
+      "width": 64,
+      "height": 64,
+      "bytes": 1718,
+      "sha256": "dacf2b422982cf4e23a613ad7f16e8549ea213dcac157e8c0eb3ab97beb75847"
+    },
+    {
+      "source": "images/le-grande-aerial-context.webp",
+      "key": "images/responsive/images/le-grande-aerial-context-thumbnail-128-77ef709286bf0d46.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-context-thumbnail-128-77ef709286bf0d46.webp",
+      "kind": "thumbnail",
+      "width": 128,
+      "height": 128,
+      "bytes": 5736,
+      "sha256": "77ef709286bf0d464fec0d186080057e0e4079c3f412d5da2362f1d01c0385cf"
+    },
+    {
+      "source": "images/le-grande-aerial-context.webp",
+      "key": "images/responsive/images/le-grande-aerial-context-thumbnail-192-93b0a5dcb765cd07.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-context-thumbnail-192-93b0a5dcb765cd07.webp",
+      "kind": "thumbnail",
+      "width": 192,
+      "height": 192,
+      "bytes": 11682,
+      "sha256": "93b0a5dcb765cd07288456b155c752e16b6ef85b3bca87bea129612c138a661c"
+    },
+    {
+      "source": "images/le-grande-aerial-context.webp",
+      "key": "images/responsive/images/le-grande-aerial-context-thumbnail-256-0d9f864ec635d988.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-context-thumbnail-256-0d9f864ec635d988.webp",
+      "kind": "thumbnail",
+      "width": 256,
+      "height": 256,
+      "bytes": 19324,
+      "sha256": "0d9f864ec635d988a2af3033c2ff10e725dc3b906f0baeba88085273a2f6e6c8"
+    },
+    {
+      "source": "images/le-grande-aerial-close.webp",
+      "key": "images/responsive/images/le-grande-aerial-close-preview-160-109b09bd961a6cdb.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-close-preview-160-109b09bd961a6cdb.webp",
+      "kind": "preview",
+      "width": 160,
+      "height": 90,
+      "bytes": 5898,
+      "sha256": "109b09bd961a6cdb122b22b2e2b6ea99627f97316703f1de2cc18cfb41ef13a9"
+    },
+    {
+      "source": "images/le-grande-aerial-close.webp",
+      "key": "images/responsive/images/le-grande-aerial-close-preview-320-fbf5af86e880c9b5.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-close-preview-320-fbf5af86e880c9b5.webp",
+      "kind": "preview",
+      "width": 320,
+      "height": 180,
+      "bytes": 19774,
+      "sha256": "fbf5af86e880c9b55a7876bd7da713d4bd34f21057e362ab3bda639e60549250"
+    },
+    {
+      "source": "images/le-grande-aerial-close.webp",
+      "key": "images/responsive/images/le-grande-aerial-close-preview-480-91bac5dfd3874bf6.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-close-preview-480-91bac5dfd3874bf6.webp",
+      "kind": "preview",
+      "width": 480,
+      "height": 270,
+      "bytes": 41318,
+      "sha256": "91bac5dfd3874bf69f5bca1a08682b9106c9b4eaf2e53f69c0dac59b0fdcca64"
+    },
+    {
+      "source": "images/le-grande-aerial-close.webp",
+      "key": "images/responsive/images/le-grande-aerial-close-preview-768-b242d0485380c289.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-close-preview-768-b242d0485380c289.webp",
+      "kind": "preview",
+      "width": 768,
+      "height": 432,
+      "bytes": 93558,
+      "sha256": "b242d0485380c28932fbcb3d5ae0cf4fc91ca52e76c4d22e6e6ac30c21223adf"
+    },
+    {
+      "source": "images/le-grande-aerial-close.webp",
+      "key": "images/responsive/images/le-grande-aerial-close-preview-1080-c88b88db53c257a6.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-close-preview-1080-c88b88db53c257a6.webp",
+      "kind": "preview",
+      "width": 1080,
+      "height": 607,
+      "bytes": 172082,
+      "sha256": "c88b88db53c257a6be3f6bad6f925f7a965f124a00b9fa6b61f503b212af7558"
+    },
+    {
+      "source": "images/le-grande-aerial-close.webp",
+      "key": "images/responsive/images/le-grande-aerial-close-preview-1440-e9f1cc6c9f60a2f0.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-close-preview-1440-e9f1cc6c9f60a2f0.webp",
+      "kind": "preview",
+      "width": 1440,
+      "height": 810,
+      "bytes": 289418,
+      "sha256": "e9f1cc6c9f60a2f03578069d630a3d056588eacadb6652936ac520612f6fe2e6"
+    },
+    {
+      "source": "images/le-grande-aerial-close.webp",
+      "key": "images/responsive/images/le-grande-aerial-close-preview-1920-a230e6156602abd9.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-close-preview-1920-a230e6156602abd9.webp",
+      "kind": "preview",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 444030,
+      "sha256": "a230e6156602abd97674387f6009fd467b95060b668ca888d3c3845087edadb6"
+    },
+    {
+      "source": "images/le-grande-aerial-close.webp",
+      "key": "images/responsive/images/le-grande-aerial-close-preview-2400-dfa5942f38bc772d.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-close-preview-2400-dfa5942f38bc772d.webp",
+      "kind": "preview",
+      "width": 2400,
+      "height": 1350,
+      "bytes": 710524,
+      "sha256": "dfa5942f38bc772d95af39ec1a7e7ccf6ed9a22fc2424ed94b4135b9eb4c9c3e"
+    },
+    {
+      "source": "images/le-grande-aerial-close.webp",
+      "key": "images/responsive/images/le-grande-aerial-close-thumbnail-64-68d34cd19a27d7ce.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-close-thumbnail-64-68d34cd19a27d7ce.webp",
+      "kind": "thumbnail",
+      "width": 64,
+      "height": 64,
+      "bytes": 1686,
+      "sha256": "68d34cd19a27d7ce0aa742fb3dfbb157a6aaf2de9fde46715576245c4b1cd60d"
+    },
+    {
+      "source": "images/le-grande-aerial-close.webp",
+      "key": "images/responsive/images/le-grande-aerial-close-thumbnail-128-ab072799431236a0.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-close-thumbnail-128-ab072799431236a0.webp",
+      "kind": "thumbnail",
+      "width": 128,
+      "height": 128,
+      "bytes": 5428,
+      "sha256": "ab072799431236a0a0e1330333e256395dd213ea4f5e6b6354076e1d21bbe448"
+    },
+    {
+      "source": "images/le-grande-aerial-close.webp",
+      "key": "images/responsive/images/le-grande-aerial-close-thumbnail-192-968555a27cbcded5.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-close-thumbnail-192-968555a27cbcded5.webp",
+      "kind": "thumbnail",
+      "width": 192,
+      "height": 192,
+      "bytes": 10926,
+      "sha256": "968555a27cbcded56cd7588eb04ad255846de58d664e8d8c87e58bae16f4a445"
+    },
+    {
+      "source": "images/le-grande-aerial-close.webp",
+      "key": "images/responsive/images/le-grande-aerial-close-thumbnail-256-9b6191a0d96b59ef.webp",
+      "path": "public/images/responsive/images/le-grande-aerial-close-thumbnail-256-9b6191a0d96b59ef.webp",
+      "kind": "thumbnail",
+      "width": 256,
+      "height": 256,
+      "bytes": 17788,
+      "sha256": "9b6191a0d96b59ef6974d3187e7bbef036299774599a3f5431a836aa39c96d45"
+    },
+    {
+      "source": "images/home-v2/architecture-detail.jpg",
+      "key": "images/responsive/images/home-v2/architecture-detail-preview-160-40973363a9d1c742.webp",
+      "path": "public/images/responsive/images/home-v2/architecture-detail-preview-160-40973363a9d1c742.webp",
+      "kind": "preview",
+      "width": 160,
+      "height": 90,
+      "bytes": 4250,
+      "sha256": "40973363a9d1c742b1bbf282222cb52797f51e50d147588ad8b3644ab9cb51d0"
+    },
+    {
+      "source": "images/home-v2/architecture-detail.jpg",
+      "key": "images/responsive/images/home-v2/architecture-detail-preview-320-5019caf2de360ee7.webp",
+      "path": "public/images/responsive/images/home-v2/architecture-detail-preview-320-5019caf2de360ee7.webp",
+      "kind": "preview",
+      "width": 320,
+      "height": 180,
+      "bytes": 13262,
+      "sha256": "5019caf2de360ee787526f22bbfdaf5124ee32aa97f871c0e1a4a1e5865fbe05"
+    },
+    {
+      "source": "images/home-v2/architecture-detail.jpg",
+      "key": "images/responsive/images/home-v2/architecture-detail-preview-480-700e44cf6c3e5037.webp",
+      "path": "public/images/responsive/images/home-v2/architecture-detail-preview-480-700e44cf6c3e5037.webp",
+      "kind": "preview",
+      "width": 480,
+      "height": 270,
+      "bytes": 26168,
+      "sha256": "700e44cf6c3e50374fecc56479b69c07808fd8ac82b4d4f14dfcc485ebb9006c"
+    },
+    {
+      "source": "images/home-v2/architecture-detail.jpg",
+      "key": "images/responsive/images/home-v2/architecture-detail-preview-768-c6ebb058ecf7f7e1.webp",
+      "path": "public/images/responsive/images/home-v2/architecture-detail-preview-768-c6ebb058ecf7f7e1.webp",
+      "kind": "preview",
+      "width": 768,
+      "height": 432,
+      "bytes": 58306,
+      "sha256": "c6ebb058ecf7f7e1b3829715d35eef7a99cd26e56059ceb8a8bf749015539d83"
+    },
+    {
+      "source": "images/home-v2/architecture-detail.jpg",
+      "key": "images/responsive/images/home-v2/architecture-detail-preview-1080-44d34cb4c3c767ed.webp",
+      "path": "public/images/responsive/images/home-v2/architecture-detail-preview-1080-44d34cb4c3c767ed.webp",
+      "kind": "preview",
+      "width": 1080,
+      "height": 608,
+      "bytes": 102432,
+      "sha256": "44d34cb4c3c767ed9841c2ac60327b92564f9bdc17d7930fe0a6acf9c9ed2689"
+    },
+    {
+      "source": "images/home-v2/architecture-detail.jpg",
+      "key": "images/responsive/images/home-v2/architecture-detail-preview-1440-6dacbe88ca54a610.webp",
+      "path": "public/images/responsive/images/home-v2/architecture-detail-preview-1440-6dacbe88ca54a610.webp",
+      "kind": "preview",
+      "width": 1440,
+      "height": 810,
+      "bytes": 165108,
+      "sha256": "6dacbe88ca54a610896db3537b48187d55387fcbb775d29880b672a146bff053"
+    },
+    {
+      "source": "images/home-v2/architecture-detail.jpg",
+      "key": "images/responsive/images/home-v2/architecture-detail-preview-1600-a46246cd089ae932.webp",
+      "path": "public/images/responsive/images/home-v2/architecture-detail-preview-1600-a46246cd089ae932.webp",
+      "kind": "preview",
+      "width": 1600,
+      "height": 900,
+      "bytes": 205676,
+      "sha256": "a46246cd089ae93200bd881c3d8815604675bf63d5a7b505cb40e706f5b77a71"
+    },
+    {
+      "source": "images/home-v2/architecture-detail.jpg",
+      "key": "images/responsive/images/home-v2/architecture-detail-thumbnail-64-ec86a997455cd0eb.webp",
+      "path": "public/images/responsive/images/home-v2/architecture-detail-thumbnail-64-ec86a997455cd0eb.webp",
+      "kind": "thumbnail",
+      "width": 64,
+      "height": 64,
+      "bytes": 1304,
+      "sha256": "ec86a997455cd0eb663c6f6afec0b73e2636e95d9362c90d3ad8ed32b1d09e38"
+    },
+    {
+      "source": "images/home-v2/architecture-detail.jpg",
+      "key": "images/responsive/images/home-v2/architecture-detail-thumbnail-128-77a37fa1a5c0ca40.webp",
+      "path": "public/images/responsive/images/home-v2/architecture-detail-thumbnail-128-77a37fa1a5c0ca40.webp",
+      "kind": "thumbnail",
+      "width": 128,
+      "height": 128,
+      "bytes": 3802,
+      "sha256": "77a37fa1a5c0ca4019d3bbb47cc28e91220f966b9d7a8a5870271ff48c81edfb"
+    },
+    {
+      "source": "images/home-v2/architecture-detail.jpg",
+      "key": "images/responsive/images/home-v2/architecture-detail-thumbnail-192-1cabed8bf78f88cc.webp",
+      "path": "public/images/responsive/images/home-v2/architecture-detail-thumbnail-192-1cabed8bf78f88cc.webp",
+      "kind": "thumbnail",
+      "width": 192,
+      "height": 192,
+      "bytes": 7438,
+      "sha256": "1cabed8bf78f88cc3e62660324c39a729a431578d314d6f7aee597ba512fcf7c"
+    },
+    {
+      "source": "images/home-v2/architecture-detail.jpg",
+      "key": "images/responsive/images/home-v2/architecture-detail-thumbnail-256-b89ef97922a7afd4.webp",
+      "path": "public/images/responsive/images/home-v2/architecture-detail-thumbnail-256-b89ef97922a7afd4.webp",
+      "kind": "thumbnail",
+      "width": 256,
+      "height": 256,
+      "bytes": 11748,
+      "sha256": "b89ef97922a7afd42ef3876d6056ab8c8a4cd4241229aee7240a77523b8e3dd6"
+    },
+    {
+      "source": "images/home-v2/facade-detail.jpg",
+      "key": "images/responsive/images/home-v2/facade-detail-preview-160-f68c8771206e944e.webp",
+      "path": "public/images/responsive/images/home-v2/facade-detail-preview-160-f68c8771206e944e.webp",
+      "kind": "preview",
+      "width": 160,
+      "height": 90,
+      "bytes": 5686,
+      "sha256": "f68c8771206e944e051679cccc2936ff9d946a31987d8e431d1e02402da89a47"
+    },
+    {
+      "source": "images/home-v2/facade-detail.jpg",
+      "key": "images/responsive/images/home-v2/facade-detail-preview-320-7a8c8272e630880b.webp",
+      "path": "public/images/responsive/images/home-v2/facade-detail-preview-320-7a8c8272e630880b.webp",
+      "kind": "preview",
+      "width": 320,
+      "height": 180,
+      "bytes": 18110,
+      "sha256": "7a8c8272e630880be786c588f9559d3acefd3d8446691c263fbabb3db57287c3"
+    },
+    {
+      "source": "images/home-v2/facade-detail.jpg",
+      "key": "images/responsive/images/home-v2/facade-detail-preview-480-7500385bd559340a.webp",
+      "path": "public/images/responsive/images/home-v2/facade-detail-preview-480-7500385bd559340a.webp",
+      "kind": "preview",
+      "width": 480,
+      "height": 270,
+      "bytes": 36094,
+      "sha256": "7500385bd559340af5715494faf84eb25c9411640fbafc05be640f002c149711"
+    },
+    {
+      "source": "images/home-v2/facade-detail.jpg",
+      "key": "images/responsive/images/home-v2/facade-detail-preview-768-b637b1273e24f046.webp",
+      "path": "public/images/responsive/images/home-v2/facade-detail-preview-768-b637b1273e24f046.webp",
+      "kind": "preview",
+      "width": 768,
+      "height": 432,
+      "bytes": 77032,
+      "sha256": "b637b1273e24f046d15f1d99d4a80beb6517ce359c9b19ce2253ac623ade6117"
+    },
+    {
+      "source": "images/home-v2/facade-detail.jpg",
+      "key": "images/responsive/images/home-v2/facade-detail-preview-1080-ada60ccaf768f6c9.webp",
+      "path": "public/images/responsive/images/home-v2/facade-detail-preview-1080-ada60ccaf768f6c9.webp",
+      "kind": "preview",
+      "width": 1080,
+      "height": 608,
+      "bytes": 131704,
+      "sha256": "ada60ccaf768f6c91af9752fe1fdc0fdd735f64d069dd409b9197e88fd778a1b"
+    },
+    {
+      "source": "images/home-v2/facade-detail.jpg",
+      "key": "images/responsive/images/home-v2/facade-detail-preview-1440-1f3e8ce2fe5aa7bc.webp",
+      "path": "public/images/responsive/images/home-v2/facade-detail-preview-1440-1f3e8ce2fe5aa7bc.webp",
+      "kind": "preview",
+      "width": 1440,
+      "height": 810,
+      "bytes": 202740,
+      "sha256": "1f3e8ce2fe5aa7bc61d95a19c795f8ae34cb70212bda87c71f311ba8280de5a9"
+    },
+    {
+      "source": "images/home-v2/facade-detail.jpg",
+      "key": "images/responsive/images/home-v2/facade-detail-preview-1600-920031dffd9b4c68.webp",
+      "path": "public/images/responsive/images/home-v2/facade-detail-preview-1600-920031dffd9b4c68.webp",
+      "kind": "preview",
+      "width": 1600,
+      "height": 900,
+      "bytes": 243208,
+      "sha256": "920031dffd9b4c683a3d17f7959d2a91bbc58094a38aa2c14c2bf48a682ecdde"
+    },
+    {
+      "source": "images/home-v2/facade-detail.jpg",
+      "key": "images/responsive/images/home-v2/facade-detail-thumbnail-64-2d21032987e15f45.webp",
+      "path": "public/images/responsive/images/home-v2/facade-detail-thumbnail-64-2d21032987e15f45.webp",
+      "kind": "thumbnail",
+      "width": 64,
+      "height": 64,
+      "bytes": 1696,
+      "sha256": "2d21032987e15f45584b6800d8e00bfb4e9d592e86e792366bbbd802dd9f9a13"
+    },
+    {
+      "source": "images/home-v2/facade-detail.jpg",
+      "key": "images/responsive/images/home-v2/facade-detail-thumbnail-128-5aca726d6b36e354.webp",
+      "path": "public/images/responsive/images/home-v2/facade-detail-thumbnail-128-5aca726d6b36e354.webp",
+      "kind": "thumbnail",
+      "width": 128,
+      "height": 128,
+      "bytes": 5008,
+      "sha256": "5aca726d6b36e354fa33013edb623efc187635b4ed8690ef43c7ab7741a00b23"
+    },
+    {
+      "source": "images/home-v2/facade-detail.jpg",
+      "key": "images/responsive/images/home-v2/facade-detail-thumbnail-192-f014d3e0d2a69485.webp",
+      "path": "public/images/responsive/images/home-v2/facade-detail-thumbnail-192-f014d3e0d2a69485.webp",
+      "kind": "thumbnail",
+      "width": 192,
+      "height": 192,
+      "bytes": 9946,
+      "sha256": "f014d3e0d2a69485561a2d0b0169ca3a91ba8aab94ec931aa65cb37c02f8a86a"
+    },
+    {
+      "source": "images/home-v2/facade-detail.jpg",
+      "key": "images/responsive/images/home-v2/facade-detail-thumbnail-256-ed7c957069863d58.webp",
+      "path": "public/images/responsive/images/home-v2/facade-detail-thumbnail-256-ed7c957069863d58.webp",
+      "kind": "thumbnail",
+      "width": 256,
+      "height": 256,
+      "bytes": 15256,
+      "sha256": "ed7c957069863d58278f740f3e796fc2cab95ce6b108d443c8f1be06d2460190"
+    },
+    {
+      "source": "images/home-v2/upper-detail.jpg",
+      "key": "images/responsive/images/home-v2/upper-detail-preview-160-f2eb06cd38e266cf.webp",
+      "path": "public/images/responsive/images/home-v2/upper-detail-preview-160-f2eb06cd38e266cf.webp",
+      "kind": "preview",
+      "width": 160,
+      "height": 90,
+      "bytes": 5506,
+      "sha256": "f2eb06cd38e266cff1afdfdd402cacaaf1baf8f669a8703e7d197ea0a0888788"
+    },
+    {
+      "source": "images/home-v2/upper-detail.jpg",
+      "key": "images/responsive/images/home-v2/upper-detail-preview-320-6cad920c3abeb1f0.webp",
+      "path": "public/images/responsive/images/home-v2/upper-detail-preview-320-6cad920c3abeb1f0.webp",
+      "kind": "preview",
+      "width": 320,
+      "height": 180,
+      "bytes": 17408,
+      "sha256": "6cad920c3abeb1f0bba7736703d957dab9e1ac1ba4bd47a94a26f5d1dc376b7d"
+    },
+    {
+      "source": "images/home-v2/upper-detail.jpg",
+      "key": "images/responsive/images/home-v2/upper-detail-preview-480-7842b38cf32eacf1.webp",
+      "path": "public/images/responsive/images/home-v2/upper-detail-preview-480-7842b38cf32eacf1.webp",
+      "kind": "preview",
+      "width": 480,
+      "height": 270,
+      "bytes": 34622,
+      "sha256": "7842b38cf32eacf144496e05f02f5bea1ed15aa8165d8c8ae02bf1d88f85d3a1"
+    },
+    {
+      "source": "images/home-v2/upper-detail.jpg",
+      "key": "images/responsive/images/home-v2/upper-detail-preview-768-2807ec35c7307248.webp",
+      "path": "public/images/responsive/images/home-v2/upper-detail-preview-768-2807ec35c7307248.webp",
+      "kind": "preview",
+      "width": 768,
+      "height": 432,
+      "bytes": 75438,
+      "sha256": "2807ec35c73072488dd86ab3a481b45c80500753dcdf59184d835082fa9f6f65"
+    },
+    {
+      "source": "images/home-v2/upper-detail.jpg",
+      "key": "images/responsive/images/home-v2/upper-detail-preview-1080-4317dc5751f41e30.webp",
+      "path": "public/images/responsive/images/home-v2/upper-detail-preview-1080-4317dc5751f41e30.webp",
+      "kind": "preview",
+      "width": 1080,
+      "height": 608,
+      "bytes": 135420,
+      "sha256": "4317dc5751f41e30afe042b307d75e9719ed52ffd3fc9e729b9930a1e9e8e31b"
+    },
+    {
+      "source": "images/home-v2/upper-detail.jpg",
+      "key": "images/responsive/images/home-v2/upper-detail-preview-1440-ab0be0350a358211.webp",
+      "path": "public/images/responsive/images/home-v2/upper-detail-preview-1440-ab0be0350a358211.webp",
+      "kind": "preview",
+      "width": 1440,
+      "height": 810,
+      "bytes": 218204,
+      "sha256": "ab0be0350a3582117312241085aff1d6442427975f0c5f74f71a41b76ccac4ef"
+    },
+    {
+      "source": "images/home-v2/upper-detail.jpg",
+      "key": "images/responsive/images/home-v2/upper-detail-preview-1600-868c737eee8efaa9.webp",
+      "path": "public/images/responsive/images/home-v2/upper-detail-preview-1600-868c737eee8efaa9.webp",
+      "kind": "preview",
+      "width": 1600,
+      "height": 900,
+      "bytes": 272614,
+      "sha256": "868c737eee8efaa9525ff1875ae66388804e04bb8f782983965dd4179a107394"
+    },
+    {
+      "source": "images/home-v2/upper-detail.jpg",
+      "key": "images/responsive/images/home-v2/upper-detail-thumbnail-64-5adaeaf292bd60dd.webp",
+      "path": "public/images/responsive/images/home-v2/upper-detail-thumbnail-64-5adaeaf292bd60dd.webp",
+      "kind": "thumbnail",
+      "width": 64,
+      "height": 64,
+      "bytes": 1724,
+      "sha256": "5adaeaf292bd60dd057a3e8634fe8f265318440794b65b6112c07479aa8ab436"
+    },
+    {
+      "source": "images/home-v2/upper-detail.jpg",
+      "key": "images/responsive/images/home-v2/upper-detail-thumbnail-128-876cae55d61b9a9e.webp",
+      "path": "public/images/responsive/images/home-v2/upper-detail-thumbnail-128-876cae55d61b9a9e.webp",
+      "kind": "thumbnail",
+      "width": 128,
+      "height": 128,
+      "bytes": 5544,
+      "sha256": "876cae55d61b9a9edfa07f77f058ca3068f54ff043bcee29b9696baa37533c9f"
+    },
+    {
+      "source": "images/home-v2/upper-detail.jpg",
+      "key": "images/responsive/images/home-v2/upper-detail-thumbnail-192-3597f487f8c0747a.webp",
+      "path": "public/images/responsive/images/home-v2/upper-detail-thumbnail-192-3597f487f8c0747a.webp",
+      "kind": "thumbnail",
+      "width": 192,
+      "height": 192,
+      "bytes": 11196,
+      "sha256": "3597f487f8c0747afb11a7037d4111b38cae8be157a777f5d6038ce504a9e44c"
+    },
+    {
+      "source": "images/home-v2/upper-detail.jpg",
+      "key": "images/responsive/images/home-v2/upper-detail-thumbnail-256-0aafd79031b20ca7.webp",
+      "path": "public/images/responsive/images/home-v2/upper-detail-thumbnail-256-0aafd79031b20ca7.webp",
+      "kind": "thumbnail",
+      "width": 256,
+      "height": 256,
+      "bytes": 18124,
+      "sha256": "0aafd79031b20ca7ba8a68e04e5fdb6e1134047ccfc9fc7ac2c64f13db12e343"
+    },
+    {
+      "source": "images/home-v2/introduction.webp",
+      "key": "images/responsive/images/home-v2/introduction-preview-160-9911ed4d7685bd33.webp",
+      "path": "public/images/responsive/images/home-v2/introduction-preview-160-9911ed4d7685bd33.webp",
+      "kind": "preview",
+      "width": 160,
+      "height": 90,
+      "bytes": 5906,
+      "sha256": "9911ed4d7685bd33e427473f4aded377a350bdce6fc4a28f8f589534da4ac534"
+    },
+    {
+      "source": "images/home-v2/introduction.webp",
+      "key": "images/responsive/images/home-v2/introduction-preview-320-30bd431cf4cebe5a.webp",
+      "path": "public/images/responsive/images/home-v2/introduction-preview-320-30bd431cf4cebe5a.webp",
+      "kind": "preview",
+      "width": 320,
+      "height": 180,
+      "bytes": 20284,
+      "sha256": "30bd431cf4cebe5a80b33426f0cc3a10da436fdce07b276a2ce8149b03762c5d"
+    },
+    {
+      "source": "images/home-v2/introduction.webp",
+      "key": "images/responsive/images/home-v2/introduction-preview-480-087735fbf72b0405.webp",
+      "path": "public/images/responsive/images/home-v2/introduction-preview-480-087735fbf72b0405.webp",
+      "kind": "preview",
+      "width": 480,
+      "height": 270,
+      "bytes": 40530,
+      "sha256": "087735fbf72b04053606d4f38a7e6c8925c2ff196b0df63196b1463d358c07e8"
+    },
+    {
+      "source": "images/home-v2/introduction.webp",
+      "key": "images/responsive/images/home-v2/introduction-preview-768-d17a82c993764ef9.webp",
+      "path": "public/images/responsive/images/home-v2/introduction-preview-768-d17a82c993764ef9.webp",
+      "kind": "preview",
+      "width": 768,
+      "height": 432,
+      "bytes": 89600,
+      "sha256": "d17a82c993764ef937f2f24555e5171c0d60e7d306d53f91a3879adcc207f67d"
+    },
+    {
+      "source": "images/home-v2/introduction.webp",
+      "key": "images/responsive/images/home-v2/introduction-preview-1080-e75474977eea4071.webp",
+      "path": "public/images/responsive/images/home-v2/introduction-preview-1080-e75474977eea4071.webp",
+      "kind": "preview",
+      "width": 1080,
+      "height": 608,
+      "bytes": 146740,
+      "sha256": "e75474977eea407194fd9289b06ef47853bb1892afed5610f33681c7719fcf42"
+    },
+    {
+      "source": "images/home-v2/introduction.webp",
+      "key": "images/responsive/images/home-v2/introduction-preview-1121-b2643e4e0e70b22f.webp",
+      "path": "public/images/responsive/images/home-v2/introduction-preview-1121-b2643e4e0e70b22f.webp",
+      "kind": "preview",
+      "width": 1121,
+      "height": 631,
+      "bytes": 186930,
+      "sha256": "b2643e4e0e70b22fefb5059b3fbdb2e0af7f83c30eeee68345e63e5b0a225c43"
+    },
+    {
+      "source": "images/home-v2/introduction.webp",
+      "key": "images/responsive/images/home-v2/introduction-thumbnail-64-8f1d483e85c05437.webp",
+      "path": "public/images/responsive/images/home-v2/introduction-thumbnail-64-8f1d483e85c05437.webp",
+      "kind": "thumbnail",
+      "width": 64,
+      "height": 64,
+      "bytes": 1494,
+      "sha256": "8f1d483e85c05437ed56ffc699e0694d035391310b876752060ea771a6fea721"
+    },
+    {
+      "source": "images/home-v2/introduction.webp",
+      "key": "images/responsive/images/home-v2/introduction-thumbnail-128-dd585ef0747aef54.webp",
+      "path": "public/images/responsive/images/home-v2/introduction-thumbnail-128-dd585ef0747aef54.webp",
+      "kind": "thumbnail",
+      "width": 128,
+      "height": 128,
+      "bytes": 5094,
+      "sha256": "dd585ef0747aef54e5a219bd84f16db14e64cfc18d523a3366c9e1f4ceab6389"
+    },
+    {
+      "source": "images/home-v2/introduction.webp",
+      "key": "images/responsive/images/home-v2/introduction-thumbnail-192-d9a2e204ca3deefa.webp",
+      "path": "public/images/responsive/images/home-v2/introduction-thumbnail-192-d9a2e204ca3deefa.webp",
+      "kind": "thumbnail",
+      "width": 192,
+      "height": 192,
+      "bytes": 10480,
+      "sha256": "d9a2e204ca3deefadb7a6f904a813f1c5fed1c6ffeceba053dd448df75998a20"
+    },
+    {
+      "source": "images/home-v2/introduction.webp",
+      "key": "images/responsive/images/home-v2/introduction-thumbnail-256-da2cafee5fe0c3ae.webp",
+      "path": "public/images/responsive/images/home-v2/introduction-thumbnail-256-da2cafee5fe0c3ae.webp",
+      "kind": "thumbnail",
+      "width": 256,
+      "height": 256,
+      "bytes": 17164,
+      "sha256": "da2cafee5fe0c3ae340552503e572831a3cb3d3afa4a9927ab9a1fe5792f9dd4"
+    },
+    {
+      "source": "images/home-v2/hero.webp",
+      "key": "images/responsive/images/home-v2/hero-preview-160-430f7b294e761a9f.webp",
+      "path": "public/images/responsive/images/home-v2/hero-preview-160-430f7b294e761a9f.webp",
+      "kind": "preview",
+      "width": 160,
+      "height": 74,
+      "bytes": 5478,
+      "sha256": "430f7b294e761a9f4bb0b71c6d31e45865d9ed85377f1c6abf62f2d30364a39a"
+    },
+    {
+      "source": "images/home-v2/hero.webp",
+      "key": "images/responsive/images/home-v2/hero-preview-320-348040065bb4b1de.webp",
+      "path": "public/images/responsive/images/home-v2/hero-preview-320-348040065bb4b1de.webp",
+      "kind": "preview",
+      "width": 320,
+      "height": 148,
+      "bytes": 18474,
+      "sha256": "348040065bb4b1de1d3b25d43e4d772d1c745bbf4e506f14d86a313970bce5f9"
+    },
+    {
+      "source": "images/home-v2/hero.webp",
+      "key": "images/responsive/images/home-v2/hero-preview-480-e42ddf9b54f49692.webp",
+      "path": "public/images/responsive/images/home-v2/hero-preview-480-e42ddf9b54f49692.webp",
+      "kind": "preview",
+      "width": 480,
+      "height": 223,
+      "bytes": 38062,
+      "sha256": "e42ddf9b54f49692ee5acba62facc96423d26c16158a433eb671ef86f2cb9f4d"
+    },
+    {
+      "source": "images/home-v2/hero.webp",
+      "key": "images/responsive/images/home-v2/hero-preview-768-8739a2e257da0617.webp",
+      "path": "public/images/responsive/images/home-v2/hero-preview-768-8739a2e257da0617.webp",
+      "kind": "preview",
+      "width": 768,
+      "height": 356,
+      "bytes": 83650,
+      "sha256": "8739a2e257da061743f0a0b07edb7c73ef7fe4c7cdd3d3a3b208ebfe905daab1"
+    },
+    {
+      "source": "images/home-v2/hero.webp",
+      "key": "images/responsive/images/home-v2/hero-preview-1080-4a127f5bdd176713.webp",
+      "path": "public/images/responsive/images/home-v2/hero-preview-1080-4a127f5bdd176713.webp",
+      "kind": "preview",
+      "width": 1080,
+      "height": 501,
+      "bytes": 145130,
+      "sha256": "4a127f5bdd17671365b6b52d1d5982a8448fbf33d26ed6856342bc29b8f1a775"
+    },
+    {
+      "source": "images/home-v2/hero.webp",
+      "key": "images/responsive/images/home-v2/hero-preview-1440-bfababf746fd4078.webp",
+      "path": "public/images/responsive/images/home-v2/hero-preview-1440-bfababf746fd4078.webp",
+      "kind": "preview",
+      "width": 1440,
+      "height": 668,
+      "bytes": 220326,
+      "sha256": "bfababf746fd4078ab0a3c90f993802753f6c688eb094f885c8960e06a91daf9"
+    },
+    {
+      "source": "images/home-v2/hero.webp",
+      "key": "images/responsive/images/home-v2/hero-preview-1842-7f2e32925b189048.webp",
+      "path": "public/images/responsive/images/home-v2/hero-preview-1842-7f2e32925b189048.webp",
+      "kind": "preview",
+      "width": 1842,
+      "height": 854,
+      "bytes": 348712,
+      "sha256": "7f2e32925b18904834f0532ad9bc615b6eded0c5e3a02ffadcb26d2814df77b2"
+    },
+    {
+      "source": "images/home-v2/hero.webp",
+      "key": "images/responsive/images/home-v2/hero-thumbnail-64-79b9670881879e5e.webp",
+      "path": "public/images/responsive/images/home-v2/hero-thumbnail-64-79b9670881879e5e.webp",
+      "kind": "thumbnail",
+      "width": 64,
+      "height": 64,
+      "bytes": 1844,
+      "sha256": "79b9670881879e5e5376a0eae5ca8cb3826fe6a3d8ed2eff2831e28402022650"
+    },
+    {
+      "source": "images/home-v2/hero.webp",
+      "key": "images/responsive/images/home-v2/hero-thumbnail-128-d0d18a30c75518c7.webp",
+      "path": "public/images/responsive/images/home-v2/hero-thumbnail-128-d0d18a30c75518c7.webp",
+      "kind": "thumbnail",
+      "width": 128,
+      "height": 128,
+      "bytes": 5836,
+      "sha256": "d0d18a30c75518c707ea43337e853575898111d671d61e95b2259591f830f776"
+    },
+    {
+      "source": "images/home-v2/hero.webp",
+      "key": "images/responsive/images/home-v2/hero-thumbnail-192-dbd5f214c36bd76c.webp",
+      "path": "public/images/responsive/images/home-v2/hero-thumbnail-192-dbd5f214c36bd76c.webp",
+      "kind": "thumbnail",
+      "width": 192,
+      "height": 192,
+      "bytes": 11752,
+      "sha256": "dbd5f214c36bd76cade8c178f8bd469cadfee58457a6c17d808b10b9dd46f379"
+    },
+    {
+      "source": "images/home-v2/hero.webp",
+      "key": "images/responsive/images/home-v2/hero-thumbnail-256-022abd4be400264b.webp",
+      "path": "public/images/responsive/images/home-v2/hero-thumbnail-256-022abd4be400264b.webp",
+      "kind": "thumbnail",
+      "width": 256,
+      "height": 256,
+      "bytes": 19164,
+      "sha256": "022abd4be400264b66e0ce53c23f6aac6f192729dd98c982a13d509187f22575"
+    },
+    {
+      "source": "images/home-v2/hero.webp",
+      "key": "images/responsive/images/home-v2/hero-mobile-hero-480-eb8e3ae4dd4fc55a.webp",
+      "path": "public/images/responsive/images/home-v2/hero-mobile-hero-480-eb8e3ae4dd4fc55a.webp",
+      "kind": "mobile-hero",
+      "width": 480,
+      "height": 460,
+      "bytes": 61496,
+      "sha256": "eb8e3ae4dd4fc55a305e966e55e142099643e99acf732107d5f39f85e71b9ff5",
+      "extract": {
+        "left": 590,
+        "top": 0,
+        "width": 891,
+        "height": 854
+      }
+    },
+    {
+      "source": "images/home-v2/hero.webp",
+      "key": "images/responsive/images/home-v2/hero-mobile-hero-720-5f77821e8b9ec5f4.webp",
+      "path": "public/images/responsive/images/home-v2/hero-mobile-hero-720-5f77821e8b9ec5f4.webp",
+      "kind": "mobile-hero",
+      "width": 720,
+      "height": 690,
+      "bytes": 115010,
+      "sha256": "5f77821e8b9ec5f4cfcd90584ad919199a78cce1d54b41bd8ad0e0cd3d1b133d",
+      "extract": {
+        "left": 590,
+        "top": 0,
+        "width": 891,
+        "height": 854
+      }
+    },
+    {
+      "source": "images/home-v2/hero.webp",
+      "key": "images/responsive/images/home-v2/hero-mobile-hero-891-18e47854e0b6e048.webp",
+      "path": "public/images/responsive/images/home-v2/hero-mobile-hero-891-18e47854e0b6e048.webp",
+      "kind": "mobile-hero",
+      "width": 891,
+      "height": 854,
+      "bytes": 153360,
+      "sha256": "18e47854e0b6e0484b793ee3d3f16e6bb410d658c69a53aca487e9b3530c1fb7",
+      "extract": {
+        "left": 590,
+        "top": 0,
+        "width": 891,
+        "height": 854
+      }
+    },
+    {
+      "source": "images/home-v2/reasons-background.webp",
+      "key": "images/responsive/images/home-v2/reasons-background-preview-160-74a3195866955f73.webp",
+      "path": "public/images/responsive/images/home-v2/reasons-background-preview-160-74a3195866955f73.webp",
+      "kind": "preview",
+      "width": 160,
+      "height": 68,
+      "bytes": 4162,
+      "sha256": "74a3195866955f735f18e145d73ab8b98967b6b5864a2835459f95dfb6e84000"
+    },
+    {
+      "source": "images/home-v2/reasons-background.webp",
+      "key": "images/responsive/images/home-v2/reasons-background-preview-320-c55c9cf1fb985345.webp",
+      "path": "public/images/responsive/images/home-v2/reasons-background-preview-320-c55c9cf1fb985345.webp",
+      "kind": "preview",
+      "width": 320,
+      "height": 136,
+      "bytes": 12126,
+      "sha256": "c55c9cf1fb98534512299f10595e398d20b57234b9b3f19b3dfc6d357642f9e9"
+    },
+    {
+      "source": "images/home-v2/reasons-background.webp",
+      "key": "images/responsive/images/home-v2/reasons-background-preview-480-dc08d45ce9271c9a.webp",
+      "path": "public/images/responsive/images/home-v2/reasons-background-preview-480-dc08d45ce9271c9a.webp",
+      "kind": "preview",
+      "width": 480,
+      "height": 204,
+      "bytes": 20796,
+      "sha256": "dc08d45ce9271c9af44757e1b28ac283c7b27b8abb964680ace122197d65025e"
+    },
+    {
+      "source": "images/home-v2/reasons-background.webp",
+      "key": "images/responsive/images/home-v2/reasons-background-preview-768-53375323c2d26d3d.webp",
+      "path": "public/images/responsive/images/home-v2/reasons-background-preview-768-53375323c2d26d3d.webp",
+      "kind": "preview",
+      "width": 768,
+      "height": 327,
+      "bytes": 36170,
+      "sha256": "53375323c2d26d3ddda1d2e2827d5fe09424b37a74fb78cd0b66e0c019bf1e12"
+    },
+    {
+      "source": "images/home-v2/reasons-background.webp",
+      "key": "images/responsive/images/home-v2/reasons-background-preview-1080-8ad02c8b2eda1d98.webp",
+      "path": "public/images/responsive/images/home-v2/reasons-background-preview-1080-8ad02c8b2eda1d98.webp",
+      "kind": "preview",
+      "width": 1080,
+      "height": 459,
+      "bytes": 52356,
+      "sha256": "8ad02c8b2eda1d98dd98b5410c859263c8a3794b93e033d28151bb5782a17584"
+    },
+    {
+      "source": "images/home-v2/reasons-background.webp",
+      "key": "images/responsive/images/home-v2/reasons-background-preview-1147-5344244d00a1407b.webp",
+      "path": "public/images/responsive/images/home-v2/reasons-background-preview-1147-5344244d00a1407b.webp",
+      "kind": "preview",
+      "width": 1147,
+      "height": 488,
+      "bytes": 59722,
+      "sha256": "5344244d00a1407be313c9f1ee7b5b5f0fdf66f97264127e3ec688ef5301c83f"
+    },
+    {
+      "source": "images/home-v2/floor-base.webp",
+      "key": "images/responsive/images/home-v2/floor-base-preview-480-4a8ebd67a9c2b865.webp",
+      "path": "public/images/responsive/images/home-v2/floor-base-preview-480-4a8ebd67a9c2b865.webp",
+      "kind": "preview",
+      "width": 480,
+      "height": 320,
+      "bytes": 25928,
+      "sha256": "4a8ebd67a9c2b8650a08ab5adc3e0e28a826aaee68bafe8ca653953fd7408924"
+    },
+    {
+      "source": "images/home-v2/floor-base.webp",
+      "key": "images/responsive/images/home-v2/floor-base-preview-768-2c1bba1c3994026e.webp",
+      "path": "public/images/responsive/images/home-v2/floor-base-preview-768-2c1bba1c3994026e.webp",
+      "kind": "preview",
+      "width": 768,
+      "height": 512,
+      "bytes": 52820,
+      "sha256": "2c1bba1c3994026efe950c1e1435dd29981132f710b4bbc93e12249e3b4e448b"
+    },
+    {
+      "source": "images/home-v2/floor-base.webp",
+      "key": "images/responsive/images/home-v2/floor-base-preview-1080-c0a8e84226a2a0aa.webp",
+      "path": "public/images/responsive/images/home-v2/floor-base-preview-1080-c0a8e84226a2a0aa.webp",
+      "kind": "preview",
+      "width": 1080,
+      "height": 720,
+      "bytes": 89046,
+      "sha256": "c0a8e84226a2a0aa2e302bb2ae08c2b32d6614f5373e674dc5e1ab96d197b4bd"
+    },
+    {
+      "source": "images/home-v2/floor-base.webp",
+      "key": "images/responsive/images/home-v2/floor-base-preview-1440-faf1f86b92513302.webp",
+      "path": "public/images/responsive/images/home-v2/floor-base-preview-1440-faf1f86b92513302.webp",
+      "kind": "preview",
+      "width": 1440,
+      "height": 960,
+      "bytes": 144496,
+      "sha256": "faf1f86b92513302776b99cefc4a1df0017d6e79a359587c2d48ed8dc5a0e056"
+    },
+    {
+      "source": "images/home-v2/floor-middle.webp",
+      "key": "images/responsive/images/home-v2/floor-middle-preview-480-5e0ae0dedf409cd4.webp",
+      "path": "public/images/responsive/images/home-v2/floor-middle-preview-480-5e0ae0dedf409cd4.webp",
+      "kind": "preview",
+      "width": 480,
+      "height": 320,
+      "bytes": 10442,
+      "sha256": "5e0ae0dedf409cd40a44b2379587a5b48ab68ce0ae3f55552a5e6789b57f1de1"
+    },
+    {
+      "source": "images/home-v2/floor-middle.webp",
+      "key": "images/responsive/images/home-v2/floor-middle-preview-768-6edb1c8d190ffbb6.webp",
+      "path": "public/images/responsive/images/home-v2/floor-middle-preview-768-6edb1c8d190ffbb6.webp",
+      "kind": "preview",
+      "width": 768,
+      "height": 512,
+      "bytes": 21474,
+      "sha256": "6edb1c8d190ffbb62e921131d5f6d17ec157536b8a6a668dc6943bb3406f743c"
+    },
+    {
+      "source": "images/home-v2/floor-middle.webp",
+      "key": "images/responsive/images/home-v2/floor-middle-preview-1080-4e83e46cc59d56bd.webp",
+      "path": "public/images/responsive/images/home-v2/floor-middle-preview-1080-4e83e46cc59d56bd.webp",
+      "kind": "preview",
+      "width": 1080,
+      "height": 720,
+      "bytes": 35882,
+      "sha256": "4e83e46cc59d56bdf11c0dec3e18285261fbdf8502765c7aeaee5f9b8c3272ef"
+    },
+    {
+      "source": "images/home-v2/floor-middle.webp",
+      "key": "images/responsive/images/home-v2/floor-middle-preview-1440-9b1d8914707b6c00.webp",
+      "path": "public/images/responsive/images/home-v2/floor-middle-preview-1440-9b1d8914707b6c00.webp",
+      "kind": "preview",
+      "width": 1440,
+      "height": 960,
+      "bytes": 55642,
+      "sha256": "9b1d8914707b6c00d339121b3be51ad7351e30fcb293473b0f8728986c9f29c5"
+    },
+    {
+      "source": "images/home-v2/floor-roof.webp",
+      "key": "images/responsive/images/home-v2/floor-roof-preview-480-fd219b82a0fbaf1b.webp",
+      "path": "public/images/responsive/images/home-v2/floor-roof-preview-480-fd219b82a0fbaf1b.webp",
+      "kind": "preview",
+      "width": 480,
+      "height": 320,
+      "bytes": 11088,
+      "sha256": "fd219b82a0fbaf1b7a76c3df316f3dfd4dcb9a2b1a359d5a2afb95e241e2ceed"
+    },
+    {
+      "source": "images/home-v2/floor-roof.webp",
+      "key": "images/responsive/images/home-v2/floor-roof-preview-768-10016594eebc1a38.webp",
+      "path": "public/images/responsive/images/home-v2/floor-roof-preview-768-10016594eebc1a38.webp",
+      "kind": "preview",
+      "width": 768,
+      "height": 512,
+      "bytes": 22486,
+      "sha256": "10016594eebc1a3819f518239f562382c28c140373e2b2994cfdce8ccc0068e6"
+    },
+    {
+      "source": "images/home-v2/floor-roof.webp",
+      "key": "images/responsive/images/home-v2/floor-roof-preview-1080-41d66df4314f4a98.webp",
+      "path": "public/images/responsive/images/home-v2/floor-roof-preview-1080-41d66df4314f4a98.webp",
+      "kind": "preview",
+      "width": 1080,
+      "height": 720,
+      "bytes": 37896,
+      "sha256": "41d66df4314f4a98a33825f6d1c762015fbc83565c1a702bea506be090893107"
+    },
+    {
+      "source": "images/home-v2/floor-roof.webp",
+      "key": "images/responsive/images/home-v2/floor-roof-preview-1440-b267897143109a77.webp",
+      "path": "public/images/responsive/images/home-v2/floor-roof-preview-1440-b267897143109a77.webp",
+      "kind": "preview",
+      "width": 1440,
+      "height": 960,
+      "bytes": 59816,
+      "sha256": "b267897143109a7740a9d7f8b80ca42a9372abf1adb02c7bb40c5e5b8f1e6fca"
+    },
+    {
+      "source": "client-reference/canva/project-perspective.jpg",
+      "key": "images/responsive/client-reference/canva/project-perspective-preview-160-e7b6e184c32d5fdc.webp",
+      "path": "public/images/responsive/client-reference/canva/project-perspective-preview-160-e7b6e184c32d5fdc.webp",
+      "kind": "preview",
+      "width": 160,
+      "height": 90,
+      "bytes": 5776,
+      "sha256": "e7b6e184c32d5fdccf9e613b0b01c5eba3d701e267fc4b785838a496230b2658"
+    },
+    {
+      "source": "client-reference/canva/project-perspective.jpg",
+      "key": "images/responsive/client-reference/canva/project-perspective-preview-320-9beb671e4f707d0a.webp",
+      "path": "public/images/responsive/client-reference/canva/project-perspective-preview-320-9beb671e4f707d0a.webp",
+      "kind": "preview",
+      "width": 320,
+      "height": 180,
+      "bytes": 19316,
+      "sha256": "9beb671e4f707d0a96ab6f0220ea3a7ed35a92ed271de5bdcda5ee31370207ca"
+    },
+    {
+      "source": "client-reference/canva/project-perspective.jpg",
+      "key": "images/responsive/client-reference/canva/project-perspective-preview-480-1f07199a28fffa8e.webp",
+      "path": "public/images/responsive/client-reference/canva/project-perspective-preview-480-1f07199a28fffa8e.webp",
+      "kind": "preview",
+      "width": 480,
+      "height": 270,
+      "bytes": 38416,
+      "sha256": "1f07199a28fffa8e6c3b238b2b27c650837044f19d1484fdf64cc8417e4770ee"
+    },
+    {
+      "source": "client-reference/canva/project-perspective.jpg",
+      "key": "images/responsive/client-reference/canva/project-perspective-preview-768-5e2a222d6d0b996f.webp",
+      "path": "public/images/responsive/client-reference/canva/project-perspective-preview-768-5e2a222d6d0b996f.webp",
+      "kind": "preview",
+      "width": 768,
+      "height": 432,
+      "bytes": 84714,
+      "sha256": "5e2a222d6d0b996fc528b16cfcfa93cad5fc6b409df1bcc5b0dc4f4c60dc779d"
+    },
+    {
+      "source": "client-reference/canva/project-perspective.jpg",
+      "key": "images/responsive/client-reference/canva/project-perspective-preview-1080-a704e2cfdfa29ae9.webp",
+      "path": "public/images/responsive/client-reference/canva/project-perspective-preview-1080-a704e2cfdfa29ae9.webp",
+      "kind": "preview",
+      "width": 1080,
+      "height": 608,
+      "bytes": 144320,
+      "sha256": "a704e2cfdfa29ae97e9a4820c4387ea32738277d51ff04fff23e8d039775313f"
+    },
+    {
+      "source": "client-reference/canva/project-perspective.jpg",
+      "key": "images/responsive/client-reference/canva/project-perspective-preview-1400-cf131dca8cf0e82e.webp",
+      "path": "public/images/responsive/client-reference/canva/project-perspective-preview-1400-cf131dca8cf0e82e.webp",
+      "kind": "preview",
+      "width": 1400,
+      "height": 788,
+      "bytes": 210616,
+      "sha256": "cf131dca8cf0e82eb620de17eff6139d4914b1c2f13d16265132ed8213cbecaf"
+    },
+    {
+      "source": "client-reference/canva/project-perspective.jpg",
+      "key": "images/responsive/client-reference/canva/project-perspective-thumbnail-64-edd9ea74224fe805.webp",
+      "path": "public/images/responsive/client-reference/canva/project-perspective-thumbnail-64-edd9ea74224fe805.webp",
+      "kind": "thumbnail",
+      "width": 64,
+      "height": 64,
+      "bytes": 1472,
+      "sha256": "edd9ea74224fe805240e874c3326ba4115dd9d1f5f2a01c29249c83c43ebf6b7"
+    },
+    {
+      "source": "client-reference/canva/project-perspective.jpg",
+      "key": "images/responsive/client-reference/canva/project-perspective-thumbnail-128-0af79caab352bde7.webp",
+      "path": "public/images/responsive/client-reference/canva/project-perspective-thumbnail-128-0af79caab352bde7.webp",
+      "kind": "thumbnail",
+      "width": 128,
+      "height": 128,
+      "bytes": 4884,
+      "sha256": "0af79caab352bde71d479476096ccc91b3f0bd40225ce2f8d0d7f246df8edfce"
+    },
+    {
+      "source": "client-reference/canva/project-perspective.jpg",
+      "key": "images/responsive/client-reference/canva/project-perspective-thumbnail-192-e6bce2fd624f6e6e.webp",
+      "path": "public/images/responsive/client-reference/canva/project-perspective-thumbnail-192-e6bce2fd624f6e6e.webp",
+      "kind": "thumbnail",
+      "width": 192,
+      "height": 192,
+      "bytes": 10066,
+      "sha256": "e6bce2fd624f6e6ec523ba4762952723ad852d2c51e36b3de8e63af05635d050"
+    },
+    {
+      "source": "client-reference/canva/project-perspective.jpg",
+      "key": "images/responsive/client-reference/canva/project-perspective-thumbnail-256-4598702a7640b1d7.webp",
+      "path": "public/images/responsive/client-reference/canva/project-perspective-thumbnail-256-4598702a7640b1d7.webp",
+      "kind": "thumbnail",
+      "width": 256,
+      "height": 256,
+      "bytes": 16236,
+      "sha256": "4598702a7640b1d791ad7ae5e280a1a3c2ec694c9ba93bf249022f33424c2f7f"
+    },
+    {
+      "source": "client-reference/legacy/letter-background.jpg",
+      "key": "images/responsive/client-reference/legacy/letter-background-preview-160-e5a5edb79f43a12a.webp",
+      "path": "public/images/responsive/client-reference/legacy/letter-background-preview-160-e5a5edb79f43a12a.webp",
+      "kind": "preview",
+      "width": 160,
+      "height": 107,
+      "bytes": 4520,
+      "sha256": "e5a5edb79f43a12a43bbcc9c0f940aec8d01563d6ebade462d13267e1def7897"
+    },
+    {
+      "source": "client-reference/legacy/letter-background.jpg",
+      "key": "images/responsive/client-reference/legacy/letter-background-preview-320-f84f0664576fa232.webp",
+      "path": "public/images/responsive/client-reference/legacy/letter-background-preview-320-f84f0664576fa232.webp",
+      "kind": "preview",
+      "width": 320,
+      "height": 213,
+      "bytes": 15360,
+      "sha256": "f84f0664576fa2321a643659247295301ed4874e236759a25d03558f2850f98e"
+    },
+    {
+      "source": "client-reference/legacy/letter-background.jpg",
+      "key": "images/responsive/client-reference/legacy/letter-background-preview-480-542b228406f4cd7c.webp",
+      "path": "public/images/responsive/client-reference/legacy/letter-background-preview-480-542b228406f4cd7c.webp",
+      "kind": "preview",
+      "width": 480,
+      "height": 320,
+      "bytes": 32496,
+      "sha256": "542b228406f4cd7cdafe22978becd6c2fe97719f95aa6e5a9a155f90088b016a"
+    },
+    {
+      "source": "client-reference/legacy/letter-background.jpg",
+      "key": "images/responsive/client-reference/legacy/letter-background-preview-768-0094c0067ca76f5c.webp",
+      "path": "public/images/responsive/client-reference/legacy/letter-background-preview-768-0094c0067ca76f5c.webp",
+      "kind": "preview",
+      "width": 768,
+      "height": 512,
+      "bytes": 71036,
+      "sha256": "0094c0067ca76f5c56d2ee5be3ab49fded13d70a78eb5b38d58835c8b48154ef"
+    },
+    {
+      "source": "client-reference/legacy/letter-background.jpg",
+      "key": "images/responsive/client-reference/legacy/letter-background-preview-1080-8bf85eca86bf6cf0.webp",
+      "path": "public/images/responsive/client-reference/legacy/letter-background-preview-1080-8bf85eca86bf6cf0.webp",
+      "kind": "preview",
+      "width": 1080,
+      "height": 720,
+      "bytes": 121768,
+      "sha256": "8bf85eca86bf6cf01871917ba22572ede399a22844691a93c819e697547d0d4a"
+    },
+    {
+      "source": "client-reference/legacy/letter-background.jpg",
+      "key": "images/responsive/client-reference/legacy/letter-background-preview-1440-cd7aab4b9fd0fecf.webp",
+      "path": "public/images/responsive/client-reference/legacy/letter-background-preview-1440-cd7aab4b9fd0fecf.webp",
+      "kind": "preview",
+      "width": 1440,
+      "height": 960,
+      "bytes": 189084,
+      "sha256": "cd7aab4b9fd0fecfded7bcd33c2327793d3f6f9ea667559e34cf5692b74290c4"
+    },
+    {
+      "source": "client-reference/legacy/letter-background.jpg",
+      "key": "images/responsive/client-reference/legacy/letter-background-preview-1920-7470d25fb7e8686d.webp",
+      "path": "public/images/responsive/client-reference/legacy/letter-background-preview-1920-7470d25fb7e8686d.webp",
+      "kind": "preview",
+      "width": 1920,
+      "height": 1280,
+      "bytes": 296046,
+      "sha256": "7470d25fb7e8686dea58f85e6c42d30f82cf77baf755a6345da963e762398a61"
+    }
+  ]
+}

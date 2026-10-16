@@ -2,15 +2,18 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { parseAdminCommand } from "../src/shared/admin/parse-command";
 import { mergeIssue } from "../src/shared/admin/space-model";
-import { resolveAdminIdentity, withTransaction, WorkspaceError, type AdminIdentity } from "../src/server/database";
+import { getDatabase, resolveAdminIdentity, withTransaction, WorkspaceError, type AdminIdentity } from "../src/server/database";
 import { readWorkspace, executeCommand } from "../src/server/workspace";
 import { listStaffAccounts, revokeStaffAccount, saveStaffAccount } from "../src/server/staff-accounts";
-import { readPublicWebsite, submitContact } from "../src/server/public";
+import { submitContact } from "../src/server/public";
+import { readPublicWebsiteData } from "../src/server/public-data";
 import { createAdminCrudServices } from "../src/server/admin-crud";
 import { BackendError } from "@shared/backend";
 import type { AdminCommand } from "../src/shared/admin/contracts";
+import { verifyOwnedLocalDatabase } from "../scripts/local-database-guard.mjs";
+import { parseCollectionName, parseCollectionQuery, readAdminCollection, readAdminCollectionItem } from "../src/server/admin-collections";
 
-// Mutating regressions require the owned disposable branch wrapper, never an arbitrary DATABASE_URL.
+// Mutating regressions require the owned local PostgreSQL wrapper, never an arbitrary DATABASE_URL.
 test("bounded commands reject extra fields, invalid types and fabricated adjacency", () => {
  const id=crypto.randomUUID();
  for(const value of [{type:'delete-media',mediaId:id,propertyId:id},{type:'update-slot',slotId:id,status:'Đang chọn',tenant:''},{type:'merge',floor:2,slotIds:[id,id],name:'x'},{type:'approve-request',requestId:id,holdHours:721,note:''},{type:'save-company',companyId:id,note:'x'.repeat(601)},{type:'save-request',values:null},{type:'constructor'}]) assert.throws(()=>parseAdminCommand(value));
@@ -19,17 +22,33 @@ test("bounded commands reject extra fields, invalid types and fabricated adjacen
  assert.equal(mergeIssue([{...a,connectedSlotIds:['b']},{...b,connectedSlotIds:['a']}],[],['a','b'],1),null);
 });
 
-test("Neon relational commands: CAS, uncertain-response replay, scope, transitions and public intake", {skip:process.env.RUN_LIVE_DATABASE_TESTS!=='1'}, async()=>{
- assert.ok(process.env.DATABASE_URL,'Provide disposable branch URL');
- assert.ok(process.env.LIVE_TEST_BRANCH_ID && process.env.LIVE_TEST_BRANCH_ID !== process.env.LIVE_TEST_PARENT_ID, "Use npm run test:database; arbitrary database opt-in is refused");
- assert.match(process.env.LIVE_TEST_BRANCH_NAME ?? "", /^owned-database-test-[0-9a-f-]{36}$/);
+test("collection input rejects unbounded, duplicate and unsupported filters", () => {
+ assert.throws(()=>parseCollectionName("media"));
+ for(const query of ["page=0","page=1&page=2","pageSize=101","page=9007199254740991&pageSize=100","query="+"x".repeat(201),"ids=not-a-uuid","companyId=not-a-uuid","status=unknown","unexpected=true"]){
+  assert.throws(()=>parseCollectionQuery("leads",new URLSearchParams(query)));
+ }
+ assert.throws(()=>parseCollectionQuery("companies",new URLSearchParams("status=Mới")));
+ assert.throws(()=>parseCollectionQuery("companies",new URLSearchParams("companyId="+crypto.randomUUID())));
+ assert.deepEqual(parseCollectionQuery("companies",new URLSearchParams()),{page:1,pageSize:20});
+ const ids=[crypto.randomUUID(),crypto.randomUUID()];
+ assert.deepEqual(parseCollectionQuery("companies",new URLSearchParams({ids:ids.join(",")})),{page:1,pageSize:2,ids});
+});
+
+test("Local PostgreSQL relational commands: CAS, uncertain-response replay, scope, transitions and public intake", {skip:process.env.RUN_LOCAL_DATABASE_TESTS!=='1'}, async()=>{
+ await verifyOwnedLocalDatabase();
+ const readDecision=async(statement:string,values:string[])=>{
+  const ownerPool=getDatabase();
+  try{return (await ownerPool.query(statement,values)).rows[0];}finally{await ownerPool.end();}
+ };
  const trusted=(value:AdminIdentity,authSubject:string):AdminIdentity=>({...value,verifiedSession:{issuer,subject:authSubject,expiresAt:Date.now()+3_600_000}});
- const email='workspace-regression-'+crypto.randomUUID()+'@example.test',issuer='https://verified-test-issuer.invalid',subject=crypto.randomUUID();
+ const email='workspace-regression-'+crypto.randomUUID()+'@example.test',issuer='https://owned-local-'+process.env.LOCAL_DATABASE_TEST_NONCE+'.invalid',subject=crypto.randomUUID();
  await withTransaction('test:setup',async client=>{const p=(await client.query("SELECT id FROM leasing.properties WHERE code='le-grande-centre'")).rows[0];assert.ok(p);await client.query('INSERT INTO leasing.admin_allowlist(property_id,email) VALUES($1,$2)',[p.id,email]);});
  assert.equal(await resolveAdminIdentity({issuer,subject,email,emailVerified:false}),null);
  const resolved=await resolveAdminIdentity({issuer,subject,email,emailVerified:true});assert.ok(resolved);const identity=trusted(resolved,subject);assert.equal(identity.verifiedSession?.subject,subject);assert.notEqual(identity.verifiedSession?.subject,identity.id);
  assert.equal(await resolveAdminIdentity({issuer,subject:crypto.randomUUID(),email,emailVerified:true}),null);
- await assert.rejects(readWorkspace({...identity,propertyId:crypto.randomUUID()}),error=>error instanceof WorkspaceError&&error.status===403);
+ const deniedPropertyId=crypto.randomUUID();
+ await assert.rejects(readWorkspace({...identity,propertyId:deniedPropertyId}),error=>error instanceof WorkspaceError&&error.status===403);
+ assert.deepEqual(await readDecision("SELECT allowed,reason,policy_version FROM leasing.backend_access_decisions WHERE property_id=$1 ORDER BY recorded_at DESC LIMIT 1",[deniedPropertyId]),{allowed:false,reason:'invalid-context',policy_version:'unresolved'});
  let data=await readWorkspace(identity);
  const staffEmail='staff-invitation-'+crypto.randomUUID()+'@example.test',staffSubject=crypto.randomUUID();
  const invitation=await saveStaffAccount(identity,staffEmail,'editor');assert.equal(invitation.status,'invited');
@@ -37,6 +56,7 @@ test("Neon relational commands: CAS, uncertain-response replay, scope, transitio
  assert.equal(editor?.role,'editor');assert.ok(editor);editor=trusted(editor,staffSubject);await readWorkspace(editor);
  await assert.rejects(saveStaffAccount(editor,crypto.randomUUID()+'@example.test','administrator'),error=>error instanceof WorkspaceError&&error.status===403);
  await assert.rejects(executeCommand(editor,{command:{type:'update-settings',values:data.settings},expectedRevision:data.revision,idempotencyKey:crypto.randomUUID()}),error=>error instanceof WorkspaceError&&error.status===403);
+ assert.deepEqual(await readDecision("SELECT allowed,reason FROM leasing.backend_access_decisions WHERE property_id=$1 AND actor_user_id=$2 AND permission='workspace:configure' ORDER BY recorded_at DESC LIMIT 1",[editor.propertyId,editor.id]),{allowed:false,reason:'no-grant'});
  const listed=await listStaffAccounts(identity);assert.ok(listed.some(account=>account.email===staffEmail&&account.role==='editor'&&account.status==='active'));
  await saveStaffAccount(identity,staffEmail,'administrator');
  editor=await resolveAdminIdentity({issuer,subject:staffSubject,email:staffEmail,emailVerified:true});assert.equal(editor?.role,'administrator');
@@ -130,10 +150,51 @@ test("Neon relational commands: CAS, uncertain-response replay, scope, transitio
  await run({type:'save-request',values:{companyId:company.id,floor:1,slotIds:[b.id],start,end,note:''}});request=data.requests.find(q=>q.companyId===company.id&&q.slotIds.includes(b.id)&&q.status==='submitted')!;await run({type:'reject-request',requestId:request.id,reason:'Test rejection'});await assert.rejects(run({type:'approve-request',requestId:request.id,holdHours:48,note:''}));
  const startsAt=new Date(Date.now()+7*86400000).toISOString();await run({type:'save-appointment',values:{companyId:company.id,purpose:'Visit',startsAt,location:'Le Grande Centre',durationMinutes:30}});const appointment=data.appointments.find(a=>a.companyId===company.id)!;
  await run({type:'confirm-appointment',appointmentId:appointment.id});await run({type:'cancel-appointment',appointmentId:appointment.id});await assert.rejects(run({type:'confirm-appointment',appointmentId:appointment.id}));
- const publicData=await readPublicWebsite();assert.ok(publicData.units.length===81);assert.ok(!JSON.stringify(publicData).includes(company.name));assert.ok(publicData.units.every(u=>!('tenant' in u)));assert.ok(publicData.floors.every(f=>!('purpose' in f)));
+ const editable=data.slots.find(slot=>slot.code==="F.1")!;
+ await run({type:"update-slot",slotId:editable.id,status:"Trống",tenant:"",area:editable.area+1});
+ const publicData=await readPublicWebsiteData();assert.ok(publicData.units.length===81);assert.ok(!JSON.stringify(publicData).includes(company.name));assert.ok(publicData.units.every(u=>!('tenant' in u)));assert.ok(publicData.floors.every(f=>!('purpose' in f)));
+ assert.equal(publicData.units.find(unit=>unit.id===a.id)?.status,"Đã thuê");
+ assert.equal(publicData.units.find(unit=>unit.id===b.id)?.status,"Còn trống");
+ assert.equal(publicData.units.find(unit=>unit.id===editable.id)?.area,editable.area+1);
  assert.equal(publicData.logoUrl, logo.url);
  const input={intent:'callback' as const,name:'Public regression',company:'',phone:'0973879563',email:'',business:'',area:'',timing:'',space:'',note:'',consent:true},intakeKey=crypto.randomUUID(),ipHash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(crypto.randomUUID()))),b=>b.toString(16).padStart(2,'0')).join('');
  const accepted=await submitContact(input,{idempotencyKey:intakeKey,ipHash});assert.deepEqual(await submitContact(input,{idempotencyKey:intakeKey,ipHash}),accepted);await assert.rejects(submitContact(input,{idempotencyKey:crypto.randomUUID(),ipHash}),error=>error instanceof WorkspaceError&&error.status===429);
+ const prefix="Boundary "+crypto.randomUUID();
+ await withTransaction(identity.id,async client=>{
+  await client.query(`WITH inserted AS (INSERT INTO leasing.organizations(legal_name,industry) SELECT $2||' company '||i,'Boundary industry' FROM generate_series(1,105)i RETURNING id) INSERT INTO leasing.property_customers(property_id,organization_id,revision) SELECT $1,id,1 FROM inserted`,[identity.propertyId,prefix]);
+  await client.query(`WITH inserted AS (INSERT INTO leasing.leads(property_id,organization_id,name,interest,floor_number,source,status,note,email,phone,revision) SELECT $1,$2,$3||' lead '||i,'Boundary interest',1,'Boundary source','Mới','','boundary@example.test','',1 FROM generate_series(1,105)i RETURNING id)
+   INSERT INTO leasing.contact_intake(property_id,idempotency_key,request_sha256,ip_hash,lead_id,intent,company_name,business,area_preference,timing,space_code)
+   SELECT $1,gen_random_uuid()::text,repeat('0',64),repeat('0',64),id,'consultation',$3,'Retail','100','Soon','A.1' FROM inserted`,[identity.propertyId,company.id,prefix]);
+  await client.query(`INSERT INTO leasing.appointments(property_id,organization_id,purpose,scheduled_period,meeting_location,revision) SELECT $1,$2,$3||' appointment '||i,tstzrange(now()+(365+i)*interval '1 day',now()+(365+i)*interval '1 day'+interval '30 minutes','[)'),'Boundary location',1 FROM generate_series(1,105)i`,[identity.propertyId,company.id,prefix]);
+ });
+ data=await readWorkspace(identity);
+ for(const collection of ["companies","leads","appointments"] as const){
+  assert.equal(data[collection].length,20);assert.ok(data.collections[collection].totalItems>100);assert.equal(data.collections[collection].pageSize,20);
+  const first=await readAdminCollection(identity,collection,{query:prefix,pageSize:100});
+  const second=await readAdminCollection(identity,collection,{query:prefix,page:2,pageSize:100});
+  assert.equal(first.totalItems,105);assert.equal(first.items.length,100);assert.equal(second.items.length,5);assert.equal(second.totalPages,2);
+  assert.ok(second.items.every(item=>!first.items.some(previous=>previous.id===item.id)));
+  const outside=[...first.items,...second.items].find(item=>!data[collection].some(initial=>initial.id===item.id))!;
+  assert.ok(outside);
+  const detail=await readAdminCollectionItem(identity,collection,outside.id);assert.equal(detail.item.id,outside.id);
+  const lookup=await readAdminCollection(identity,collection,{ids:[outside.id],pageSize:100});assert.equal(lookup.totalItems,1);assert.equal(lookup.items[0]?.id,outside.id);
+  await assert.rejects(readAdminCollectionItem(identity,collection,crypto.randomUUID()),error=>error instanceof WorkspaceError&&error.status===404);
+ }
+ const selectedCompany=(await readAdminCollection(identity,"companies",{query:prefix,page:2,pageSize:100})).items[0]!;
+ data=await run({type:"save-company",companyId:selectedCompany.id,note:"Outside initial page"});
+ assert.equal((await readAdminCollectionItem(identity,"companies",selectedCompany.id)).item.note,"Outside initial page");
+ const selectedLead=(await readAdminCollection(identity,"leads",{query:prefix,page:2,pageSize:100})).items[0]!;
+ assert.equal(selectedLead.contactDetails?.company,prefix);
+ const {id:leadId,version:_leadVersion,initials:_leadInitials,time:_leadTime,contactDetails:_contactDetails,...selectedLeadInput}=selectedLead;
+ await run({type:"save-lead",leadId,values:{...selectedLeadInput,note:"Outside lead page"}});
+ assert.equal((await readAdminCollectionItem(identity,"leads",leadId)).item.note,"Outside lead page");
+ const selectedAppointment=(await readAdminCollection(identity,"appointments",{query:prefix,page:2,pageSize:100})).items[0]!;
+ await run({type:"confirm-appointment",appointmentId:selectedAppointment.id});
+ assert.equal((await readAdminCollectionItem(identity,"appointments",selectedAppointment.id)).item.status,"confirmed");
+ const scopedLeads=await readAdminCollection(identity,"leads",{companyId:company.id,status:"Mới",query:prefix,pageSize:20});
+ assert.equal(scopedLeads.totalItems,105);assert.ok(scopedLeads.items.every(item=>item.companyId===company.id&&item.contactDetails?.company===prefix));
+ const confirmed=await readAdminCollection(identity,"appointments",{companyId:company.id,status:"confirmed",query:prefix});
+ assert.equal(confirmed.totalItems,1);assert.equal(confirmed.items[0]?.id,selectedAppointment.id);
  await withTransaction('test:assertions',async client=>{const receipts=(await client.query('SELECT count(*) AS count FROM leasing.command_receipts WHERE actor_user_id=$1 AND idempotency_key=$2',[identity.id,key])).rows[0];assert.equal(Number(receipts.count),1);const actor=(await client.query('SELECT current_user AS role')).rows[0];assert.equal(actor.role,'leasing_runtime');await client.query('UPDATE leasing.users SET disabled_at=now() WHERE id=$1',[identity.id]);});
  assert.equal(await resolveAdminIdentity({issuer,subject,email,emailVerified:true}),null);await assert.rejects(readWorkspace(identity),error=>error instanceof WorkspaceError&&error.status===403);
  await withTransaction('test:revoke-root',async client=>{await client.query('UPDATE leasing.root_allowlist SET revoked_at=now() WHERE lower(email)=lower($1)',[rootEmail]);});

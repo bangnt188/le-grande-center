@@ -1,98 +1,152 @@
 import assert from "node:assert/strict";
 import { execFile, spawn } from "node:child_process";
+import { createHash, randomBytes } from "node:crypto";
+import { mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { createServer } from "node:net";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { promisify } from "node:util";
-import { createHash, randomUUID } from "node:crypto";
-import { Pool } from "@neondatabase/serverless";
-import { migrateDatabase, importApprovedLogo } from "./migrate-database.ts";
-import { neonMediaUrl } from "../src/config/site.ts";
-import { fileType, imageDimensions, MAX_FILE_BYTES } from "../src/server/media/validation.ts";
+import pg from "pg";
+import { assertOwnedLocalDatabase, verifyOwnedLocalDatabase } from "./local-database-guard.mjs";
 
 const exec = promisify(execFile);
-const options = process.env.NEON_TEST_PROJECT_ID ? ["--project-id", process.env.NEON_TEST_PROJECT_ID] : [];
-async function neon(args) {
+const childArguments = ["--conditions=react-server", "--import", "./scripts/local-database-preload.mjs", "--import", "tsx"];
+
+async function runChild(args, env, onChild = () => {}) {
+  const child = spawn(process.execPath, args, { env, stdio: "inherit" });
+  onChild(child);
+  const onInterrupt = () => child.kill("SIGINT");
+  const onTerminate = () => child.kill("SIGTERM");
+  process.on("SIGINT", onInterrupt);
+  process.on("SIGTERM", onTerminate);
   try {
-    const { stdout } = await exec("neon", [...args, ...options, "--output", "json", "--no-color"], { maxBuffer: 2 ** 20 });
-    return args[0] === "connection-string" ? stdout.trim() : JSON.parse(stdout);
-  } catch (error) {
-    // Connection commands can emit credentials even on failure; keep them private.
-    const detail = args[0] === "branches" ? String(error.stderr ?? "").replace(/postgres(?:ql)?:\/\/[^\s"']+/g, "[redacted]").trim() : "";
-    throw new Error("Neon CLI command failed: " + args.slice(0, 2).join(" ") + (detail ? " — " + detail : ""));
+    const code = await new Promise((resolve, reject) => {
+      child.once("error", reject);
+      child.once("exit", (code, signal) => signal ? reject(new Error(`Local database regression interrupted by ${signal}`)) : resolve(code));
+    });
+    assert.equal(code, 0, "Local PostgreSQL regression failed");
+  } finally {
+    process.off("SIGINT", onInterrupt);
+    process.off("SIGTERM", onTerminate);
+    onChild(undefined);
   }
-}
-function owned(branch, parent, name) {
-  assert.ok(branch?.id && branch.id !== parent.id, "Disposable branch must differ from parent");
-  assert.equal(branch.name, name, "Only the uniquely named branch created by this run is owned");
-  assert.equal(branch.project_id, parent.project_id);
-  assert.ok(!branch.default && !branch.primary && !branch.protected, "Refusing a default/primary/protected branch");
-}
-async function assertEmptyTemplate(connection) {
-  const pool = new Pool({ connectionString: connection, max: 1 });
-  try {
-    const { rows } = await pool.query(`SELECT n.nspname,c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-      WHERE c.relkind IN ('r','p','f','m') AND n.nspname NOT IN ('pg_catalog','information_schema')
-        AND n.nspname !~ '^pg_(toast|temp)_'
-        AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.classid='pg_class'::regclass AND d.objid=c.oid AND d.deptype='e' AND d.refclassid='pg_extension'::regclass)`);
-    assert.equal(rows.length, 0, "Dedicated template/clone must have no non-extension app, customer or Auth tables");
-  } finally { await pool.end(); }
 }
 
-const parent = await neon(["branches", "get", process.env.NEON_TEST_PARENT || "test-template"]);
-assert.ok(parent.id && parent.project_id, "Neon project context and parent branch are required");
-assert.ok(!parent.default && !parent.primary && !parent.protected, "Never clone a production/default/primary parent for tests");
-options.splice(0, options.length, "--project-id", parent.project_id);
-const parentConnection = await neon(["connection-string", parent.id, "--no-pooled"]);
-assert.equal(typeof parentConnection, "string");
-await assertEmptyTemplate(parentConnection);
-const name = "owned-database-test-" + randomUUID();
-assert.ok(!(await neon(["branches", "list", "--no-secrets"])).some(branch => branch.name === name));
-let created;
-try {
-  const result = await neon(["branches", "create", "--name", name, "--parent", parent.id, "--no-secrets", "--expires-at", new Date(Date.now() + 60 * 60 * 1000).toISOString()]);
-  created = result.branch ?? result;
-  owned(created, parent, name);
-  const branch = await neon(["branches", "get", created.id]);
-  owned(branch, parent, name);
-  assert.equal(branch.parent_id, parent.id);
-  assert.equal(branch.init_source, "parent-data");
-  const connection = await neon(["connection-string", branch.id, "--no-pooled"]);
-  assert.equal(typeof connection, "string", "Expected one direct connection string");
-  assert.ok(!new URL(connection).hostname.includes("-pooler"));
-  assert.notEqual(new URL(connection).hostname, new URL(parentConnection).hostname, "Disposable compute must differ from parent");
-  await assertEmptyTemplate(connection);
-  console.log("Isolated empty-template branch: " + name + " (" + branch.id + ")");
-  const pool = new Pool({ connectionString: connection, max: 1 });
+async function runRegression() {
+  await verifyOwnedLocalDatabase();
+  const { migrateDatabase, importApprovedLogo } = await import("./migrate-database.ts");
+  const { neonMediaUrl } = await import("../src/config/site.ts");
+  const connection = process.env.DATABASE_URL;
+  await migrateDatabase(connection);
+  // Reapply to check migration hashes and brochure/root seed idempotency.
+  await migrateDatabase(connection);
+  const pool = new pg.Pool({ connectionString: connection, max: 1 });
   try {
-    // Only these app-owned schemas on this proven-owned empty branch; never auth/public or parent.
-    await pool.query("DROP SCHEMA IF EXISTS leasing CASCADE; DROP SCHEMA IF EXISTS row_audit CASCADE");
-  } finally { await pool.end(); }
-  await migrateDatabase(connection);
-  // Check applied hashes and seed idempotency, not just fresh schema creation.
-  await migrateDatabase(connection);
-  const publicUrl = process.env.APPROVED_LOGO_URL || neonMediaUrl("client-reference/legacy/logo-without-text.png");
-  const url = new URL(publicUrl);
-  assert.ok(url.protocol === "https:" && url.hostname.endsWith(".neon.tech") && !url.username && !url.password && !url.search && !url.hash);
-  const response = await fetch(publicUrl, { redirect: "error", signal: AbortSignal.timeout(30_000) });
-  assert.ok(response.ok && response.headers.get("content-type")?.split(";")[0] === "image/png", "Approved Neon logo must be readable PNG bytes");
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  assert.ok(bytes.byteLength > 0 && bytes.byteLength <= MAX_FILE_BYTES);
-  assert.equal(fileType(bytes, "image/png"), "image/png");
-  imageDimensions(bytes, "image/png");
-  const metadata = { publicUrl, bytes: bytes.byteLength, sha256: createHash("sha256").update(bytes).digest("hex") };
-  await importApprovedLogo(connection, metadata);
-  const env = { ...process.env, DATABASE_URL: connection, RUN_LIVE_DATABASE_TESTS: "1", LIVE_TEST_BRANCH_ID: branch.id, LIVE_TEST_PARENT_ID: parent.id, LIVE_TEST_BRANCH_NAME: name, APPROVED_LOGO_URL: publicUrl };
-  const code = await new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, ["--conditions=react-server", "--import", "tsx", "--test", "tests/live-workspace.test.ts"], { env, stdio: "inherit" });
-    child.on("error", reject); child.on("exit", code => resolve(code));
-  });
-  assert.equal(code, 0, "Live database regression failed");
-} finally {
-  // Recover only this unique name if CLI creation failed after provisioning; expiry is the crash backstop.
-  if (!created?.id) created = (await neon(["branches", "list", "--no-secrets"])).find(branch => branch.name === name);
-  if (created?.id) {
-    owned(created, parent, name);
-    const branch = await neon(["branches", "get", created.id]);
-    owned(branch, parent, name);
-    await neon(["branches", "delete", branch.id]);
-    console.log("Deleted owned database test branch: " + branch.id);
+    const { rows } = await pool.query("SELECT name FROM leasing.schema_migrations ORDER BY name");
+    assert.deepEqual(rows.map(row => row.name.slice(0, 3)), ["001", "002", "003", "004", "005", "006", "007", "008", "009"]);
+  } finally {
+    await pool.end();
   }
+  // Independently read from the approved PNG on 2026-10-15. This relational
+  // metadata fixture keeps ordinary tests offline; live smoke verifies delivery.
+  const publicUrl = neonMediaUrl("client-reference/legacy/logo-without-text.png");
+  await importApprovedLogo(connection, {
+    publicUrl,
+    bytes: 25230,
+    sha256: "67294e15a323245234b9d7fe1876f0757910b0b277f9d28ccf2fd1afdd71c24a",
+  });
+  await runChild([...childArguments, "--test", "tests/live-workspace.test.ts"], { ...process.env, APPROVED_LOGO_URL: publicUrl });
+}
+
+async function availablePort() {
+  const server = createServer();
+  try {
+    await new Promise((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(0, "127.0.0.1", resolve);
+    });
+    const address = server.address();
+    assert.ok(address && typeof address !== "string");
+    return address.port;
+  } finally {
+    await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+  }
+}
+
+async function runOwnedCluster() {
+  const nonce = randomBytes(16).toString("hex");
+  const port = await availablePort();
+  const root = await mkdtemp(join(await realpath(tmpdir()), `le-grande-pg-${nonce}-`));
+  const dataDir = join(root, "data");
+  const database = `regression_${nonce}`;
+  const user = `owner_${nonce}`;
+  const password = randomBytes(32).toString("hex");
+  const manifest = { nonce, dataDir, database, user, port, passwordHash: createHash("sha256").update(password).digest("hex") };
+  const passwordFile = join(root, "init-password");
+  const connection = new URL(`postgresql://${user}:${password}@127.0.0.1:${port}/${database}?sslmode=disable`);
+  // Do not inherit DATABASE_URL, PG*, NODE_OPTIONS or private/live service env.
+  const env = Object.fromEntries(["PATH", "HOME", "USER", "TMPDIR", "TEMP", "TMP", "SystemRoot", "TERM", "FORCE_COLOR"].filter(key => process.env[key] !== undefined).map(key => [key, process.env[key]]));
+  Object.assign(env, { DATABASE_URL: connection.href, RUN_LOCAL_DATABASE_TESTS: "1", LOCAL_DATABASE_TEST_NONCE: nonce, LOCAL_DATABASE_TEST_ROOT: root, LC_ALL: "C", LANG: "C" });
+  let child;
+  let interrupted;
+  const onSignal = signal => { interrupted = signal; child?.kill(signal); };
+  const onInterrupt = () => onSignal("SIGINT");
+  const onTerminate = () => onSignal("SIGTERM");
+  process.on("SIGINT", onInterrupt);
+  process.on("SIGTERM", onTerminate);
+  let initialized = false;
+  let startAttempted = false;
+  try {
+    await writeFile(join(root, "owner.json"), JSON.stringify(manifest), { mode: 0o600 });
+    await writeFile(passwordFile, password + "\n", { mode: 0o600 });
+    await exec("initdb", ["-D", dataDir, "--username", user, "--pwfile", passwordFile, "--auth-host=scram-sha-256", "--auth-local=trust", "--encoding=UTF8", "--no-locale"], { env });
+    initialized = true;
+    await rm(passwordFile);
+    // Disable Unix sockets so this cluster is reachable only on its unique TCP endpoint.
+    const configPath = join(dataDir, "postgresql.conf");
+    await writeFile(configPath, await readFile(configPath, "utf8") + `\nlisten_addresses = '127.0.0.1'\nport = ${port}\nunix_socket_directories = ''\n`);
+    if (interrupted) throw new Error(`Local database setup interrupted by ${interrupted}`);
+    startAttempted = true;
+    await exec("pg_ctl", ["-D", dataDir, "-l", join(root, "postgres.log"), "-w", "-t", "30", "start"], { env });
+    const pool = new pg.Pool({ connectionString: connection.href.replace(`/${database}?`, "/postgres?"), max: 1 });
+    try {
+      // Identifiers contain only fixed prefixes and our cryptographically random hex nonce.
+      await pool.query(`CREATE DATABASE "${database}"`);
+    } finally {
+      await pool.end();
+    }
+    if (interrupted) throw new Error(`Local database setup interrupted by ${interrupted}`);
+    console.log(`Owned local PostgreSQL regression: ${database} on 127.0.0.1:${port}`);
+    await runChild([...childArguments, "scripts/test-live-database.mjs", "--owned-local-worker"], env, value => { child = value; });
+  } catch (error) {
+    // Local subprocesses receive no live credentials; retain useful stderr without connection URLs.
+    if (error?.cmd) {
+      const serverLog = await readFile(join(root, "postgres.log"), "utf8").catch(() => "");
+      const detail = [error.stderr, serverLog].filter(Boolean).join("\n").replace(/postgres(?:ql)?:\/\/\S+/g, "[REDACTED]").trim();
+      throw new Error(`Local PostgreSQL setup failed (${error.code ?? "unknown"}): ${detail || "check initdb/pg_ctl/postgres on PATH"}`);
+    }
+    throw error;
+  } finally {
+    process.off("SIGINT", onInterrupt);
+    process.off("SIGTERM", onTerminate);
+    const owner = JSON.parse(await readFile(join(root, "owner.json"), "utf8"));
+    assert.deepEqual(owner, manifest, "Only this run's owned cluster may be stopped or removed");
+    if (initialized && startAttempted) {
+      // pg_ctl targets this exact dataDir, never a system/existing PostgreSQL service.
+      await exec("pg_ctl", ["-D", dataDir, "-w", "-t", "30", "-m", "fast", "stop"], { env }).catch(async error => {
+        // A failed start has no server to stop; do not erase an actually running cluster.
+        const pidFile = await readFile(join(dataDir, "postmaster.pid"), "utf8").catch(() => "");
+        if (pidFile) throw new Error(`Owned local PostgreSQL could not stop; retained ${root} for safe cleanup`, { cause: error });
+      });
+    }
+    await rm(root, { recursive: true });
+    console.log("Removed owned local PostgreSQL cluster.");
+  }
+}
+
+if (process.argv.includes("--owned-local-worker")) {
+  assertOwnedLocalDatabase();
+  await runRegression();
+} else {
+  await runOwnedCluster();
 }

@@ -70,3 +70,8 @@ Build both public leasing detail and internal admin slot detail. Preserve the cu
 - The selected-unit map dialog is capped at 1280px on desktop, uses 16px viewport gutters on mobile, and scales the full floor plan instead of requiring horizontal scrolling.
 - Production build passed. Browser measurements at 1440×1000, 390×844 and 320×844 showed dialog/plan widths 1280/1230px, 374/348px and 304/278px; dialog, plan and document `scrollWidth` matched their `clientWidth`. All 11 A.1 floor labels fit their unit boxes at 320px.
 - Map-popup screenshots timed out after 20 seconds in the browser tool; layout was verified from rendered DOM geometry and computed styles instead. No visual screenshot claim.
+
+### Deferred map rendering — 15/10/2026
+
+- Closed-map content is no longer rendered as Server Component children and serialized into the initial RSC payload. `LeasingUnitMap` receives only floor shared areas and unit IDs/areas/geometry, and builds the same plan when opened. The website-settings client provider likewise receives no unused inventory.
+- Next/OpenNext build passed. Local workerd C.5 HTML fell from 87,333 to 63,040 UTF-16 code units (not compressed bytes). Actual Chromium desktop/mobile verified 23 floor links, C.5 selection, orientation/area, no overflow, completed Escape focus return, and map navigation to C.6 with the new dialog closed. Deployed Worker verified the same 23-link map and focus return; no physical-device or full accessibility audit claim.

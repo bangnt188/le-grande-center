@@ -6,6 +6,7 @@ import type { ToastTone } from "@mall/ui";
 import { dateLabel, requestLabels, timeLabel } from "./record-labels";
 import type { AdminData } from "./use-admin-data";
 import { SLOT_STATUSES, hasCommitment, isSlotStatus } from "@/shared/admin/space-model";
+import { CollectionFeedback, useRelatedCompanies } from "./admin-collections";
 
 export type SlotRecordEntry = { view: "customers" | "requests" | "leases"; id: string };
 type Props = {
@@ -42,8 +43,9 @@ export default function SlotDetail({ id, data, onBack, onSlot, onRecord, onMedia
   // Match repository protection: active holds and all recorded leases, not wall-clock expiry.
   const protectedCommitment = hasCommitment(data, ids);
   const companyIds = new Set([...requests, ...holds, ...leases].map(item => item.companyId));
-  const companies = data.companies.filter(item => companyIds.has(item.id));
-  const companyName = (companyId: string) => data.companies.find(item => item.id === companyId)?.name ?? companyId;
+  const relatedCompanies = useRelatedCompanies(data, [...companyIds]);
+  const companies = relatedCompanies.items;
+  const companyName = (companyId: string) => companies.find(item => item.id === companyId)?.name ?? (relatedCompanies.loading ? "Đang tải doanh nghiệp…" : companyId);
   const scopedMedia = data.media.filter(item => ids.some(member => item.scope === `slot:${member}`) || (group && item.scope === `group:${group.id}`) || (slot && item.scope === `Tầng ${slot.floor}`) || item.scope === "Toàn dự án");
   const blocked = data.pending || data.loading || protectedCommitment;
 
@@ -72,6 +74,7 @@ export default function SlotDetail({ id, data, onBack, onSlot, onRecord, onMedia
 
   return <div className="slot-dossier">
     <div className="slot-dossier-return"><Button variant="secondary" onClick={onBack}>Quay lại mặt bằng</Button><span className="muted">Cùng dữ liệu quản trị · không tải lại phiên</span></div>
+    <CollectionFeedback state={relatedCompanies}/>
     {data.loading ? <LoadingIndicator label="Đang tải hồ sơ slot…"/> : !slot ? <>
       {data.error ? <Alert tone="error">{data.error}</Alert> : <EmptyState title="Không tìm thấy slot">Mã {id || "(trống)"} không có trong dữ liệu quản trị. Không có mặt bằng thay thế tự động.</EmptyState>}
       <Button variant="secondary" disabled={data.pending} onClick={() => void data.reload()}>{data.pending ? "Đang tải lại…" : "Tải lại dữ liệu"}</Button>

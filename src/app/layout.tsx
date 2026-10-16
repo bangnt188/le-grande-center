@@ -19,6 +19,8 @@ const displayFont = Playfair_Display({
   style: ["normal", "italic"],
   variable: "--font-playfair-display",
   display: "swap",
+  // Secondary editorial/legacy typography loads on use, not on every route.
+  preload: false,
 });
 
 const publicDisplayFont = Charis_SIL({
@@ -65,7 +67,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         data-ui-scheme="dark"
       >
         <a className="skip-link" href="#main-content">Bỏ qua điều hướng</a>
-        <WebsiteSettingsProvider initial={initial}>{children}</WebsiteSettingsProvider>
+        <WebsiteSettingsProvider initial={{ website: initial.website, logoUrl: initial.logoUrl, floors: initial.floors }}>{children}</WebsiteSettingsProvider>
       </body>
     </html>
   );

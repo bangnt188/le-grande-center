@@ -31,7 +31,7 @@ export default async function SpacesPage() {
       {floors.map(floor => <section key={floor.id} aria-labelledby={`directory-floor-${floor.id}`}>
         <h2 id={`directory-floor-${floor.id}`}>Mặt bằng tầng {floor.id}</h2>
         <ul>{units.filter(unit => unit.floorId === floor.id).map(unit => <li key={unit.id}>
-          <Link href={`/mat-bang/${encodeURIComponent(unit.id)}/`}>Mặt bằng {unit.id} · Tầng {unit.floorId} · {unit.area.toLocaleString("vi-VN")} m²</Link>
+          <Link href={`/mat-bang/${encodeURIComponent(unit.id)}/`} prefetch={false}>Mặt bằng {unit.id} · Tầng {unit.floorId} · {unit.area.toLocaleString("vi-VN")} m²</Link>
         </li>)}</ul>
       </section>)}
     </details>

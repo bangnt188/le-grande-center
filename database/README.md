@@ -3,13 +3,33 @@
 `schema.sql` remains the authoritative relational baseline; reviewed migrations
 `001-live-workspace.sql` through `009-shared-backend-crud.sql` evolve it.
 There is no opaque stored workspace snapshot or browser persistence fallback.
-Runtime composition lives in `src/server/{database,workspace,public}.ts` and `media/`.
+Runtime composition lives in `src/server/{database,workspace,public,public-data}.ts` and `media/`.
 
-## Current state — 14/10/2026
+## Current state — 15/10/2026
 
-Production has migrations 001–006; stage2 has 001–009. The stage2-only
-migrations 007–009 add in-app Admin/Editor roles, normalize operational statuses,
-and add property-scoped shared-CRUD versions plus append-only access decisions.
+Owner-approved cutover/reset completed on 15/10/2026. The project now has exactly
+one Neon branch: **`production` (`br-tiny-butterfly-b3uuw92p`)**. Local runtime and
+the existing Cloudflare Worker use the same production DB/Auth; local writes are
+real production writes, not a sandbox.
+
+Application schemas `leasing` and `row_audit` were reset, then the baseline and
+migrations **001–009** were applied. The approved catalog has **6 floors / 81
+slots**; old customer/lease/request/lead/appointment business records are gone.
+The root allowlist and approved Neon logo were restored. Provider Auth/storage
+were preserved; only the root Auth user remains. Root sign-in returned HTTP 200.
+Old secondary/template Neon branches were deleted; no Neon test branch is needed.
+
+### Reset recovery evidence
+
+- Pre-reset production snapshot: `snap-misty-sea-b3tgf6is`,
+  `before-single-production-reset-20261015`; expires **2026-10-22T23:59Z**.
+- Private dump of the former secondary application's data:
+  `/Users/suntech/Library/Application Support/LeGrande/backups/2026-10-15-single-production/stage2-application.dump`
+  (**298,708 bytes**, mode **0600**). This is an operator-local backup, not a
+  committed artifact or a second running database.
+- The reset did not wipe provider Auth/storage objects. A clean application DB
+  does not assert that all provider buckets are empty. Restore is an explicit,
+  reviewed operator action, never an app startup/build step.
 
 Migration 005 separated root from ordinary staff. Migration 006 revokes the old
 Google-root grant and provisions `root@legrandecentre.vn`. The root password is
@@ -23,34 +43,46 @@ allowlist and role assignment are required. Root stays in its separate allowlist
 and is omitted from staff projections. Neon Auth is a backend service; staff do
 not use Neon Console.
 
-Local production-backed password sign-in was observed entering the workspace,
-reading six floors/81 slots, surviving reload, and ending in API 401 after logout.
-This does not verify mail recovery, OAuth, or a frontend production deployment.
+After consolidation, root password sign-in returned HTTP 200. Earlier local
+production-backed sign-in also reached the workspace, read six floors/81 slots,
+survived reload and ended in API 401 after logout. Those earlier observations do
+not verify mail delivery/recovery or the current private-media Worker path.
 
-Cloudflare stage2 Worker `https://le-grande-centre-stage2.nguyenbang-skyone.workers.dev`
-is deployed (version `d6bc1c5f-69cf-48e5-9ceb-1a4b77fe247c`). Browser smoke
-observed homepage, `/tong-quan-tang/`, and `/admin/`; public website API returned
-200 and unauthenticated admin workspace returned 401. Stage2 is not production;
-custom-domain/DNS connection remains deferred.
+The existing Worker is
+`https://le-grande-centre-stage2.nguyenbang-skyone.workers.dev`. Its `stage2` suffix
+is a historical hosting identifier, **not another Neon branch**. Private cache R2
+`le-grande-centre-stage2-next-cache` and D1 `le-grande-centre-stage2-next-tags` retain
+the same historical suffix. Private PDFs now use `mall-documents`. The Worker is
+deployed with the single production backend and remains noindex; custom-domain/DNS
+cutover is deferred. Verified cache invalidation and remaining Worker CPU-limit
+failures are recorded in [readiness](../docs/backend-readiness.md); prior versions are historical.
 
-## Bootstrap (operator only)
+## Operator configuration and migration
 
-Use an isolated branch first and supply **`DATABASE_URL_UNPOOLED`** with its direct
-connection. The CLI does not read/override pooled `DATABASE_URL` for migration.
+Use only gitignored **`.env.local`** for local app/operator commands. The canonical
+loader `scripts/load-local-env.mjs` overrides inherited values with this file;
+there is no multi-profile setup. Runtime uses pooled `DATABASE_URL`; migrations
+require **`DATABASE_URL_UNPOOLED`** for the direct connection and do not rewrite
+the pooled variable.
 
 ```sh
-node --env-file=.env.stage2.local --conditions=react-server --import tsx scripts/migrate-database.ts
-```
-
-Or, with the environment already loaded:
-
-```sh
+npm run dev -- --port 3000
+# After a standalone build:
+npm start
+# Reviewed operator action against the one production DB:
 npm run db:migrate
+# Set ROOT_ADMIN_PASSWORD privately in .env.local before this operator action:
+npm run auth:set-password -- root@legrandecentre.vn
+# Build and deploy the existing Worker; no environment-specific aliases:
+npm run deploy
 ```
 
-Node `--env-file` is valid for this direct migration process, **not** for spawning
-Next dev; Next runtime must use `scripts/dev-live.mjs --env ...` as in the root README.
-Never print/commit connection strings. Migration is not a build/CI/deploy step.
+These commands load `.env.local` where appropriate; do not pass Node `--env-file`
+to spawn Next dev. Never print/commit connection strings, passwords or cookie
+secrets. `auth:set-password` updates an existing provider identity; it is not a
+staff invitation or permission grant. Keep any configured password prefix aligned
+with the runtime. Worker secrets are supplied separately at runtime, not bundled.
+Migration is not a build/CI/deploy step.
 The runner initializes the baseline only when absent, checks applied migration
 hashes and seeds approved brochure content idempotently. Do not splice baseline SQL
 or delete `leasing_runtime` to bypass provider branch limitations.
@@ -67,9 +99,16 @@ not registered. Existing metadata that differs from verified bytes/hash is rejec
 
 ## Invariants
 
-- Request-local Neon Pool, one pinned transaction client, `SET LOCAL ROLE
-  leasing_runtime` (non-owner/NOBYPASSRLS), actor context and rollback; application
-  authorization additionally resolves/rechecks active staff/property scope.
+- Admin/write paths use a request-local Neon Pool and one pinned transaction client.
+  Uncached public reads use one Neon HTTP transaction with four batched statements:
+  runtime role, actor, property share lock, and a public-only projection. Both keep
+  `leasing_runtime` (non-owner/NOBYPASSRLS), actor context and property serialization;
+  application authorization additionally resolves/rechecks active staff scope.
+- Public rendering caches successful projections for 60-second revalidation;
+  post-commit mutation invalidation awaits the configured D1 tag adapter on Workers
+  before success. Three authenticated mutation/API/SSR/restore rounds passed.
+  Existing browser tabs/prefetches are not pushed updates. Intake bypasses this cache.
+  Cache/R2/D1 are not authoritative for writes or authorization.
 - Property serialization, revision CAS, actor-scoped idempotency receipt and outcome
   audit commit together. Successful receipt replay returns current projection
   without mutating twice; mismatched key reuse fails.
@@ -90,31 +129,31 @@ not registered. Existing metadata that differs from verified bytes/hash is rejec
 - Public contact commits lead/intake/cooldown/idempotency/audit, not a fabricated
   company, hold, booking or confirmed appointment.
 
-## Isolated real database regression
+## Owned disposable local PostgreSQL regression
+
+Install PostgreSQL binaries on the local machine; **`postgres`, `initdb`, and
+`pg_ctl` must be on `PATH`**. For example on macOS:
 
 ```sh
+brew install postgresql@17
+export PATH="$(brew --prefix postgresql@17)/bin:$PATH"
 npm run test:database
 ```
 
-Requires authorized Neon CLI/project context. Defaults to `NEON_TEST_PARENT=test-template`;
-`NEON_TEST_PROJECT_ID` may select the project. Parent must be a dedicated **empty**
-non-primary/non-default/unprotected template, never production/customer data.
-The runner checks parent/child non-system regular/partitioned/foreign/materialized
-relations; only installed-extension-owned relations identified through `pg_depend`
-are exempt. It checks distinct child branch/compute identity, initializes untouched
-baseline+migrations+approved brochure seed, fetch-verifies real Neon PNG bytes/hash,
-imports metadata, runs live tests and finally deletes **only its owned child**.
-Schema-only is unavailable in this project because of the legacy web-access role;
-normal cloning from the verified empty template preserves security roles safely.
-Do not run `tests/live-workspace.test.ts` manually against a live workspace.
+Do not start or point the runner at an existing Homebrew database service. The
+runner creates a new empty cluster/data directory and random database/user/password
+on an available loopback-only TCP port. It passes a sanitized environment without
+live DB/Auth/media credentials, verifies its ownership manifest/nonce and local
+endpoint, applies baseline+migrations+approved seed twice, then runs relational
+workspace/public regression. Approved logo metadata is an offline fixture; this
+test does not fetch live Neon bytes or prove object delivery.
 
-Observed: isolated command **2/2 passed, no skips**, repeated initialization validated
-checksums/idempotency and the owned child was deleted; production-parent override
-was refused before connection retrieval/DB query. Latest pure `test:admin` **30
-passed / 1 deliberate live skip**. Shared backend **101/101**, UI **63/63**,
-typecheck, and OpenNext Worker build passed. Stage2 database is at migrations
-001–009; production remains at 001–006. Cloudflare stage2 deployment is documented
-above. These checks do not prove OTP delivery or server-to-server private media
-origin access; earlier Worker→Neon S3/Functions probes returned 403 HTML, and the
-current browser smoke did not exercise that path. See
-[readiness](../docs/backend-readiness.md).
+Cleanup stops and removes **only that invocation's owned cluster**. It does not
+create/clone/delete Neon branches, require Neon CLI/project permissions, load the
+production `.env.local`, or touch a running database service. Do not run
+`tests/live-workspace.test.ts` manually against a live workspace.
+
+Observed after the cutover: owned local PostgreSQL regression **2/2 passed**.
+Historical pure/application/shared checks and Worker media limits are recorded in
+[readiness](../docs/backend-readiness.md); they are not new verification from this
+documentation update.

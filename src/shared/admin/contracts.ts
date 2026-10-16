@@ -2,6 +2,7 @@ import type { B2BCommand, B2BData } from "./b2b-model";
 import type { Floor, FloorConfiguration, Slot, SlotStatus, SpaceGroup } from "./space-model";
 import type { StorageUsage } from "./storage-policy";
 import { isWebsiteSettings, type WebsiteSettings } from "./website-settings";
+import type { AdminCollections } from "./collection-contracts";
 
 export const LEAD_STATUSES = ["Mới", "Đang tư vấn", "Đã xử lý"] as const;
 export type Lead = {
@@ -28,7 +29,7 @@ export type MediaItem = {
   projectAsset?: boolean; sourcePath?: string;
   uploadState?: "ready" | "quarantine"; reviewUrl?: string; reviewedAt?: string;
 };
-export type AdminSnapshot = B2BData & { revision: number; storage: StorageUsage | null; floors: FloorConfiguration[]; settings: AdminSettings; slots: Slot[]; groups: SpaceGroup[]; leads: Lead[]; media: MediaItem[] };
+export type AdminSnapshot = B2BData & { revision: number; collections: AdminCollections; storage: StorageUsage | null; floors: FloorConfiguration[]; settings: AdminSettings; slots: Slot[]; groups: SpaceGroup[]; leads: Lead[]; media: MediaItem[] };
 export type AdminCommand = B2BCommand
   | { type: "update-floor"; floor: Floor; purpose: string; publicTitle: string; publicDescription: string }
   | { type: "update-website-settings"; values: WebsiteSettings }
@@ -50,5 +51,7 @@ export interface AdminRepository {
   read(): Promise<AdminSnapshot>;
   execute(command: AdminCommand): Promise<AdminSnapshot>;
   upload(files: File[], scope: string): Promise<AdminSnapshot>;
+  reviewMedia(id: string, note: string): Promise<AdminSnapshot>;
+  reconcileStorage(): Promise<AdminSnapshot>;
   dispose(): void;
 }

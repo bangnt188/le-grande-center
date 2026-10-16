@@ -1,19 +1,37 @@
 import "server-only";
+import { cache } from "react";
+import { unstable_cache, revalidateTag } from "next/cache";
+import d1NextTagCache from "@opennextjs/cloudflare/overrides/tag-cache/d1-next-tag-cache";
 import type { PublicWebsite, ContactSubmission } from "../shared/public/contracts";
 import { withTransaction, WorkspaceError } from "./database";
-import { readSettings, readFloors, readSlots } from "./workspace";
+import { readPublicWebsiteData } from "./public-data";
 import { parseContactInput } from "./contact-input";
-export async function readPublicWebsite():Promise<PublicWebsite> {
- return withTransaction('public:read',async client=>{
-  const property=(await client.query("SELECT id FROM leasing.properties WHERE code='le-grande-centre' FOR SHARE")).rows[0];if(!property)throw new WorkspaceError('Website has not been initialized',503);
-  const p=property.id,{settings}=await readSettings(client,p),floors=await readFloors(client,p),slots=await readSlots(client,p);
-  let logoUrl:string|null=null;
-  if(settings.website.logoMediaId) {
-   const logo=(await client.query("SELECT dv.public_url FROM leasing.document_versions dv JOIN leasing.documents d ON d.id=dv.document_id JOIN leasing.media_object_state os ON os.document_version_id=dv.id WHERE dv.id=$1 AND dv.property_id=$2 AND dv.storage_provider='neon' AND dv.scan_state='clean' AND dv.content_type LIKE 'image/%' AND dv.deleted_at IS NULL AND os.state='ready' AND d.classification='public_media'",[settings.website.logoMediaId,p])).rows[0];logoUrl=logo?.public_url??null;
-  }
-  return {website:settings.website,logoUrl,floors:floors.map(({number,publicTitle,publicDescription})=>({number,publicTitle,publicDescription})),units:slots.map(({id,code,floor,area,status})=>({id,code,floor,area,status}))};
- });
+
+export const PUBLIC_WEBSITE_CACHE_TAG = "public-website";
+
+export async function invalidatePublicWebsite(): Promise<void> {
+ revalidateTag(PUBLIC_WEBSITE_CACHE_TAG, { expire: 0 });
+ // Next flushes route-handler tags in waitUntil. A following public request must
+ // not race that background write on Workers; await the configured tag backend.
+ if (process.env.OPEN_NEXT_BUILD_ID) {
+  const now = Date.now();
+  await d1NextTagCache.writeTags([{ tag: PUBLIC_WEBSITE_CACHE_TAG, stale: now, expire: now }]);
+ }
 }
+
+const readCachedWebsite = unstable_cache(
+ async (_databaseScope: string): Promise<PublicWebsite> => readPublicWebsiteData(),
+ ["public-website-v2"],
+ { tags: [PUBLIC_WEBSITE_CACHE_TAG], revalidate: 60 },
+);
+
+// Share one projection across layout, metadata and page; never key cache by credentials.
+export const readPublicWebsite = cache(async (): Promise<PublicWebsite> => {
+ const connectionString = process.env.DATABASE_URL;
+ if (!connectionString) throw new Error("DATABASE_URL is required");
+ const database = new URL(connectionString);
+ return readCachedWebsite(`${database.host}${database.pathname}`);
+});
 export async function submitContact(input:ContactSubmission,options:{idempotencyKey:string;ipHash:string}):Promise<{accepted:true;id:string}> {
  let fields:ContactSubmission;try{fields=parseContactInput(input);}catch(error){throw new WorkspaceError(error instanceof Error?error.message:'Invalid contact');}
  if(!/^[A-Za-z0-9_-]{16,100}$/.test(options.idempotencyKey)||!/^[a-f0-9]{64}$/.test(options.ipHash))throw new WorkspaceError('Invalid intake identity');

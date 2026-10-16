@@ -18,11 +18,11 @@ Không còn quota scenario/demo/local IndexedDB accounting. UI dùng shared `Adm
 `src/server/media/repository.ts` đối soát trước upload:
 
 1. Liệt kê **toàn bộ public R2 `mall-assets`** qua `PUBLIC_ASSETS`, gồm ảnh/video/brochure và object public còn giữ dù không có trong filtered media list.
-2. Liệt kê private R2 `PRIVATE_DOCUMENTS`: `mall-documents` mặc định, `mall-documents-stage2` ở stage2. So sánh từng key/size, count và bytes với tracked active/reserved document versions.
+2. Liệt kê private R2 `PRIVATE_DOCUMENTS`: **`mall-documents`** cho cả local và Worker hiện có. So sánh từng key/size, count và bytes với tracked active/reserved document versions.
 3. Cộng tracked upload bytes trong Neon `media` và private R2 ở trạng thái ready/quarantine, cùng durable reserved bytes.
 4. So sánh ledger với relational metadata. Inventory lỗi, untracked/missing/mismatched private object hoặc vượt cap đặt external usage unavailable và audit lý do; khóa upload đến khi operator xử lý/đối soát.
 
-`usedBytes` trả UI = tracked used + verified public inventory bytes; `reservedBytes` trả riêng. Public project catalog là metadata chỉ đọc, **không dùng để giả đo dung lượng bucket**. Neon bytes hiện theo tracked metadata, không tuyên bố đã full-inventory Neon bucket hay mọi account/bucket bên ngoài. Writer/object không thuộc scope phải được kiểm soát và phân bổ ngân sách riêng; app cap không enforce toàn tài khoản provider. Public bucket đang dùng chung giữa môi trường không được tính như free budget riêng cho từng app.
+`usedBytes` trả UI = tracked used + verified public inventory bytes; `reservedBytes` trả riêng. Public project catalog là metadata chỉ đọc, **không dùng để giả đo dung lượng bucket**. Neon bytes hiện theo tracked metadata, không tuyên bố đã full-inventory Neon bucket hay mọi account/bucket bên ngoài. Writer/object không thuộc scope phải được kiểm soát và phân bổ ngân sách riêng; app cap không enforce toàn tài khoản provider. Local `.env.local` và Worker cùng dùng production DB/Auth/buckets, không có budget riêng cho local hoặc một branch khác.
 
 ## Upload và cleanup thật
 
@@ -40,8 +40,10 @@ DB và object storage không có distributed atomic commit. Low-volume property 
 
 ## Evidence và deployment
 
-Local Node với Neon/R2 thật đã upload/read/delete PNG, private PDF quarantine→manual-review→Range. Không có antivirus-clean claim. Không có run quota/build/test mới trong lần chỉnh tài liệu này; [readiness](backend-readiness.md) ghi bằng chứng chính xác.
+**Bằng chứng lịch sử trước reset:** local Node với Neon/R2 thật đã upload/read/delete PNG, private PDF quarantine→manual-review→Range. Không có antivirus-clean claim. Không có run quota/build/test mới trong lần chỉnh tài liệu này; [readiness](backend-readiness.md) ghi bằng chứng chính xác.
 
-Worker native fetch tới Neon S3/Functions hiện 403 HTML trước provider; full Worker media readiness chưa chứng minh. Production frontend chưa deploy/cutover; domain/DNS đã hoãn, không dùng việc đổi domain như yêu cầu trong scope code.
+Ngày 15/10/2026, owner-approved reset application DB đã giữ catalog/root/logo và provider Auth/storage, xóa business data cũ; không phải xóa mọi provider object hoặc bằng chứng bucket rỗng. Chỉ còn Neon production cho local và Worker; tên Worker/cache có `stage2` là resource lịch sử, không DB/budget thứ hai. Inventory/ledger vẫn phải đối soát fail-closed theo chính sách trên. Snapshot/private backup ở [database guide](../database/README.md).
+
+Các probe Worker → Neon S3/Functions trước đây trả 403 HTML; full Worker media readiness chưa chứng minh. Worker hiện có đã dùng production DB, custom-domain/DNS vẫn hoãn; không dùng việc đổi domain như yêu cầu để hoàn thành scope code.
 
 R2 Standard pricing tham chiếu 06/10/2026 có 10 GB-month storage allowance và Class A/B riêng; vượt operation allowance vẫn có thể tính tiền dù app dưới 8.5 GB. Kiểm tra giá/account thực tại [R2 pricing](https://developers.cloudflare.com/r2/pricing/) và [Neon research](neon-free-tier-research.md) trước quyết định ngân sách.

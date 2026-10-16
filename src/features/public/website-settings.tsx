@@ -5,7 +5,7 @@ import { telephoneHref } from "@/shared/admin/website-defaults";
 import type { PublicWebsite } from "@/shared/public/contracts";
 type WebsiteValue = { settings: PublicWebsite["website"]; logoUrl: string | null; floorContent: PublicWebsite["floors"] };
 const WebsiteContext = createContext<WebsiteValue | null>(null);
-export function WebsiteSettingsProvider({ children, initial }: { children: ReactNode; initial: PublicWebsite }) {
+export function WebsiteSettingsProvider({ children, initial }: { children: ReactNode; initial: Pick<PublicWebsite, "website" | "logoUrl" | "floors"> }) {
   return <WebsiteContext.Provider value={{ settings: initial.website, logoUrl: initial.logoUrl, floorContent: initial.floors }}>{children}</WebsiteContext.Provider>;
 }
 

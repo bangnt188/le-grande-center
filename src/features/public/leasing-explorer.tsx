@@ -11,6 +11,7 @@ import { LeasingSuggestion } from "./leasing-suggestion";
 import planStyles from "./canva-pages.module.css";
 import { getLeasingProjectCover } from "./leasing-unit-gallery";
 import { LeasingAvailabilityBadge } from "./leasing-availability-badge";
+import { responsiveImageProps } from "./responsive-images";
 import styles from "./leasing-explorer.module.css";
 import { LeasingConsultation } from "./leasing-consultation";
 import { useWebsiteSettings } from "./website-settings";
@@ -101,7 +102,7 @@ export function LeasingExplorer({ floors, units: inventory, orientation, sourceD
       <Modal title={selected ? `Mặt bằng ${selected.id}` : "Thông tin mặt bằng"} description={selected ? `Tầng ${selected.floorId} · ${selectedFloor?.label}` : "Thông tin theo brochure Le Grande Centre."} closeLabel="Đóng thông tin" open={!!selected} onOpenChange={open => { if (!open) clearSelection(); }} portalContainer={portal} returnFocusRef={returnFocus}>
         {selected && <div id="leasing-unit-preview">
           <div className={styles.popupProjectPhoto}>
-            <img src={assetBase + getLeasingProjectCover(selected.floorId).path} alt={getLeasingProjectCover(selected.floorId).label} width="900" height="600"/>
+            <img {...responsiveImageProps(getLeasingProjectCover(selected.floorId).path, assetBase, "(max-width: 700px) 110vw, 760px")} alt={getLeasingProjectCover(selected.floorId).label} decoding="async"/>
             <span>Ảnh dự án tham khảo · không phải ảnh riêng của căn</span>
           </div>
           <LeasingAvailabilityBadge availability={selected.availability} surface="dark"/>
