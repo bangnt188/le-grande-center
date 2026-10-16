@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Modal } from "@mall/ui";
 import { useWebsiteSettings } from "./website-settings";
 import styles from "./homepage-v2.module.css";
@@ -13,12 +13,35 @@ const GOOGLE_MAPS_PLACE_URL =
 
 export function HomeStrategicMap({ revealProps }: { revealProps?: Record<string, unknown> }) {
   const [open, setOpen] = useState(false);
-  const portalRef = useRef<HTMLDivElement>(null);
+  const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const { settings } = useWebsiteSettings();
 
+  useEffect(() => {
+    let node = document.getElementById("strategic-map-portal");
+    if (!node) {
+      node = document.createElement("div");
+      node.id = "strategic-map-portal";
+      node.className = styles.strategicMapPortal;
+      document.body.appendChild(node);
+    }
+    setPortalNode(node);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const originalOverflow = document.body.style.overflow;
+    const originalTouchAction = document.body.style.touchAction;
+    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.touchAction = originalTouchAction;
+    };
+  }, [open]);
+
   return (
-    <div ref={portalRef} className={styles.locationMapHost} {...revealProps}>
+    <div className={styles.locationMapHost} {...revealProps}>
       <div
         className={styles.locationMapCard}
         role="button"
@@ -73,7 +96,7 @@ export function HomeStrategicMap({ revealProps }: { revealProps?: Record<string,
         closeLabel="Đóng bản đồ"
         open={open}
         onOpenChange={setOpen}
-        portalContainer={portalRef}
+        portalContainer={portalNode ?? undefined}
         returnFocusRef={triggerRef}
       >
         {open && (
