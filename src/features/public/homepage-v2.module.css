@@ -502,6 +502,13 @@
   .locationFeatureCard:nth-child(1),
   .locationFeatureCard:nth-child(2) { border-bottom: 1px solid rgba(164, 133, 60, 0.22); }
 }
+@media (max-width: 880px) {
+  .reasons > .section { width: 90%; }
+  .reasonGrid { grid-template-columns: 1fr; gap: 24px; }
+  .reasonGrid article { padding: 26px 24px 30px; }
+  .reasonGrid h3 { font-size: 24px; }
+  .reasonGrid p { font-size: 16px; margin-top: 14px; line-height: 1.85; }
+}
 @media (max-width: 720px) {
   .hero { min-height: 690px; align-items: start; }
   .heroInner { width: 88%; padding: 60px 0 54px; }
