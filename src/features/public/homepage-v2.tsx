@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { r2AssetBase } from "@/config/site";
 import { SiteFooter } from "./site-footer";
-import { WebsiteAddress, WebsiteMapLink, WebsiteHotlineLink } from "./website-settings";
+import { WebsiteHotlineLink } from "./website-settings";
+import { HomeStrategicMap } from "./home-strategic-map";
 import { readPublicLeasing } from "@/server/public-leasing";
 import { HomeScrollStory, Arrow, SpacesGallery, OverviewGallery } from "./homepage-v2-interactive";
 import HomeProjectVideo from "./home-project-video";
@@ -62,9 +63,7 @@ export default async function HomePageV2() {
         <div className={styles.locationGrid} {...revealGroup({ stagger: 120, delayCap: 240 })}>
           <div>
             <p className={styles.locationLead} {...reveal({ preset: "slide-left", duration: 1500, intensity: "subtle" })}>Sóc Trăng đang bước vào một nhịp phát triển mới. Tại điểm giao của thương mại, dịch vụ và đời sống đô thị, một địa điểm thuận tiện tạo nên khác biệt.</p>
-            <iframe className={styles.locationMap} {...reveal({ preset: "slide-left", duration: 1500, intensity: "subtle" })} title="Bản đồ vị trí Le Grande Centre" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3933.8266955678832!2d105.969214276063!3d9.610186390476178!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31a04d86b7d9a867%3A0x58da1a5e9f7000e3!2sLe%20Grande%20Centre!5e0!3m2!1sen!2s!4v1791624863663!5m2!1sen!2s" width="600" height="450" allowFullScreen loading="lazy" referrerPolicy="strict-origin-when-cross-origin"/>
-            <address><WebsiteAddress/></address>
-            <WebsiteMapLink className={styles.textLink}>Xem vị trí trên bản đồ <Arrow/></WebsiteMapLink>
+            <HomeStrategicMap revealProps={reveal({ preset: "slide-left", duration: 1500, intensity: "subtle" })} />
           </div>
           <div className={styles.locationInformation} {...reveal({ preset: "slide-right", duration: 1500, intensity: "subtle" })}>
             <img {...responsiveImageProps("/images/le-grande-aerial-context.webp", assetBase, "(max-width:720px) 88vw, 44vw")} alt="Công trình và vòng xoay Tượng đài 3 Cô Gái trong bối cảnh đô thị Sóc Trăng" loading="lazy" decoding="async"/>
