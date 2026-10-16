@@ -105,7 +105,8 @@
 .locationMapCard {
   position: relative;
   display: block;
-  width: 100%;
+  width: 85%;
+  margin-inline: auto;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid rgba(164, 133, 60, 0.35);
@@ -136,24 +137,25 @@
 }
 .locationMapButton {
   position: absolute;
-  right: 18px;
-  bottom: 18px;
+  right: 16px;
+  bottom: 16px;
   z-index: 2;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 40px;
-  padding: 9px 16px;
-  border-radius: 4px;
-  background: #193f2c;
-  color: #ffffff;
-  border: 1px solid rgba(228, 201, 98, 0.45);
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 9999px;
+  background: rgba(0, 33, 22, 0.92);
+  color: #fffcf5;
+  border: 1px solid rgba(228, 201, 98, 0.55);
   font-family: var(--font-be-vietnam-pro), sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.32);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28);
   cursor: pointer;
   transition: background 200ms ease, color 200ms ease, transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
 }
@@ -162,7 +164,7 @@
   color: #f1dc87;
   border-color: #f1dc87;
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 .locationMapButton:focus-visible {
   outline: 2px solid #e4c962;
@@ -511,13 +513,15 @@
   .locationFeatureCard:last-child {
     border-bottom: none;
   }
+  .locationMapCard {
+    width: 100%;
+  }
   .locationMapButton {
     bottom: 12px;
     right: 12px;
-    padding: 7px 12px;
-    font-size: 10px;
-    letter-spacing: 0.05em;
-    min-height: 34px;
+    padding: 8px 14px;
+    font-size: 12px;
+    min-height: 40px;
   }
   .locationMapHost [role="dialog"] {
     inline-size: calc(100vw - 20px) !important;
