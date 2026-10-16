@@ -101,7 +101,7 @@ test("Local PostgreSQL relational commands: CAS, uncertain-response replay, scop
  await withTransaction(identity.id,async client=>{const row=(await client.query("SELECT revision,deleted_at FROM leasing.property_customers WHERE property_id=$1 AND organization_id=$2",[identity.propertyId,disposable.id])).rows[0];assert.equal(Number(row.revision),2);assert.ok(row.deleted_at);});
  const leadValues={name:"Disposable CRUD lead "+crypto.randomUUID(),interest:"Retail",floor:1 as const,source:"test",status:"Mới" as const,note:"",email:"test@example.test",phone:""};
  data=await run({type:"save-lead",values:leadValues});
- const lead=data.leads.find(row=>row.name===leadValues.name)!;assert.equal(lead.version,1);
+ const lead=data.leads.find(row=>row.name===leadValues.name)!;assert.equal(lead.version,1);assert.equal(lead.referenceCode,"LGC-00001");
  data=await run({type:"save-lead",leadId:lead.id,values:{...leadValues,note:"updated"}});
  assert.equal(data.leads.find(row=>row.id===lead.id)?.version,2);
  data=await run({type:"delete-lead",leadId:lead.id});assert.ok(!data.leads.some(row=>row.id===lead.id));
@@ -158,7 +158,7 @@ test("Local PostgreSQL relational commands: CAS, uncertain-response replay, scop
  assert.equal(publicData.units.find(unit=>unit.id===editable.id)?.area,editable.area+1);
  assert.equal(publicData.logoUrl, logo.url);
  const input={intent:'callback' as const,name:'Public regression',company:'',phone:'0973879563',email:'',business:'',area:'',timing:'',space:'',note:'',consent:true},intakeKey=crypto.randomUUID(),ipHash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(crypto.randomUUID()))),b=>b.toString(16).padStart(2,'0')).join('');
- const accepted=await submitContact(input,{idempotencyKey:intakeKey,ipHash});assert.deepEqual(await submitContact(input,{idempotencyKey:intakeKey,ipHash}),accepted);await assert.rejects(submitContact(input,{idempotencyKey:crypto.randomUUID(),ipHash}),error=>error instanceof WorkspaceError&&error.status===429);
+ const accepted=await submitContact(input,{idempotencyKey:intakeKey,ipHash});const contactReplay=await submitContact(input,{idempotencyKey:intakeKey,ipHash});assert.equal(accepted.created,true);assert.equal(contactReplay.created,false);assert.equal(contactReplay.id,accepted.id);assert.equal(contactReplay.referenceCode,accepted.referenceCode);assert.match(accepted.referenceCode,/^LGC-\d{5}$/);await assert.rejects(submitContact(input,{idempotencyKey:crypto.randomUUID(),ipHash}),error=>error instanceof WorkspaceError&&error.status===429);
  const prefix="Boundary "+crypto.randomUUID();
  await withTransaction(identity.id,async client=>{
   await client.query(`WITH inserted AS (INSERT INTO leasing.organizations(legal_name,industry) SELECT $2||' company '||i,'Boundary industry' FROM generate_series(1,105)i RETURNING id) INSERT INTO leasing.property_customers(property_id,organization_id,revision) SELECT $1,id,1 FROM inserted`,[identity.propertyId,prefix]);
@@ -185,7 +185,7 @@ test("Local PostgreSQL relational commands: CAS, uncertain-response replay, scop
  assert.equal((await readAdminCollectionItem(identity,"companies",selectedCompany.id)).item.note,"Outside initial page");
  const selectedLead=(await readAdminCollection(identity,"leads",{query:prefix,page:2,pageSize:100})).items[0]!;
  assert.equal(selectedLead.contactDetails?.company,prefix);
- const {id:leadId,version:_leadVersion,initials:_leadInitials,time:_leadTime,contactDetails:_contactDetails,...selectedLeadInput}=selectedLead;
+ const {id:leadId,referenceCode:_referenceCode,version:_leadVersion,initials:_leadInitials,time:_leadTime,contactDetails:_contactDetails,...selectedLeadInput}=selectedLead;
  await run({type:"save-lead",leadId,values:{...selectedLeadInput,note:"Outside lead page"}});
  assert.equal((await readAdminCollectionItem(identity,"leads",leadId)).item.note,"Outside lead page");
  const selectedAppointment=(await readAdminCollection(identity,"appointments",{query:prefix,page:2,pageSize:100})).items[0]!;

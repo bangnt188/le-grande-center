@@ -1,3 +1,4 @@
+import { notifySurveyOwner } from "@/server/zalo-survey-notification";
 import { assertSameOrigin, AuthError } from "@/server/auth";
 import { parseContactInput } from "@/server/contact-input";
 import { submitContact } from "@/server/public";
@@ -28,7 +29,11 @@ export async function POST(request: Request) {
     const signingKey = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
     const digest = await crypto.subtle.sign("HMAC", signingKey, new TextEncoder().encode(request.headers.get("cf-connecting-ip") ?? "local"));
     const ipHash = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
-    await submitContact(input, { idempotencyKey: key, ipHash });
+    const result = await submitContact(input, { idempotencyKey: key, ipHash });
+    if (result.created) {
+      try { await notifySurveyOwner({ referenceCode: result.referenceCode, name: input.name, phone: input.phone, intent: input.intent }); }
+      catch { console.error("Survey notification failed", result.referenceCode); }
+    }
     return Response.json({ accepted: true }, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     const status = error instanceof AuthError ? error.status : error && typeof error === "object" && "status" in error && typeof error.status === "number" ? error.status : 503;

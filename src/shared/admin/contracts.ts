@@ -6,12 +6,12 @@ import type { AdminCollections } from "./collection-contracts";
 
 export const LEAD_STATUSES = ["Mới", "Đang tư vấn", "Đã xử lý"] as const;
 export type Lead = {
-  id: string; version: number; name: string; initials: string; interest: string; floor: Floor;
+  id: string; referenceCode: string; version: number; name: string; initials: string; interest: string; floor: Floor;
   source: string; time: string; status: (typeof LEAD_STATUSES)[number]; note: string;
   companyId?: string; email?: string; phone?: string;
   contactDetails?: { intent: "consultation" | "visit" | "callback"; company: string; business: string; area: string; timing: string; space: string; scope?: string; visitDate?: string; visitTime?: string };
 };
-export type LeadInput = Omit<Lead, "id" | "version" | "initials" | "time" | "contactDetails">;
+export type LeadInput = Omit<Lead, "id" | "referenceCode" | "version" | "initials" | "time" | "contactDetails">;
 export type AdminSettings = { propertyName: string; contactEmail: string; contactPhone: string; defaultHoldHours: number; appointmentMinutes: number; appointmentLocation: string; website: WebsiteSettings };
 export function isAdminSettings(value: unknown): value is AdminSettings {
   if (!value || typeof value !== "object") return false;

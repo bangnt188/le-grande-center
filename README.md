@@ -11,7 +11,7 @@ Source: https://github.com/bangnt188/le-grande-center.git, nhánh làm việc `d
 - Public SSR và `/api/public/website` dùng projection DB đã lọc. Không trả tenant/customer/contact nội bộ, hold expiry, điều khoản hợp đồng hoặc tài liệu private. DB lỗi không seed/chuyển sang fixture.
 - Form dùng `@mall/ui/forms` live → `POST /api/contact`; chỉ báo nhận sau commit lead/intake. Đề nghị tham quan **không phải booking** và không tự tạo lịch hẹn đã xác nhận.
 
-**Worker hiện có đã dùng cùng Neon production với local. Custom-domain `legrandecentre.vn`/DNS vẫn được người dùng hoãn; không có domain cutover.** Tên Worker còn `stage2` là định danh hosting lịch sử, không phải database thứ hai. Domain mặc định trong SEO/config không chứng minh domain đã kết nối.
+**`legrandecentre.vn` hiện do Vercel phục vụ.** Cloudflare Worker stage2 của repo dùng Neon `lgc-bot-test`; Neon `production` là DB production và đã có migration 010. `npm run deploy` chỉ cập nhật stage2 Worker, không deploy domain Vercel. Vercel CLI/dashboard hiện chưa đăng nhập nên source trong repo chưa được đẩy lên domain; cấu hình DB runtime hiện tại của Vercel chưa xác minh.
 
 ## Chạy local với cloud thật
 

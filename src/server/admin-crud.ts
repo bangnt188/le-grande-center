@@ -171,7 +171,7 @@ export type LeadRow = CrudRow & Omit<Lead,"contactDetails">;
 function decodeLead(input: unknown): LeadRow {
   const row=dbRow(input),name=text(row.name),status=text(row.status);
   if(!["Mới","Đang tư vấn","Đã xử lý"].includes(status))throw new BackendError("UNAVAILABLE");
-  return {id:text(row.id),version:integer(row.revision,1),tenantId:text(row.property_id),name,initials:initials(name),interest:text(row.interest),floor:integer(row.floor_number,1) as Lead["floor"],source:text(row.source),time:iso(row.created_at),status:status as Lead["status"],note:text(row.note),companyId:nullableText(row.organization_id),email:nullableText(row.email),phone:nullableText(row.phone)};
+  return {id:text(row.id),referenceCode:text(row.reference_code),version:integer(row.revision,1),tenantId:text(row.property_id),name,initials:initials(name),interest:text(row.interest),floor:integer(row.floor_number,1) as Lead["floor"],source:text(row.source),time:iso(row.created_at),status:status as Lead["status"],note:text(row.note),companyId:nullableText(row.organization_id),email:nullableText(row.email),phone:nullableText(row.phone)};
 }
 type LeadStored = {name:string;interest:string;floor:Lead["floor"];source:string;status:Lead["status"];note:string;organizationId:string|null;email:string;phone:string};
 const storedLead=(input:LeadInput):LeadStored=>({name:input.name,interest:input.interest,floor:input.floor,source:input.source,status:input.status,note:input.note,organizationId:input.companyId??null,email:input.email??"",phone:input.phone??""});

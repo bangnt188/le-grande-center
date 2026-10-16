@@ -59,7 +59,7 @@
     }
   ],
   "vars": {
-    "NEON_BRANCH": "production",
+    "NEON_BRANCH": "lgc-bot-test",
     "NEXT_PUBLIC_SITE_URL": "https://legrandecentre.vn/",
     "SEO_INDEXABLE": "false",
     "R2_PRIVATE_BUCKET": "mall-documents",

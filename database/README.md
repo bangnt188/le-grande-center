@@ -5,19 +5,28 @@
 There is no opaque stored workspace snapshot or browser persistence fallback.
 Runtime composition lives in `src/server/{database,workspace,public,public-data}.ts` and `media/`.
 
-## Current state — 15/10/2026
+## Current state — 16/10/2026
 
-Owner-approved cutover/reset completed on 15/10/2026. The project now has exactly
-one Neon branch: **`production` (`br-tiny-butterfly-b3uuw92p`)**. Local runtime and
-the existing Cloudflare Worker use the same production DB/Auth; local writes are
-real production writes, not a sandbox.
+Neon branch **`production` (`br-tiny-butterfly-b3uuw92p`)** is the production
+database and local `.env.local` target. Local writes are real production writes,
+not a sandbox. The noindex stage2 Worker uses separate branch
+**`lgc-bot-test` (`br-wispy-morning-b33h15x4`)** for form/bot tests. It was forked
+from production after the reset. Neon Auth and media remain shared with production.
 
-Application schemas `leasing` and `row_audit` were reset, then the baseline and
-migrations **001–009** were applied. The approved catalog has **6 floors / 81
-slots**; old customer/lease/request/lead/appointment business records are gone.
+`legrandecentre.vn` currently resolves to Vercel. This repository's Cloudflare
+deploy command targets only the stage2 Worker; the Vercel project and its runtime
+database configuration are not linked/verified here.
+
+Production and `lgc-bot-test` both have baseline+migrations **001–010**.
+Migration `010-lead-reference-codes.sql` was applied and verified on production;
+the stage2 Worker remains connected to the test branch.
+
+Application schemas `leasing` and `row_audit` were reset; baseline+migrations
+**001–009** were applied during reset, then migration **010** was applied during
+the current production preparation. The approved catalog has **6 floors / 81
+slots**; no real customer/lease/request/lead/appointment data was seeded.
 The root allowlist and approved Neon logo were restored. Provider Auth/storage
 were preserved; only the root Auth user remains. Root sign-in returned HTTP 200.
-Old secondary/template Neon branches were deleted; no Neon test branch is needed.
 
 ### Reset recovery evidence
 
@@ -48,14 +57,15 @@ production-backed sign-in also reached the workspace, read six floors/81 slots,
 survived reload and ended in API 401 after logout. Those earlier observations do
 not verify mail delivery/recovery or the current private-media Worker path.
 
-The existing Worker is
-`https://le-grande-centre-stage2.nguyenbang-skyone.workers.dev`. Its `stage2` suffix
-is a historical hosting identifier, **not another Neon branch**. Private cache R2
-`le-grande-centre-stage2-next-cache` and D1 `le-grande-centre-stage2-next-tags` retain
-the same historical suffix. Private PDFs now use `mall-documents`. The Worker is
-deployed with the single production backend and remains noindex; custom-domain/DNS
-cutover is deferred. Verified cache invalidation and remaining Worker CPU-limit
-failures are recorded in [readiness](../docs/backend-readiness.md); prior versions are historical.
+The noindex Worker is
+`https://le-grande-centre-stage2.nguyenbang-skyone.workers.dev`; it uses isolated
+`lgc-bot-test`. Neon Auth and media remain production services. The live custom
+domain is still served by Vercel; no Vercel deployment from this repository has
+been made. The Cloudflare `npm run deploy` command updates stage2 only. Private
+cache R2 `le-grande-centre-stage2-next-cache` and D1
+`le-grande-centre-stage2-next-tags` retain the hosting suffix. Private PDFs remain
+in `mall-documents`. Verified cache invalidation and remaining Worker CPU-limit
+failures are in [readiness](../docs/backend-readiness.md).
 
 ## Operator configuration and migration
 
