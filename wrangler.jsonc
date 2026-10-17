@@ -1,12 +1,15 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "le-grande-centre-stage2",
-  "main": ".open-next/worker.js",
+  "main": "cloudflare-worker.mjs",
   "compatibility_date": "2026-10-13",
   "compatibility_flags": [
     "nodejs_compat",
     "global_fetch_strictly_public"
   ],
+  "triggers": {
+    "crons": ["* * * * *"]
+  },
   "workers_dev": true,
   "placement": {
     "region": "aws:ap-southeast-1"

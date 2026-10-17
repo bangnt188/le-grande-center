@@ -1,11 +1,11 @@
 # Database PostgreSQL / Neon
 
 `schema.sql` remains the authoritative relational baseline; reviewed migrations
-`001-live-workspace.sql` through `011-metadata-only-leases.sql` evolve it.
+`001-live-workspace.sql` through `012-contact-notification-outbox.sql` evolve it.
 There is no opaque stored workspace snapshot or browser persistence fallback.
 Runtime composition lives in `src/server/{database,workspace,public,public-data}.ts` and `media/`.
 
-## Current state — 16/10/2026
+## Current state — 17/10/2026
 
 Neon branch **`production` (`br-tiny-butterfly-b3uuw92p`)** is the production
 database and local `.env.local` target. Local writes are real production writes,
@@ -17,17 +17,20 @@ from production after the reset. Neon Auth and media remain shared with producti
 deploy command targets only the stage2 Worker; the Vercel project and its runtime
 database configuration are not linked/verified here.
 
-Production and `lgc-bot-test` both have baseline+migrations **001–010**.
-Migration `010-lead-reference-codes.sql` was applied and verified on production;
-the stage2 Worker remains connected to the test branch.
+Production and `lgc-bot-test` both have baseline+migrations **001–012**.
+Parent verified that the production Neon endpoint matches the canonical local
+`DATABASE_URL_UNPOOLED`, then applied only reviewed 011+012 SQL and migration
+checksums transactionally with the normal advisory lock; no seed/backfill/reset.
+The same migrations were applied to the verified stage2 test branch.
+This does not establish which DB the currently deployed Vercel app uses.
 
-Source now includes **011-metadata-only-leases.sql**, tested only on owned
-disposable PostgreSQL during the admin latency implementation. It has **not**
-been applied to either live branch by this implementation. Apply it to the
-intended runtime DB before deploying the new application; build/deploy does not
-run migrations. It replaces the mandatory contract-document predicate with
-recorded lease metadata, retaining inventory/period/exclusivity rules and old
-private document links. No database/storage reset or historical file deletion.
+`011-metadata-only-leases.sql` replaces the mandatory contract-document
+predicate with recorded lease metadata, retaining inventory/period/exclusivity
+rules and old private document links. `012-contact-notification-outbox.sql`
+adds a durable RLS-protected source outbox for newly committed contacts only.
+Apply both before releasing this application to any other runtime DB; build/deploy
+does not migrate. See [notification architecture](../docs/notification-architecture.md)
+for cron, keys and the separate Render DB. No historical lead replay or file deletion.
 
 Application schemas `leasing` and `row_audit` were reset; baseline+migrations
 **001–009** were applied during reset, then migration **010** was applied during
@@ -87,7 +90,7 @@ the pooled variable.
 npm run dev -- --port 3000
 # After a standalone build:
 npm start
-# Reviewed operator action against the one production DB:
+# Review the verified canonical DB target before this operator action:
 npm run db:migrate
 # Set ROOT_ADMIN_PASSWORD privately in .env.local before this operator action:
 npm run auth:set-password -- root@legrandecentre.vn
@@ -138,14 +141,24 @@ not registered. Existing metadata that differs from verified bytes/hash is rejec
 - Diagram coordinates are labelled brochure references, not surveyed polygons.
   Same-row rectangular boundaries are source-labelled connections, not permission
   to remove walls; gaps/irregular outdoor geometry are not invented connections.
-- Rental recording means a recorded PDF file, not eSign/signature certification.
-  Financial fields stay unknown/null unless supplied. Replacement appends a version
-  and retains previous linked bytes.
+- Rental recording uses actor/time/company/space/period metadata; original contracts
+  are stored internally outside this app. No mandatory PDF, eSign or signature
+  certification. Historical private document links/bytes remain retained.
 - PDF starts quarantine. Authorized **external manual review** records reviewer,
   time/note/seal; `scan_state` stays pending, no antivirus-clean claim. Byte signature
   checks are not antivirus. Retention/lease/plan links and selected logo block delete.
-- Public contact commits lead/intake/cooldown/idempotency/audit, not a fabricated
-  company, hold, booking or confirmed appointment.
+- Public contact commits lead/intake/cooldown/idempotency/audit **and source outbox**
+  together, not a fabricated company, hold, booking or confirmed appointment.
+- `leasing.contact_notification_outbox` is website-owned; the bot registry/queue
+  lives in a separate Neon DB. Render never receives website DB credentials.
+  `public:intake` can enqueue; only `system:notification-dispatch` reads/updates
+  source rows through RLS. Existing receipts are not backfilled.
+- Dispatcher claims up to five rows with 180-second leases/`SKIP LOCKED`, closes
+  transactions before network, and retries the generated stable
+  `contact:<intake-id>:zalo` key after failures/lost ACK. Only valid HTTP200/202
+  `queued`/`sending`/`sent` receipts set `forwarded_at`/`remote_id` and clear payload.
+  Source delay grows 30 seconds–1 hour. Forwarded means Render durably accepted,
+  not all recipients delivered; provider ACK/crash retries are at-least-once.
 
 ## Owned disposable local PostgreSQL regression
 
@@ -171,7 +184,9 @@ create/clone/delete Neon branches, require Neon CLI/project permissions, load th
 production `.env.local`, or touch a running database service. Do not run
 `tests/live-workspace.test.ts` manually against a live workspace.
 
-Observed after the cutover: owned local PostgreSQL regression **2/2 passed**.
-Historical pure/application/shared checks and Worker media limits are recorded in
-[readiness](../docs/backend-readiness.md); they are not new verification from this
-documentation update.
+Latest parent-observed owned local PostgreSQL regression: **5 passed**; website
+admin suite **51 passed / 2 skipped**, typecheck and Next/OpenNext builds passed.
+These checks used controlled fixtures/owned DBs, not live production delivery;
+this documentation update ran no checks. Historical checks and Worker media limits
+remain in [readiness](../docs/backend-readiness.md). Vercel runtime DB/deployment
+and production contact-to-group acceptance remain separate launch gates.

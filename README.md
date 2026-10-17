@@ -9,9 +9,9 @@ Source: https://github.com/bangnt188/le-grande-center.git, nhánh làm việc `d
 - `/admin/` đăng nhập **Neon Auth thật**, email phải verified và có staff allowlist/assignment active trong DB. Provider + quyền được kiểm tra khi mint cookie ký số **15 phút** (`HttpOnly/Secure`); API thông thường chỉ verify cookie cục bộ. Hết cache chỉ renew khi người dùng thao tác; managed session còn hiệu lực thì không nhập mật khẩu lại. Không timer/poll/focus refresh, không demo auth hoặc IndexedDB fallback.
 - Neon PostgreSQL là nguồn dữ liệu nghiệp vụ. Command chạy transaction với runtime role/RLS, property lock, revision CAS, idempotency receipt và business audit; không persist hoặc truyền aggregate workspace snapshot. Shell admin không đọc DB, từng màn tải endpoint riêng.
 - Public SSR và `/api/public/website` dùng projection DB đã lọc. Không trả tenant/customer/contact nội bộ, hold expiry, điều khoản hợp đồng hoặc tài liệu private. DB lỗi không seed/chuyển sang fixture.
-- Form dùng `@mall/ui/forms` live → `POST /api/contact`; chỉ báo nhận sau commit lead/intake. Đề nghị tham quan **không phải booking** và không tự tạo lịch hẹn đã xác nhận.
+- Form dùng `@mall/ui/forms` live → `POST /api/contact`; chỉ báo nhận sau transaction commit lead/intake **và durable notification outbox**. Đề nghị tham quan **không phải booking** và không tự tạo lịch hẹn đã xác nhận. Cron chuyển tiếp tới Render; form không chờ provider/cold start.
 
-**`legrandecentre.vn` hiện do Vercel phục vụ.** Cloudflare Worker stage2 của repo dùng Neon `lgc-bot-test`; Neon `production` là DB production và đã có migration 010. `npm run deploy` chỉ cập nhật stage2 Worker, không deploy domain Vercel. Vercel CLI/dashboard hiện chưa đăng nhập nên source trong repo chưa được đẩy lên domain; cấu hình DB runtime hiện tại của Vercel chưa xác minh.
+**`legrandecentre.vn` hiện do Vercel phục vụ.** Cloudflare Worker stage2 của repo dùng Neon `lgc-bot-test`; local `.env.local` dùng Neon `production`. Parent đã áp dụng migrations001–012 trên cả hai DB, không seed/backfill lead. `npm run deploy` chỉ cập nhật stage2 Worker, không deploy domain Vercel. Vercel đang chờ operator đăng nhập/deploy; cấu hình DB runtime hiện tại của Vercel chưa xác minh, chưa có proof notification production.
 
 ## Chạy local với cloud thật
 
@@ -25,7 +25,7 @@ npm ci
 npm run dev -- --port 3000
 ```
 
-Operator cấu hình duy nhất **`.env.local`** (gitignored), trỏ tới Neon branch `production` (`br-tiny-butterfly-b3uuw92p`). Local và Worker hiện có dùng chung DB/Auth; thao tác local là thao tác dữ liệu thật, không phải sandbox. `npm run dev`, `npm start`, `npm run db:migrate` và `npm run auth:set-password` nạp `.env.local` qua `scripts/load-local-env.mjs`, ghi đè các biến cùng tên còn sót từ shell. Không dùng nhiều profile hoặc Node `--env-file` để spawn Next dev.
+Operator cấu hình duy nhất **`.env.local`** (gitignored), trỏ tới Neon branch `production` (`br-tiny-butterfly-b3uuw92p`). Local ghi dữ liệu production thật, không phải sandbox; Worker stage2 dùng DB `lgc-bot-test` riêng nhưng Auth/media vẫn dùng services production. `npm run dev`, `npm start`, `npm run db:migrate` và `npm run auth:set-password` nạp `.env.local` qua `scripts/load-local-env.mjs`, ghi đè các biến cùng tên còn sót từ shell. Không dùng nhiều profile hoặc Node `--env-file` để spawn Next dev.
 
 Mở `http://localhost:3000/admin/`. Private PDF dùng `mall-documents`, public catalog dùng `mall-assets`; bindings Wrangler `remote: true` thao tác R2 thật cả khi dev. Xem [cấu hình Neon và secrets](docs/neon-setup.md), [readiness và bằng chứng runtime](docs/backend-readiness.md).
 
@@ -44,13 +44,13 @@ npm run build:cloudflare
 
 `scripts/build-cloudflare.mjs` tạm giấu các envfile chuẩn `.env*` mà OpenNext có thể nhúng vào bundle, rồi khôi phục trong `finally`. Dùng script này thay gọi trực tiếp OpenNext build. `scripts/public-build-env.mjs` chỉ sao chép các trường public DTO và gắn content hash để không dùng lại dữ liệu của build trước khi nội dung đổi. Snapshot chỉ được đọc trong production-build phase; runtime vẫn cần `DATABASE_URL`, không fallback vào snapshot build. DB/auth/media/API secrets được cấp riêng ở Worker runtime; không đưa secrets vào `NEXT_PUBLIC_*`, Git hoặc artifact.
 
-Deployment duy nhất:
+Deployment Cloudflare stage2 (không phải Vercel production):
 
 ```sh
 npm run deploy
 ```
 
-Lệnh build OpenNext rồi deploy cùng artifact tới Worker hiện có `https://le-grande-centre-stage2.nguyenbang-skyone.workers.dev`; không có deploy alias theo môi trường. Wrangler chỉ có một root config. Private cache R2 `le-grande-centre-stage2-next-cache`, D1 `le-grande-centre-stage2-next-tags` và tên Worker giữ hậu tố lịch sử `stage2`; chúng không đại diện nhánh Neon hay môi trường DB thứ hai. Cache không authoritative cho admin/auth hoặc intake. Worker giữ noindex; không đổi DNS.
+Lệnh build OpenNext rồi deploy cùng artifact tới Worker hiện có `https://le-grande-centre-stage2.nguyenbang-skyone.workers.dev`; không có deploy alias theo môi trường. Wrangler chỉ có một root config; Worker stage2 dùng Neon `lgc-bot-test`, tách khỏi DB `production` của local. Auth/media vẫn là services production. Private cache R2 `le-grande-centre-stage2-next-cache`, D1 `le-grande-centre-stage2-next-tags` và tên Worker giữ hậu tố `stage2`. Cache không authoritative cho admin/auth hoặc intake. Worker giữ noindex; không đổi DNS.
 
 `readPublicWebsite()` chia sẻ projection giữa layout/metadata/page trong request và cache dữ liệu thành công với revalidation 60 giây. Root public dùng ISR 60 giây; `/mat-bang/[unitId]` trả `generateStaticParams: []` để render/cache từng căn theo yêu cầu. OpenNext cache interception trả HTML/RSC từ private R2/regional cache trước React SSR, luôn kiểm D1 tags; giữ phân biệt HTML, RSC và segment prefetch. Admin/auth/private APIs vẫn dynamic/no-store; `/api/auth/*` có HTTP `private, no-store` rõ ràng.
 
@@ -81,7 +81,7 @@ npm run smoke:public -- http://localhost:3000/
 
 Trang `/admin/` dùng email + mật khẩu qua Neon Auth; không Google OAuth. Trong mục **Cấu hình → Tài khoản nhân viên**, Administrator cấp email và vai trò **Administrator** hoặc **Editor**. Nhân viên tự tạo mật khẩu và xác minh email; signup không tự cấp quyền. Editor không được quản lý tài khoản hoặc cấu hình hệ thống ở server. Root giữ allowlist riêng và không xuất hiện trong danh sách nhân viên. Mutation yêu cầu cùng origin. Đổi/thu hồi quyền có thể trễ tối đa **15 phút** do signed cookie cache; không cam kết immediate remote revoke.
 
-Ngày 15/10/2026, owner đã duyệt reset application DB và hợp nhất còn duy nhất Neon branch `production`. `leasing`/`row_audit` được reset rồi áp dụng baseline+migrations `001`–`009`: giữ catalog approved 6 tầng/81 căn, root allowlist và approved Neon logo, không còn dữ liệu nghiệp vụ khách hàng/thuê/lead/lịch hẹn cũ. Provider Auth/storage được giữ; Auth chỉ còn root. Local và Worker cùng dùng production; root login đã quan sát HTTP 200. Snapshot trước reset và private backup được ghi tại [database guide](database/README.md). Không chạy migration từ build/deploy; custom-domain/DNS chưa cutover.
+Ngày 15/10/2026, owner đã duyệt reset application DB: baseline+migrations `001`–`009` giữ catalog approved 6 tầng/81 căn, root allowlist và approved Neon logo; không còn dữ liệu nghiệp vụ khách hàng/thuê/lead/lịch hẹn cũ. Provider Auth/storage được giữ; Auth chỉ còn root. Sau đó tạo `lgc-bot-test` riêng cho stage2. Hiện cả DB `production` và `lgc-bot-test` đã có migrations001–012; không backfill notification cho lead cũ. Root login từng quan sát HTTP 200, không chứng minh Vercel hiện dùng DB nào. Snapshot trước reset và private backup được ghi tại [database guide](database/README.md). Không chạy migration từ build/deploy; domain hiện vẫn Vercel.
 
 Admin quản lý tầng/mặt bằng, doanh nghiệp, lead, yêu cầu/giữ chỗ, hồ sơ thuê, lịch hẹn và media. Lịch hẹn tách khỏi giữ chỗ. **Ghi nhận thuê không bắt upload PDF**: hợp đồng gốc lưu nội bộ; hệ thống lưu reference/note, actor/time/company/space/period thật, không eSign hay tự xác nhận chữ ký. Migration011 phải áp dụng trước release ứng dụng mới; lease mới không cần document link, lịch sử/file private cũ giữ nguyên. Generic media PDF vẫn có review/retention riêng.
 
@@ -92,6 +92,18 @@ Sidebar chỉ có **Doanh nghiệp**, không mục Khách đang thuê/Hợp đ�
 Cấu hình website lưu DB và public đọc projection, không giới hạn cùng browser/origin. Public projection không chứa workspace riêng tư. Form contact kiểm tra consent/server fields, JSON tối đa 16 KiB, origin, UUID idempotency và rate limit DB với HMAC IP; cần proxy đáng tin cho `cf-connecting-ip`. Không có Turnstile hoặc cam kết chống abuse toàn diện.
 
 Chi tiết: [backend structure](docs/backend-structure.md), [portability](docs/database-portability.md), [B2B design](docs/b2b-leasing-design.md), [ADR](docs/adr/0001-b2b-leasing-and-private-documents.md). Các tài liệu thiết kế lịch sử không thay trạng thái runtime hiện tại trong readiness.
+
+## Notification lead → nhiều nhóm Zalo
+
+Đọc [kiến trúc và launch checklist](docs/notification-architecture.md) và [AGENT.md](AGENT.md). Website và bot **không dùng chung DB**: website giữ lead + `leasing.contact_notification_outbox`; Render giữ registry/key hash, recipient snapshot và queue riêng.
+
+- `NOTIFICATIONS_URL` là **full endpoint** `https://zalo-render-bot.onrender.com/v1/notifications`, không phải service origin `baseUrl` của SDK. `NOTIFICATIONS_API_KEY` chỉ ở server; key finite do operator bot issue/rotate, không đưa vào form/browser/group.
+- Chủ bot issue origin trước, rồi `/init https://legrandecentre.vn/` trong từng nhóm; mặc định3 nhóm/site, cap cấu hình1–100, bind lặp idempotent. Private non-owner chỉ nhận `Liên hệ chủ sở hữu để mở khóa tính năng`, không AI/quota.
+- `POST /api/contact` commit lead/intake/outbox cùng transaction, trả success sau commit, không chờ Render. Cron mỗi phút dispatch với key `contact:<intake-id>:zalo`; retry/lost ACK giữ source payload. Chỉ HTTP200/202 receipt hợp lệ mới đánh dấu forwarded và xóa source payload. Render tự retry từng recipient, xóa payload sau mọi provider ACK; **at-least-once**, có duplicate trong cửa sổ provider ACK/DB crash, không exactly-once.
+- `POST /api/internal/notifications/dispatch/` dùng Bearer **`NOTIFICATION_DISPATCH_SECRET` riêng ≥32 ký tự**, không website key/webhook secret. Local cần scheduler/manual protected call; Next dev không tự chạy cron. Cloudflare wrapper chạy cron `* * * * *` qua self-binding cho DB stage2.
+- Optional `NOTIFICATION_PRODUCTION_DISPATCH_URL` cho phép cùng cron gọi HTTPS endpoint production với cùng dedicated dispatch secret (timeout130s, không redirect). Chỉ cấu hình sau khi Vercel đã deploy route, cài secret trùng và xác minh DB runtime; để trống hiện tại, không coi stage2 cron là đang chuyển lead production.
+- Migrations011+012 đã áp dụng trên hai DB đã xác minh; source/build và kết quả test không chứng minh domain Vercel đã chạy code mới. Chưa có end-to-end production claim. Gmail API OAuth được bot hỗ trợ nhưng cần credentials thật và người nhận riêng, website contact hiện chỉ enqueue Zalo.
+
 
 ## Media và storage
 

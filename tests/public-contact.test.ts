@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { parseContactInput } from "../src/server/contact-input";
 import { createContactSubmitter } from "../src/features/contact/submit-contact";
-import { notifySurveyOwner } from "../src/server/zalo-survey-notification";
+import { authorizeNotificationDispatch } from "../src/server/contact-notifications";
+import { POST as dispatch } from "../src/app/api/internal/notifications/dispatch/route";
 
 const callback = { intent: "callback", name: "Nguyễn Văn A", phone: "0973879563", company: "", email: "", business: "", area: "", timing: "", space: "A.1", note: "", consent: true, unitId: "A.1", scope: "single" };
 test("public intake validates consent, bounds, visit dates and strips untrusted privileges", () => {
@@ -30,25 +31,21 @@ test("network retries reuse receipt keys, accepted submissions start a new recei
     assert.notEqual(keys[1], keys[2]);
   } finally { globalThis.fetch = original; }
 });
-test("survey notification sends the new lead code and customer details to the owner", async () => {
-  const token = process.env.LE_GRANDE_ZALO_BOT_TOKEN, ownerId = process.env.LE_GRANDE_ZALO_OWNER_ID, original = globalThis.fetch;
-  const sent: { url: string; body: Record<string, unknown> }[] = [];
-  process.env.LE_GRANDE_ZALO_BOT_TOKEN = "test-token";
-  process.env.LE_GRANDE_ZALO_OWNER_ID = "owner-id";
-  globalThis.fetch = async (url, init) => { sent.push({ url: String(url), body: JSON.parse(String(init?.body)) }); return Response.json({ ok: true, result: {} }); };
+
+test("dispatch denies absent, wrong and unconfigured dedicated secrets before database access", async () => {
+  const previous = process.env.NOTIFICATION_DISPATCH_SECRET;
   try {
-    await notifySurveyOwner({ referenceCode: "LGC-00001", name: "Nguyễn Văn A", phone: "0973879563", intent: "visit" });
-    assert.equal(sent.length, 1);
-    assert.equal(sent[0].url, "https://bot-api.zaloplatforms.com/bottest-token/sendMessage");
-    assert.equal(sent[0].body.chat_id, "owner-id");
-    const text = String(sent[0].body.text);
-    assert.match(text, /LGC-00001/);
-    assert.match(text, /Nguyễn Văn A/);
-    assert.match(text, /0973879563/);
-    assert.match(text, /Tham quan/);
+    process.env.NOTIFICATION_DISPATCH_SECRET = "dispatch-test-".repeat(4);
+    const request = (value?: string) => new Request("https://example.test/api/internal/notifications/dispatch", { method: "POST", headers: value ? { Authorization: value } : {} });
+    for (const value of [undefined, "Bearer wrong", "Bearer " + "x".repeat(600)]) {
+      assert.equal(authorizeNotificationDispatch(request(value)), false);
+      assert.equal((await dispatch(request(value))).status, 401);
+    }
+    assert.equal(authorizeNotificationDispatch(request(`Bearer ${process.env.NOTIFICATION_DISPATCH_SECRET}`)), true);
+    delete process.env.NOTIFICATION_DISPATCH_SECRET;
+    assert.equal((await dispatch(request())).status, 401);
   } finally {
-    globalThis.fetch = original;
-    if (token === undefined) delete process.env.LE_GRANDE_ZALO_BOT_TOKEN; else process.env.LE_GRANDE_ZALO_BOT_TOKEN = token;
-    if (ownerId === undefined) delete process.env.LE_GRANDE_ZALO_OWNER_ID; else process.env.LE_GRANDE_ZALO_OWNER_ID = ownerId;
+    if (previous === undefined) delete process.env.NOTIFICATION_DISPATCH_SECRET; else process.env.NOTIFICATION_DISPATCH_SECRET = previous;
   }
 });
+

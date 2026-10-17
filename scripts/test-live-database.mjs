@@ -49,6 +49,7 @@ async function runRegression() {
     sha256: "67294e15a323245234b9d7fe1876f0757910b0b277f9d28ccf2fd1afdd71c24a",
   });
   await runChild([...childArguments, "--test", "tests/live-workspace.test.ts"], { ...process.env, APPROVED_LOGO_URL: publicUrl });
+  await runChild([...childArguments, "--test", "tests/contact-outbox.test.ts"], { ...process.env, APPROVED_LOGO_URL: publicUrl });
 }
 
 async function availablePort() {
