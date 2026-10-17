@@ -36,24 +36,30 @@ export async function dispatchContactNotifications(): Promise<{ claimed: number;
     FROM due WHERE o.intake_id=due.intake_id RETURNING o.intake_id,o.request_key,o.payload,o.attempts,o.lease_token`, [token])).rows);
   const forwarded = await Promise.all(rows.map(async row => {
     let remoteId: string | null = null;
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}`, "Idempotency-Key": row.request_key },
-        body: JSON.stringify({ channel: "zalo", text: row.payload }),
-        signal: AbortSignal.timeout(120_000),
-        redirect: "manual",
-      });
-      if (response.status !== 200 && response.status !== 202) { await response.body?.cancel(); throw new Error("Notification not accepted"); }
-      const receipt: unknown = await response.json();
-      if (!receipt || typeof receipt !== "object" || !("id" in receipt) || typeof receipt.id !== "string" || !receipt.id || receipt.id.length > 128
-        || !("channel" in receipt) || receipt.channel !== "zalo" || !("status" in receipt) || typeof receipt.status !== "string" || !["queued", "sending", "sent"].includes(receipt.status)
-        || !("createdAt" in receipt) || typeof receipt.createdAt !== "string" || !Number.isFinite(Date.parse(receipt.createdAt))
-        || !("sentAt" in receipt) || (receipt.sentAt !== null && (typeof receipt.sentAt !== "string" || !Number.isFinite(Date.parse(receipt.sentAt))))) throw new Error("Invalid notification receipt");
-      remoteId = receipt.id;
-    } catch {
-      // Keep source payload for every failure, including unlinked groups, expired keys and uncertain ACKs.
-      // The same request key makes a retry safe even if Render committed before the response was lost.
+    for (let attempt = 0; attempt < 3 && remoteId === null; attempt++) {
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}`, "Idempotency-Key": row.request_key },
+          body: JSON.stringify({ channel: "zalo", text: row.payload }),
+          signal: AbortSignal.timeout(40_000),
+          redirect: "manual",
+        });
+        if (response.status !== 200 && response.status !== 202) { await response.body?.cancel(); throw new Error("Notification not accepted"); }
+        const receipt: unknown = await response.json();
+        if (!receipt || typeof receipt !== "object" || !("id" in receipt) || typeof receipt.id !== "string" || !receipt.id || receipt.id.length > 128
+          || !("channel" in receipt) || receipt.channel !== "zalo" || !("status" in receipt) || typeof receipt.status !== "string" || !["queued", "sending", "sent"].includes(receipt.status)
+          || !("createdAt" in receipt) || typeof receipt.createdAt !== "string" || !Number.isFinite(Date.parse(receipt.createdAt))
+          || !("sentAt" in receipt) || (receipt.sentAt !== null && (typeof receipt.sentAt !== "string" || !Number.isFinite(Date.parse(receipt.sentAt))))) throw new Error("Invalid notification receipt");
+        remoteId = receipt.id;
+      } catch {
+        // Three bounded attempts reuse the exact payload/key; losing every ACK never drops the source row.
+        if (attempt < 2) {
+          const pause = Promise.withResolvers<void>();
+          setTimeout(pause.resolve, 250 * (attempt + 1));
+          await pause.promise;
+        }
+      }
     }
     return withTransaction(actor, async client => {
       if (remoteId) {

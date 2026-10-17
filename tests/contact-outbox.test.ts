@@ -17,9 +17,10 @@ test("contact outbox commits atomically, retries durable receipts, fences overla
   const idempotencyKey = crypto.randomUUID(), ipHash = "a".repeat(64), actor = "system:notification-dispatch";
   const seen: { key: string; text: string }[] = [];
   const accepted = new Map<string, string>();
-  let mode: "hold" | "lost-ack" | "accept" | "invalid" | "unknown" | "failure" | "redirect" = "failure";
+  let mode: "hold" | "lost-ack" | "accept" | "invalid" | "unknown" | "failure" | "redirect" | "flaky" = "failure";
   let failureStatus = 409;
   let redirected = 0;
+  let failuresLeft = 0;
   let release: (() => void) | undefined;
   let incoming: (() => void) | undefined;
   const arrived = new Promise<void>(resolve => { incoming = resolve; });
@@ -41,6 +42,7 @@ test("contact outbox commits atomically, retries durable receipts, fences overla
     assert.equal(body.text.includes(input.note), false);
     seen.push({ key, text: body.text });
     if (mode === "hold") { incoming?.(); await new Promise<void>(resolve => { release = resolve; }); }
+    if (mode === "flaky" && failuresLeft-- > 0) { response.writeHead(503); response.end("{}"); return; }
     if (mode === "redirect") { response.writeHead(302, { Location: "/redirect-recipient" }); response.end(); return; }
     if (mode === "failure") { response.writeHead(failureStatus); response.end('{"error":"website_unlinked"}'); return; }
     if (mode === "invalid") { response.writeHead(200, { "Content-Type": "application/json" }); response.end('{"ok":true}'); return; }
@@ -97,7 +99,9 @@ test("contact outbox commits atomically, retries durable receipts, fences overla
       mode = typeof failure === "number" ? "failure" : failure;
       if (typeof failure === "number") failureStatus = failure;
       await withTransaction(actor, client => client.query("UPDATE leasing.contact_notification_outbox SET available_at=now() WHERE intake_id=$1", [intake.id]));
+      const beforeAttempts: number = seen.length;
       assert.deepEqual(await dispatchContactNotifications(), { claimed: 1, forwarded: 0 });
+      assert.equal(seen.length - beforeAttempts, 3, "each failed batch makes exactly three stable-key attempts");
       await withTransaction(actor, async client => {
         const row = (await client.query("SELECT * FROM leasing.contact_notification_outbox WHERE intake_id=$1", [intake.id])).rows[0];
         assert.equal(row.forwarded_at, null); assert.ok(row.payload); assert.equal(row.lease_token, null); assert.ok(new Date(row.available_at).getTime() > Date.now());
@@ -125,8 +129,10 @@ test("contact outbox commits atomically, retries durable receipts, fences overla
       // Simulate an abandoned process claim: the next scheduled run must recover it.
       await client.query("UPDATE leasing.contact_notification_outbox SET forwarded_at=NULL,payload=$2,remote_id=NULL,lease_token=$3,lease_until=now()-interval '1 second',available_at=now() WHERE intake_id=$1", [intake.id, seen[0].text, crypto.randomUUID()]);
     });
-    mode = "accept";
+    mode = "flaky"; failuresLeft = 2;
+    const beforeRecoveryAttempts = seen.length;
     assert.deepEqual(await dispatchContactNotifications(), { claimed: 1, forwarded: 1 });
+    assert.equal(seen.length - beforeRecoveryAttempts, 3, "third attempt transfers the same durable event");
     assert.equal(new Set(seen.map(row => row.key)).size, 1);
     assert.equal(new Set(seen.map(row => row.text)).size, 1);
     assert.equal(accepted.size, 1, "uncertain HTTP ACK retries reuse the remote receipt");

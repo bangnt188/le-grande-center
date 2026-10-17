@@ -1,6 +1,10 @@
 # Lead notifications: durable website → Render → Zalo groups
 
 [README](../README.md) · [Database guide](../database/README.md) · [Agent invariants](../AGENT.md)
+## Hosting correction from owner
+
+The owner explicitly confirmed this project is **not deployed on Vercel**. Do not request Vercel login, deploy there, or infer deployment ownership from an HTTP server header. This rollout targets the existing Cloudflare Worker and Render bot only. Older hosting notes elsewhere are not authoritative over this clarification.
+
 
 ## Data ownership and invariant
 
@@ -18,7 +22,7 @@ Notification text includes Le Grande Centre, lead reference, name, phone and int
 ## Two durable hand-offs
 
 1. Source outbox migration `012-contact-notification-outbox.sql` generates key **`contact:<intake-id>:zalo`**. RLS allows `public:intake` to enqueue and only `system:notification-dispatch` to read/update. The lead remains business data after notification payload is cleared.
-2. `dispatchContactNotifications` claims at most five due rows with `SKIP LOCKED` and a **180-second lease**, closes every DB transaction before network I/O, then sends concurrently with a 120-second timeout and no redirects. Failures schedule exponential source delay **30 seconds–1 hour**; the scheduler controls the actual retry cadence.
+2. `dispatchContactNotifications` claims at most five due rows with `SKIP LOCKED` and a **180-second lease**, closes transactions before network, then sends concurrently. Each batch makes **up to3 attempts**, each bounded40seconds, with250/500ms pauses and the same payload/key. A valid receipt stops retrying immediately. All3 failed attempts retain the source row and schedule exponential source delay **30seconds–1hour** for the next cron batch. HTTP redirects are never followed (`manual`, non200/202 rejected); this is compatible with Cloudflare.
 3. Render authenticates the finite website key, validates payload and persists event plus **all currently linked recipient groups** atomically before HTTP202. No provider send is required before acceptance. New group links do not retroactively change a snapshot.
 4. Source accepts only a valid HTTP200/202 JSON receipt with channel `zalo`, state `queued`/`sending`/`sent`, ID and timestamps. It then sets `forwarded_at`/`remote_id` and clears source payload. This is transfer of durable responsibility, not delivery proof. Lost ACK, timeout, malformed receipt, DB error, unlinked groups or rejected credentials retain the source row for retry with **the same key and payload**.
 5. Render retries each unsent recipient with **60-second leases** and exponential **5–300 second** backoff, without retrying already ACKed recipients. Recovery runs at startup, on enqueue, on deadlines, every five seconds while the process is running, and on HTTP/health traffic. Independent bot/notification processor locks use direct PostgreSQL sessions.
@@ -26,11 +30,33 @@ Notification text includes Le Grande Centre, lead reference, name, phone and int
 
 **At-least-once, not exactly-once:** a provider can accept a message before a crash/timeout prevents storing ACK, so a retry may duplicate that recipient. `sent` means provider ACK, not read or inbox delivery. If a destination stays broken, its payload stays pending; fix credentials/membership/provider access rather than dropping the outbox.
 
-Render Free can sleep. Website durable rows survive its cold start and later wake/retry, but timers do not keep Render awake and no immediate-delivery SLA is claimed. Zalo `/init`/chat webhooks are best-effort **until the webhook actually reaches Render and inbox commits**; provider cold-start timeout before that point depends on Zalo retry and is not rescued by the website outbox.
+Render Free can sleep. Website source outbox survives cold start and retries. Zalo chat uses the separate Cloudflare durable webhook ingress (`edge/worker.js` in bot repo): authenticate, persist SQLite inbox, ACK Zalo without waiting for Render, then alarm-forward with120second timeout and persistent retries. Payload clears only after Render confirms inbox acceptance; Render then processes the chat. This prevents the first chat being lost merely because Render was waking. Cold-start reply latency remains; no instant/SLA guarantee.
 
 ## Operator: issue credentials and link groups
 
-From the **bot repo** `zalo-bot/render-relay`, using its private `.env.local` pointing to the bot DB:
+### Owner PRIVATE chat
+
+These are the source contract for the new `/site` tools, **not a claim that those commands are deployed/live-tested**. First configure `BOT_OWNER_USER_ID` and bot token on Render; the configured owner opens a **PRIVATE** conversation with the bot. No aliases; all `/site` commands bypass AI/quota and are denied in GROUP, even when sent by owner.
+
+| Command in owner's PRIVATE chat | Result |
+| --- | --- |
+| `/site issue https://legrandecentre.vn 3 5` | New key valid for **3 calendar months**, cap **5 groups**; name defaults to canonical origin |
+| `/site rotate https://legrandecentre.vn 6` | New key valid for **6 calendar months from now**, not an extension of old expiry; old key invalid immediately |
+| `/site limit https://legrandecentre.vn 10` | Set cap to 10; cannot go below linked group count |
+| `/site revoke https://legrandecentre.vn` | Block new authentication/group bindings |
+| `/site info https://legrandecentre.vn` | Metadata/expiry/group count and cap; no plaintext key |
+| `/site list [page]` | Metadata for **3 sites/page**, default1; positive integer only, e.g. `/site list 2` |
+| `/site help` | Exact syntax, no credential values |
+
+Issue requires `URL MONTHS GROUP_CAP`; rotate requires `URL MONTHS`, without chat defaults. Months are integers **1–120**, added as **UTC calendar months**, preserving UTC time and clamping to the last valid day: Jan31 +1month → Feb28/29. Caps are integers **1–100**; registry/CLI default is **3**, while the chat example explicitly chooses 5. Duplicate issue fails; rotate existing credentials instead.
+
+Only **private owner credential delivery** may contain a new key. No automatic end-user DM: owner installs it in the user's website backend through a private handoff, never terminal/stdout/stderr/log/group/form/browser. Update `NOTIFICATIONS_API_KEY` on **every intended website runtime** immediately after rotate; rotation preserves site/groups/history and re-enables a revoked site. Revoke/expiry do not cancel already accepted deliveries.
+
+Credential change + durable owner-only notification enqueue commit atomically; missing owner PRIVATE chat/storage failure rolls back. `/site` mutation also commits the current inbox row's safe metadata reply and `ready` receipt, with in-transaction status re-check: a crash after commit/replay of the same inbox message does not issue/rotate again. No provider network before queue commit. Registry stores SHA-256/prefix; plaintext stays only in the pending owner-delivery queue until provider ACK, then payload is cleared. Never put a key in normal `messages.reply`, prompt or chat memory. No public enrollment or environment recipient list.
+
+### Compatible operator CLI
+
+From the **bot repo** `zalo-bot/render-relay`, using private `.env.local` for the bot DB:
 
 ```sh
 node --env-file=.env.local scripts/website.mjs issue --origin https://legrandecentre.vn --name "Le Grande Centre" --max-groups 3 --expires-days 90
@@ -39,9 +65,9 @@ node --env-file=.env.local scripts/website.mjs limit --origin https://legrandece
 node --env-file=.env.local scripts/website.mjs revoke --origin https://legrandecentre.vn
 ```
 
-These are separate operator actions, not a launch script to run all four. `issue` requires origin/name, accepts optional `--gmail-to owner@example.com`; max groups defaults3/range1–100, expiry defaults90days/range1–3650. Issue fails for an already issued origin. **Issue/rotate print plaintext key once**: capture privately into website secret storage, never public/group/CI logs. Bot DB stores only SHA-256 digest/prefix. Rotation immediately invalidates old key, preserves site/groups/history and re-enables a revoked site; install the replacement in website runtime. Revoke/expiry block new auth and bindings, not already accepted deliveries. No public enrollment or environment JSON recipient list.
+These are separate operator actions, not a launch script. CLI issue requires origin/name, accepts optional fixed `--gmail-to`; cap defaults3/range1–100. CLI `--expires-days` remains **days**, default90/range1–3650, unlike `/site` calendar months. Issue/rotate use the same atomic owner PRIVATE delivery, print metadata/receipt only and call `/health` via configured `RENDER_EXTERNAL_URL` to wake the queue.
 
-Origin is a canonical HTTPS origin: optional final `/`, no path/query/hash/credentials/non443 port; `www` is not silently removed. No remote URL fetch/domain-ownership check substitutes for explicit operator approval.
+Origin is a canonical HTTPS origin: optional final `/`, no path/query/hash/credentials/non443 port; `www` is not silently removed. No remote URL fetch/domain-ownership check substitutes for explicit owner approval.
 
 With bot in a group and `BOT_OWNER_USER_ID` correctly configured, **owner** sends:
 
@@ -60,13 +86,12 @@ Repeat in each intended group. Registry must already exist and be active/unexpir
 | `NOTIFICATIONS_URL` | **Full** `https://zalo-render-bot.onrender.com/v1/notifications` endpoint, no query/hash/credentials |
 | `NOTIFICATIONS_API_KEY` | Current unexpired website key from private operator issue/rotate |
 | `NOTIFICATION_DISPATCH_SECRET` | Dedicated random secret ≥32 characters, distinct from website key, contact rate secret and webhook secret |
-| `NOTIFICATION_PRODUCTION_DISPATCH_URL` | Optional **Cloudflare scheduler** HTTPS production `/api/internal/notifications/dispatch/` target; leave empty until production route/DB/secrets are verified |
 
 The generic `@suntech/notifications` SDK takes **service-origin `baseUrl`** (`https://zalo-render-bot.onrender.com`), not this website's full `NOTIFICATIONS_URL`. Le Grande uses native fetch, not the SDK; SDK has no automatic retries and cannot replace a transactional source outbox.
 
 `POST /api/internal/notifications/dispatch/` requires `Authorization: Bearer <NOTIFICATION_DISPATCH_SECRET>`, denies missing/wrong/unconfigured secrets with401 before DB access, and is no-store. Response `{claimed,forwarded}` reports source work, not provider delivery; 503 indicates dispatcher setup/storage failure. Never expose this secret in browser or use the website API key as dispatch authorization.
 
-- **Cloudflare stage2:** `wrangler.jsonc` has cron `* * * * *`, main `cloudflare-worker.mjs`, self-binding `WORKER_SELF_REFERENCE`. Wrapper preserves OpenNext fetch/durable exports and scheduled handler uses `ctx.waitUntil` to POST the protected route through the binding; the binding invokes normal request-local env/context. Install the notification endpoint/key/dispatch secret in stage2 runtime (for example `npx wrangler secret put NOTIFICATIONS_API_KEY` and `npx wrangler secret put NOTIFICATION_DISPATCH_SECRET`; endpoint can also be a runtime secret). `npm run deploy` builds/deploys **stage2 only**, not Vercel. Cron uses the stage2 `lgc-bot-test` DB; no process-local fire-and-forget dispatch.
+- **Cloudflare:** `wrangler.jsonc` cron `* * * * *`, main `cloudflare-worker.mjs`, self-binding `WORKER_SELF_REFERENCE`. The scheduled handler POSTs the protected route in normal OpenNext request-local context. Configure endpoint/key/dispatchsecret in Worker secrets. The deployed Worker uses `lgc-bot-test`; build/deploy does not migrate DB. No unrequested Vercel deployment or external production scheduler target.
 - **Local Node:** Next dev/start has no automatic cron. After configuring `.env.local`, call the protected route from a real local scheduler/operator, using the secret without printing it. Example with variables privately loaded into the scheduler environment:
 
   ```sh
@@ -74,7 +99,6 @@ The generic `@suntech/notifications` SDK takes **service-origin `baseUrl`** (`ht
     -H "Authorization: Bearer $NOTIFICATION_DISPATCH_SECRET"
   ```
 
-- **Optional Vercel production dispatch:** after Vercel deploys the route and has the matching dedicated secret/notification env and verified production DB, set `NOTIFICATION_PRODUCTION_DISPATCH_URL=https://legrandecentre.vn/api/internal/notifications/dispatch/` on Cloudflare runtime. Cron still always dispatches stage2 via self-binding and additionally POSTs production with the **same dedicated dispatch secret**, HTTPS validation, no redirects, 130-second timeout. This avoids depending on a Vercel paid one-minute cron. Use the final canonical URL: redirects are rejected. Cloudflare gains permission to dispatch production, not its DB credentials. Do not configure this target before the production route exists; stage2-only success does not prove production forwarding.
 
 If a scheduler stops entirely, source rows remain durable but do not dispatch until an authenticated invocation resumes. A cron configuration in source is not proof its deployed handler runs.
 
@@ -84,11 +108,11 @@ The bot service additionally supports `channel:gmail`, a fixed recipient registe
 
 ## Hosting state and required launch steps
 
-- `legrandecentre.vn` currently runs **Vercel**; repository `npm run deploy` targets `https://le-grande-centre-stage2.nguyenbang-skyone.workers.dev` only. Vercel authentication/deployment is still pending, and its current runtime DB mapping is unverified. Do not call the domain cut over from a Cloudflare deploy.
+- Owner confirms no Vercel deployment for this project. The configured release target is `https://le-grande-centre-stage2.nguyenbang-skyone.workers.dev`. Do not infer current source/runtime DB for a different host from DNS/headers. Deployment of this Worker does not itself change custom-domain routing.
 - Canonical local `.env.local` points at Neon `production` (`br-tiny-butterfly-b3uuw92p`); local writes are real. Stage2 runtime uses isolated `lgc-bot-test` (`br-wispy-morning-b33h15x4`), while Auth/media remain production services.
-- Parent verified both website DB targets and applied **011+012**, with normal advisory lock/checksum recording, no seed/backfill. Both now have migrations001–012. Render uses dedicated `zalo-render-bot` Neon project `lingering-breeze-11185155`, migration0003 applied. A migration does not establish new source is live.
+- Both verified website DB targets received **011+012**, with checksum recording and no seed/backfill; both now have migrations001–012. Render uses dedicated `zalo-render-bot` Neon project `lingering-breeze-11185155`, migration0003 applied. A migration does not establish new source is live.
 
-Before declaring launch: (1) confirm deployed bot commit/health/auth and registry; (2) owner-bind intended groups; (3) install website finite key, full endpoint and dedicated dispatch secret on each intended runtime; (4) confirm exact DB schema/branch and deploy website code on that host; (5) verify actual one-minute scheduler; (6) send approved synthetic contact and observe committed source row → valid durable Render ACK → all intended group provider ACKs and payload cleanup. Enable optional production cron only after Vercel route + matching secret exist. Test failures below, not just health. No production delivery claim is made by this document.
+Before declaring launch: confirm live bot/edge commit and webhook probe, owner-bind intended groups, install website endpoint/key/dispatchsecret, verify Worker DB and scheduler, then observe synthetic contact → committed source row → Render durable ACK → every intended group provider ACK and payload cleanup. Group selection still requires owner `/init`; do not bind an arbitrary historical group.
 
 ## Acceptance and observed verification
 
@@ -100,6 +124,9 @@ Before declaring launch: (1) confirm deployed bot commit/health/auth and registr
 | Repeated init / concurrent groups at cap | No duplicate binding, cap never exceeded, repeat succeeds at cap |
 | Cross-website group binding | Conflict, no reassignment |
 | Non-owner private text/image/command | Exact locked reply; no model/quota; cannot bind group |
+| Owner `/site` in GROUP | Denied, no mutation/key/AI/quota even for owner |
+| Month-end issue / early rotate | UTC calendar clamp/time preserved; new expiry from now, old key invalid immediately |
+| Crash after `/site` mutation commit before reply | Same inbox receipt resumes without a second issue/rotate; durable owner queue survives |
 | Wrong/expired/revoked key | Render401; source payload retained; corrected/rotated credential resumes same key |
 | Lost ACK after Render commit | Same event returned on retry; no second fan-out snapshot |
 | Changed payload with same business key | Render409, no second event |
@@ -108,10 +135,10 @@ Before declaring launch: (1) confirm deployed bot commit/health/auth and registr
 | All provider ACKs | Render payload cleared; source forwarded payload already cleared; metadata kept |
 | New group or historical lead | No retroactive event replay/backfill |
 | Missing/wrong dispatch secret | 401 before DB; no public dispatch |
-| Wrong host/deploy | Stage2 proof does not count as Vercel/domain proof |
+| Wrong host/deploy | Verify configured Cloudflare target and its DB; do not deploy Vercel |
 
-Parent has observed website admin **51 passed / 2 skipped**, owned disposable PostgreSQL **5 passed**, typecheck and Next/OpenNext builds passed; full bot suite passed after an HTTP assertion fix. This documentation worker ran no tests/builds. Fixture/provider checks are not real production delivery; no live-production or Gmail-live claim follows from those results.
+Observed website admin **51 passed / 2 skipped**, owned disposable PostgreSQL **5 passed**, typecheck and Next/OpenNext builds passed; all39 bot tests passed, including private owner key issue/rotate and rollback/no-terminal-leak checks. Fixture checks are not real production website-to-group or Gmail delivery proof.
 
-Parent also exercised the actual Next dev dispatch route in an isolated local process against the verified canonical production Neon target: wrong dispatch secret returned401; valid secret returned200 `{claimed:0,forwarded:0}`. No production lead was created by this check. This proves route authorization/empty DB dispatch locally, not Vercel deployment or provider delivery.
+Actual Next dev dispatch was exercised locally against canonical production Neon: wrong secret401, valid200 `{claimed:0,forwarded:0}`; no production lead was created. Actual Cloudflare Worker returned401/200 for the same auth cases. A synthetic stage2 contact returned201 while no groups were linked; source payload remained pending, and deployed one-minute cron increased attempts without dropping it.
 
-The internal Next dispatch route sets native `maxDuration=180` so the deployed function can allow the bounded120-second Render cold-start request (subject to the host plan's limits). This does not extend or delay the public contact request; the optional production cron target remains unconfigured until Vercel is ready.
+The internal dispatch route retains native `maxDuration=180` for compatible Node hosts. Public contact never waits for the three bounded attempts. Owner-chat tools and webhook ingress release proof belong in the bot architecture; source docs alone do not prove deployment.

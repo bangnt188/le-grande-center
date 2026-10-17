@@ -11,7 +11,7 @@ Source: https://github.com/bangnt188/le-grande-center.git, nhánh làm việc `d
 - Public SSR và `/api/public/website` dùng projection DB đã lọc. Không trả tenant/customer/contact nội bộ, hold expiry, điều khoản hợp đồng hoặc tài liệu private. DB lỗi không seed/chuyển sang fixture.
 - Form dùng `@mall/ui/forms` live → `POST /api/contact`; chỉ báo nhận sau transaction commit lead/intake **và durable notification outbox**. Đề nghị tham quan **không phải booking** và không tự tạo lịch hẹn đã xác nhận. Cron chuyển tiếp tới Render; form không chờ provider/cold start.
 
-**`legrandecentre.vn` hiện do Vercel phục vụ.** Cloudflare Worker stage2 của repo dùng Neon `lgc-bot-test`; local `.env.local` dùng Neon `production`. Parent đã áp dụng migrations001–012 trên cả hai DB, không seed/backfill lead. `npm run deploy` chỉ cập nhật stage2 Worker, không deploy domain Vercel. Vercel đang chờ operator đăng nhập/deploy; cấu hình DB runtime hiện tại của Vercel chưa xác minh, chưa có proof notification production.
+**Owner xác nhận dự án không triển khai trên Vercel.** Không dùng HTTP header để suy ra deployment. Release này chỉ dùng Cloudflare Worker hiện có + Render bot. Worker dùng Neon `lgc-bot-test`; local `.env.local` dùng Neon `production`; cả hai đã có migrations001–012, không seed/backfill lead. `npm run deploy` cập nhật Worker, không tự đổi DNS/custom domain.
 
 ## Chạy local với cloud thật
 
@@ -44,7 +44,7 @@ npm run build:cloudflare
 
 `scripts/build-cloudflare.mjs` tạm giấu các envfile chuẩn `.env*` mà OpenNext có thể nhúng vào bundle, rồi khôi phục trong `finally`. Dùng script này thay gọi trực tiếp OpenNext build. `scripts/public-build-env.mjs` chỉ sao chép các trường public DTO và gắn content hash để không dùng lại dữ liệu của build trước khi nội dung đổi. Snapshot chỉ được đọc trong production-build phase; runtime vẫn cần `DATABASE_URL`, không fallback vào snapshot build. DB/auth/media/API secrets được cấp riêng ở Worker runtime; không đưa secrets vào `NEXT_PUBLIC_*`, Git hoặc artifact.
 
-Deployment Cloudflare stage2 (không phải Vercel production):
+Deployment Cloudflare Worker:
 
 ```sh
 npm run deploy
@@ -97,12 +97,15 @@ Chi tiết: [backend structure](docs/backend-structure.md), [portability](docs/d
 
 Đọc [kiến trúc và launch checklist](docs/notification-architecture.md) và [AGENT.md](AGENT.md). Website và bot **không dùng chung DB**: website giữ lead + `leasing.contact_notification_outbox`; Render giữ registry/key hash, recipient snapshot và queue riêng.
 
-- `NOTIFICATIONS_URL` là **full endpoint** `https://zalo-render-bot.onrender.com/v1/notifications`, không phải service origin `baseUrl` của SDK. `NOTIFICATIONS_API_KEY` chỉ ở server; key finite do operator bot issue/rotate, không đưa vào form/browser/group.
-- Chủ bot issue origin trước, rồi `/init https://legrandecentre.vn/` trong từng nhóm; mặc định3 nhóm/site, cap cấu hình1–100, bind lặp idempotent. Private non-owner chỉ nhận `Liên hệ chủ sở hữu để mở khóa tính năng`, không AI/quota.
+- `NOTIFICATIONS_URL` là **full endpoint** `https://zalo-render-bot.onrender.com/v1/notifications`, không phải service origin `baseUrl` của SDK. `NOTIFICATIONS_API_KEY` chỉ ở server. Key mới chỉ được giao qua **PRIVATE owner**, không tự DM người dùng cuối; owner cài/chuyển riêng cho backend, không in key ra terminal/log hoặc đưa vào form/browser/group/help/metadata.
+- Trong **PRIVATE của chủ bot**, `/site issue https://legrandecentre.vn 3 5` cấp key **3 tháng**, cap **5 nhóm**; `/site rotate https://legrandecentre.vn 6` cấp key **6 tháng từ lúc rotate**, vô hiệu key cũ ngay. Owner phải cập nhật backend secret trên mọi runtime website. Xem [bảng đủ issue/rotate/limit/revoke/info/list/help](docs/notification-architecture.md#owner-private-chat); list3 website/trang, `/site list 2` xem trang2. Chưa có xác nhận deploy/smoke live cho `/site`.
+- Chat bắt buộc tháng1–120, cap1–100; tháng lịch UTC giữ giờ, clamp cuối tháng (31/01 +1tháng → 28/02 hoặc29/02), không cộng vào expiry cũ. CLI vẫn dùng `--expires-days` mặc định90 ngày/range1–3650; registry/CLI cap mặc định3.
+- Issue/rotate + durable owner notification commit cùng transaction; mutation `/site` còn lưu receipt `ready`/reply metadata an toàn để crash/replay cùng inbox message không cấp/rotate lần nữa. Key không lưu normal reply/prompt/chat memory, chỉ plaintext pending queue giao owner và xóa sau provider ACK; không network trước commit.
+- Issue xong, chủ bot gửi `/init https://legrandecentre.vn/` trong từng **GROUP**; `/init` chỉ trong nhóm, `/site` chỉ PRIVATE (GROUP bị từ chối cả với owner), đều không AI/quota. Bind lặp idempotent; private non-owner chỉ nhận đúng `Liên hệ chủ sở hữu để mở khóa tính năng`, không AI/tools/quota/context.
 - `POST /api/contact` commit lead/intake/outbox cùng transaction, trả success sau commit, không chờ Render. Cron mỗi phút dispatch với key `contact:<intake-id>:zalo`; retry/lost ACK giữ source payload. Chỉ HTTP200/202 receipt hợp lệ mới đánh dấu forwarded và xóa source payload. Render tự retry từng recipient, xóa payload sau mọi provider ACK; **at-least-once**, có duplicate trong cửa sổ provider ACK/DB crash, không exactly-once.
 - `POST /api/internal/notifications/dispatch/` dùng Bearer **`NOTIFICATION_DISPATCH_SECRET` riêng ≥32 ký tự**, không website key/webhook secret. Local cần scheduler/manual protected call; Next dev không tự chạy cron. Cloudflare wrapper chạy cron `* * * * *` qua self-binding cho DB stage2.
-- Optional `NOTIFICATION_PRODUCTION_DISPATCH_URL` cho phép cùng cron gọi HTTPS endpoint production với cùng dedicated dispatch secret (timeout130s, không redirect). Chỉ cấu hình sau khi Vercel đã deploy route, cài secret trùng và xác minh DB runtime; để trống hiện tại, không coi stage2 cron là đang chuyển lead production.
-- Migrations011+012 đã áp dụng trên hai DB đã xác minh; source/build và kết quả test không chứng minh domain Vercel đã chạy code mới. Chưa có end-to-end production claim. Gmail API OAuth được bot hỗ trợ nhưng cần credentials thật và người nhận riêng, website contact hiện chỉ enqueue Zalo.
+- Mỗi đợt dispatch tự thử **tối đa3 lần**, timeout40giây/lần, cùng key/payload; ACK hợp lệ thì dừng. Cả3 lỗi vẫn giữ outbox để cron thử đợt sau, không bỏ lead. Không followredirect; dùng `manual` phù hợp Cloudflare.
+- Migrations011+012 đã áp dụng hai DB đã xác minh. Gmail service cần OAuth thật/người nhận riêng; contact hiện enqueue Zalo. Không yêu cầu hoặc triển khai Vercel.
 
 
 ## Media và storage
