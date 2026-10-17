@@ -42,9 +42,9 @@ export async function dispatchContactNotifications(): Promise<{ claimed: number;
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}`, "Idempotency-Key": row.request_key },
         body: JSON.stringify({ channel: "zalo", text: row.payload }),
         signal: AbortSignal.timeout(120_000),
-        redirect: "error",
+        redirect: "manual",
       });
-      if (response.status !== 200 && response.status !== 202) throw new Error("Notification not accepted");
+      if (response.status !== 200 && response.status !== 202) { await response.body?.cancel(); throw new Error("Notification not accepted"); }
       const receipt: unknown = await response.json();
       if (!receipt || typeof receipt !== "object" || !("id" in receipt) || typeof receipt.id !== "string" || !receipt.id || receipt.id.length > 128
         || !("channel" in receipt) || receipt.channel !== "zalo" || !("status" in receipt) || typeof receipt.status !== "string" || !["queued", "sending", "sent"].includes(receipt.status)

@@ -17,12 +17,19 @@ test("contact outbox commits atomically, retries durable receipts, fences overla
   const idempotencyKey = crypto.randomUUID(), ipHash = "a".repeat(64), actor = "system:notification-dispatch";
   const seen: { key: string; text: string }[] = [];
   const accepted = new Map<string, string>();
-  let mode: "hold" | "lost-ack" | "accept" | "invalid" | "unknown" | "failure" = "failure";
+  let mode: "hold" | "lost-ack" | "accept" | "invalid" | "unknown" | "failure" | "redirect" = "failure";
   let failureStatus = 409;
+  let redirected = 0;
   let release: (() => void) | undefined;
   let incoming: (() => void) | undefined;
   const arrived = new Promise<void>(resolve => { incoming = resolve; });
   const server = createServer(async (request, response) => {
+    if (request.url === "/redirect-recipient") {
+      redirected++; request.resume();
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ id: crypto.randomUUID(), channel: "zalo", status: "queued", createdAt: new Date().toISOString(), sentAt: null }));
+      return;
+    }
     const chunks: Buffer[] = [];
     for await (const chunk of request) chunks.push(Buffer.from(chunk));
     const body = JSON.parse(Buffer.concat(chunks).toString());
@@ -34,6 +41,7 @@ test("contact outbox commits atomically, retries durable receipts, fences overla
     assert.equal(body.text.includes(input.note), false);
     seen.push({ key, text: body.text });
     if (mode === "hold") { incoming?.(); await new Promise<void>(resolve => { release = resolve; }); }
+    if (mode === "redirect") { response.writeHead(302, { Location: "/redirect-recipient" }); response.end(); return; }
     if (mode === "failure") { response.writeHead(failureStatus); response.end('{"error":"website_unlinked"}'); return; }
     if (mode === "invalid") { response.writeHead(200, { "Content-Type": "application/json" }); response.end('{"ok":true}'); return; }
     const remoteId = accepted.get(key) ?? crypto.randomUUID();
@@ -85,7 +93,7 @@ test("contact outbox commits atomically, retries durable receipts, fences overla
       assert.equal((await client.query("UPDATE leasing.contact_notification_outbox SET payload='tamper' WHERE intake_id=$1", [intake.id])).rowCount, 0);
     });
     // No failure or malformed ACK is allowed to erase the source event.
-    for (const failure of [409, 401, 503, "invalid", "unknown", "lost-ack"] as const) {
+    for (const failure of [409, 401, 503, "redirect", "invalid", "unknown", "lost-ack"] as const) {
       mode = typeof failure === "number" ? "failure" : failure;
       if (typeof failure === "number") failureStatus = failure;
       await withTransaction(actor, client => client.query("UPDATE leasing.contact_notification_outbox SET available_at=now() WHERE intake_id=$1", [intake.id]));
@@ -95,6 +103,7 @@ test("contact outbox commits atomically, retries durable receipts, fences overla
         assert.equal(row.forwarded_at, null); assert.ok(row.payload); assert.equal(row.lease_token, null); assert.ok(new Date(row.available_at).getTime() > Date.now());
       });
     }
+    assert.equal(redirected, 0, "never forward the website credential to a redirected endpoint");
     mode = "hold";
     await withTransaction(actor, client => client.query("UPDATE leasing.contact_notification_outbox SET available_at=now() WHERE intake_id=$1", [intake.id]));
     const running = dispatchContactNotifications();
